@@ -70,7 +70,7 @@ export default function PayrollProcessing() {
         .from('staff')
         .select(`
           *,
-          departments (
+          departments!staff_department_id_fkey (
             name
           )
         `)

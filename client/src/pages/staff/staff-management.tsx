@@ -37,7 +37,7 @@ export default function StaffManagement() {
         .from('staff')
         .select(`
           *,
-          departments (
+          departments!staff_department_id_fkey (
             id,
             name,
             code

@@ -41,7 +41,7 @@ export default function StaffPortal() {
         .from('staff')
         .select(`
           *,
-          departments (
+          departments!staff_department_id_fkey (
             name,
             code
           )

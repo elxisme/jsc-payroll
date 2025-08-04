@@ -60,7 +60,7 @@ export default function BankReports() {
             bank_name,
             account_number,
             account_name,
-            departments (
+            departments!staff_department_id_fkey (
               name,
               code
             )

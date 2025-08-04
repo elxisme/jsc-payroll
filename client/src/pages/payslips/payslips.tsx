@@ -41,7 +41,7 @@ export default function Payslips() {
             first_name,
             last_name,
             email,
-            departments (
+            departments!staff_department_id_fkey (
               name
             )
           )

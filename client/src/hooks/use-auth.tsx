@@ -66,7 +66,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           .from('staff')
           .select(`
             *,
-            departments (
+            departments!staff_department_id_fkey (
               id,
               name,
               code
