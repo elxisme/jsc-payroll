@@ -256,6 +256,23 @@ export function ResponsiveLayout({ children }: ResponsiveLayoutProps) {
           <div className="mx-auto max-w-7xl">
             {children}
           </div>
+          
+          {/* Global Footer */}
+          <footer className="mt-12 pt-8 border-t border-gray-200">
+            <div className="text-center">
+              <p className="text-gray-500" style={{ fontSize: '0.7em' }}>
+                JSC Payroll | Powered by{' '}
+                <a 
+                  href="https://elxis.com.ng" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-nigeria-green hover:text-green-700 underline"
+                >
+                  eLxis
+                </a>
+              </p>
+            </div>
+          </footer>
         </main>
       </div>
     </div>

@@ -72,6 +72,9 @@ export default function Departments() {
         `)
         .order('name');
 
+      // Debug logging to check what data is being returned
+      console.log('Departments query result:', { data, error });
+
       if (error) throw error;
       
       return (data || []).map(dept => ({
