@@ -31,14 +31,14 @@ interface ResponsiveLayoutProps {
 }
 
 const navigation = [
-  { name: 'Dashboard', href: '/dashboard', icon: Home },
-  { name: 'Staff Management', href: '/staff', icon: Users },
-  { name: 'Departments', href: '/departments', icon: Building2 },
-  { name: 'Payroll', href: '/payroll', icon: CreditCard },
-  { name: 'Payroll Workflow', href: '/payroll/workflow', icon: CreditCard },
-  { name: 'Payslips', href: '/payslips', icon: FileText },
-  { name: 'Reports', href: '/reports', icon: BarChart3 },
-  { name: 'Settings', href: '/settings', icon: Settings },
+  { name: 'Dashboard', href: '/dashboard', icon: Home, roles: ['super_admin', 'account_admin', 'payroll_admin', 'staff'] },
+  { name: 'Staff Management', href: '/staff', icon: Users, roles: ['super_admin'] },
+  { name: 'Departments', href: '/departments', icon: Building2, roles: ['super_admin', 'account_admin', 'payroll_admin'] },
+  { name: 'Payroll', href: '/payroll', icon: CreditCard, roles: ['super_admin', 'account_admin', 'payroll_admin'] },
+  { name: 'Payroll Workflow', href: '/payroll/workflow', icon: CreditCard, roles: ['super_admin', 'account_admin', 'payroll_admin'] },
+  { name: 'Payslips', href: '/payslips', icon: FileText, roles: ['super_admin', 'account_admin', 'payroll_admin', 'staff'] },
+  { name: 'Reports', href: '/reports', icon: BarChart3, roles: ['super_admin', 'account_admin'] },
+  { name: 'Settings', href: '/settings', icon: Settings, roles: ['super_admin'] },
 ];
 
 export function ResponsiveLayout({ children }: ResponsiveLayoutProps) {
@@ -51,7 +51,16 @@ export function ResponsiveLayout({ children }: ResponsiveLayoutProps) {
   };
 
   const isCurrentPath = (path: string) => {
-    return location === path || location.startsWith(path + '/');
+    // Exact match first
+    if (location === path) return true;
+    
+    // For sub-paths, ensure we don't match parent paths incorrectly
+    // e.g., /payroll/workflow should not highlight /payroll
+    if (path === '/') return location === '/';
+    
+    // Only match sub-paths if the current location starts with the path + '/'
+    // and the path is not a substring of another valid path
+    return location.startsWith(path + '/') && path !== '/payroll' && path !== '/staff';
   };
 
   const getUserInitials = () => {
@@ -67,6 +76,11 @@ export function ResponsiveLayout({ children }: ResponsiveLayoutProps) {
     }
     return user?.email || 'User';
   };
+
+  const { hasRole } = useAuth();
+
+  // Filter navigation items based on user role
+  const filteredNavigation = navigation.filter(item => hasRole(item.roles));
 
   const SidebarContent = ({ isMobile = false }: { isMobile?: boolean }) => (
     <div className="flex h-full flex-col">
@@ -85,7 +99,7 @@ export function ResponsiveLayout({ children }: ResponsiveLayoutProps) {
 
       {/* Navigation */}
       <nav className="flex-1 px-4 lg:px-6 py-4 space-y-1">
-        {navigation.map((item) => {
+        {filteredNavigation.map((item) => {
           const isActive = isCurrentPath(item.href);
           return (
             <Link key={item.name} href={item.href}>

@@ -6,6 +6,7 @@ import { AddStaffModal } from '@/pages/staff/add-staff-modal';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { useToast } from '@/hooks/use-toast';
 import { Link } from 'wouter';
 import {
   Users,
@@ -24,6 +25,7 @@ import {
 export default function Dashboard() {
   const { user, hasRole } = useAuth();
   const [showAddStaffModal, setShowAddStaffModal] = React.useState(false);
+  const { toast } = useToast();
 
   // Fetch dashboard statistics
   const { data: stats, isLoading: statsLoading } = useQuery({
