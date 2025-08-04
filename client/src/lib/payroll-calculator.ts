@@ -83,9 +83,10 @@ export async function getBasicSalaryFromDB(gradeLevel: number, step: number): Pr
     .single();
 
   if (error) {
-    console.warn(`No salary structure found for GL${gradeLevel} Step${step}, using fallback`);
+    console.warn(`No salary structure found for GL${gradeLevel} Step${step}, using fallback calculation`);
     // Fallback calculation if not found in database
-    return gradeLevel * 25000 + step * 5000;
+    const baseSalary = 30000 + (gradeLevel * 8000) + (step * 2000);
+    return baseSalary;
   }
 
   return parseFloat(data.basic_salary);

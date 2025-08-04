@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/table';
 import { generatePayslipPDF } from '@/lib/pdf-generator';
 import { useToast } from '@/hooks/use-toast';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { 
   Download, 
   Eye, 
@@ -320,7 +321,17 @@ export default function StaffPortal() {
                         </TableCell>
                         <TableCell>
                           <div className="flex space-x-2">
-                            <Button variant="ghost" size="sm">
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={() => {
+                                console.log('Viewing payslip:', payslip);
+                                toast({
+                                  title: "Payslip Details",
+                                  description: `Viewing payslip for ${formatPeriod(payslip.period)}`,
+                                });
+                              }}
+                            >
                               <Eye className="h-4 w-4" />
                             </Button>
                             <Button
@@ -358,21 +369,51 @@ export default function StaffPortal() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="h-48 bg-gradient-to-br from-blue-50 to-purple-50 rounded-lg flex items-center justify-center border-2 border-dashed border-gray-300">
-                <div className="text-center">
-                  <TrendingUp className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-                  <p className="text-gray-500 font-medium">Salary Trend Chart</p>
-                  <p className="text-xs text-gray-400 mt-1">
-                    Visual representation of your salary over time
-                  </p>
-                  {salaryTrends.length > 0 && (
-                    <div className="mt-4 text-sm text-gray-600">
-                      <p>Average: {formatCurrency(averageSalary)}</p>
-                      <p>Data points: {salaryTrends.length}</p>
-                    </div>
-                  )}
+              {salaryTrends.length > 0 ? (
+                <div className="h-64">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={salaryTrends}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis 
+                        dataKey="period" 
+                        tickFormatter={(value) => {
+                          const [year, month] = value.split('-');
+                          const date = new Date(parseInt(year), parseInt(month) - 1);
+                          return date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+                        }}
+                      />
+                      <YAxis 
+                        tickFormatter={(value) => `₦${(value / 1000).toFixed(0)}k`}
+                      />
+                      <Tooltip 
+                        formatter={(value: number) => [formatCurrency(value), 'Net Pay']}
+                        labelFormatter={(label) => formatPeriod(label)}
+                      />
+                      <Line 
+                        type="monotone" 
+                        dataKey="netPay" 
+                        stroke="var(--nigeria-green)" 
+                        strokeWidth={2}
+                        dot={{ fill: 'var(--nigeria-green)', strokeWidth: 2, r: 4 }}
+                        activeDot={{ r: 6, stroke: 'var(--nigeria-green)', strokeWidth: 2 }}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                  <div className="mt-4 text-center text-sm text-gray-600">
+                    <p>Average: {formatCurrency(averageSalary)} | Data points: {salaryTrends.length}</p>
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <div className="h-48 bg-gradient-to-br from-blue-50 to-purple-50 rounded-lg flex items-center justify-center border-2 border-dashed border-gray-300">
+                  <div className="text-center">
+                    <TrendingUp className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                    <p className="text-gray-500 font-medium">No Salary Data Available</p>
+                    <p className="text-xs text-gray-400 mt-1">
+                      Salary trends will appear here once payslips are generated
+                    </p>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>

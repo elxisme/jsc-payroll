@@ -10,6 +10,7 @@ import { Separator } from '@/components/ui/separator';
 import { AlertCircle, Calculator, CheckCircle, Clock, DollarSign, FileText, Play, Users } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { supabase } from '@/lib/supabase';
+import { calculateBulkPayroll, processPayrollRun } from '@/lib/payroll-calculator';
 import { useToast } from '@/hooks/use-toast';
 
 interface Staff {
@@ -135,7 +136,7 @@ export default function PayrollProcessing() {
         .insert({
           period: selectedPeriod,
           department_id: selectedDepartment === 'all' ? null : selectedDepartment,
-          status: 'processing',
+          status: 'draft',
           total_staff: filteredStaff.length,
         })
         .select()
@@ -143,9 +144,25 @@ export default function PayrollProcessing() {
 
       if (runError) throw runError;
 
+      // Prepare payroll inputs for calculation
+      const payrollInputs = filteredStaff.map(staffMember => ({
+        staffId: staffMember.id,
+        gradeLevel: staffMember.grade_level,
+        step: staffMember.step,
+        position: staffMember.position,
+        arrears: 0,
+        overtime: 0,
+        bonus: 0,
+        loans: 0,
+        cooperatives: 0,
+      }));
+
+      // Calculate payroll and create payslips
+      await processPayrollRun(payrollRun.id, selectedPeriod, payrollInputs);
+
       toast({
         title: "Success",
-        description: `Payroll processing started for ${filteredStaff.length} staff members.`,
+        description: `Payroll processed successfully for ${filteredStaff.length} staff members.`,
       });
 
       // Reload data to show the new payroll run
