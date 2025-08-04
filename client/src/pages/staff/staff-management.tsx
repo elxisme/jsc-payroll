@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
+import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -28,6 +29,10 @@ export default function StaffManagement() {
   const [departmentFilter, setDepartmentFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [selectedStaff, setSelectedStaff] = useState<any>(null);
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   // Fetch staff data
   const { data: staff, isLoading: staffLoading } = useQuery({
@@ -216,10 +221,31 @@ export default function StaffManagement() {
                     </TableCell>
                     <TableCell>
                       <div className="flex space-x-2">
-                        <Button variant="ghost" size="sm">
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => {
+                            console.log('Viewing staff:', member);
+                            toast({
+                              title: "Staff Details",
+                              description: `Viewing ${member.first_name} ${member.last_name} (${member.staff_id})`,
+                            });
+                          }}
+                        >
                           <Eye className="h-4 w-4" />
                         </Button>
-                        <Button variant="ghost" size="sm">
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => {
+                            setSelectedStaff(member);
+                            setShowEditModal(true);
+                            toast({
+                              title: "Coming Soon",
+                              description: "Staff editing functionality is under development",
+                            });
+                          }}
+                        >
                           <Edit className="h-4 w-4" />
                         </Button>
                       </div>
@@ -246,7 +272,11 @@ export default function StaffManagement() {
         onClose={() => setShowAddModal(false)}
         onSuccess={() => {
           setShowAddModal(false);
-          // Refetch staff data
+          queryClient.invalidateQueries({ queryKey: ['staff'] });
+          toast({
+            title: "Success",
+            description: "Staff member added successfully",
+          });
         }}
       />
     </div>

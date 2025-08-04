@@ -2,9 +2,11 @@ import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/use-auth';
 import { supabase } from '@/lib/supabase';
+import { AddStaffModal } from '@/pages/staff/add-staff-modal';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Link } from 'wouter';
 import {
   Users,
   DollarSign,
@@ -21,6 +23,7 @@ import {
 
 export default function Dashboard() {
   const { user, hasRole } = useAuth();
+  const [showAddStaffModal, setShowAddStaffModal] = React.useState(false);
 
   // Fetch dashboard statistics
   const { data: stats, isLoading: statsLoading } = useQuery({
@@ -229,9 +232,11 @@ export default function Dashboard() {
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <CardTitle>Recent Payroll Runs</CardTitle>
-                  <Button variant="ghost" size="sm" className="text-nigeria-green">
-                    View All
-                  </Button>
+                  <Link href="/payroll/workflow">
+                    <Button variant="ghost" size="sm" className="text-nigeria-green">
+                      View All
+                    </Button>
+                  </Link>
                 </div>
               </CardHeader>
               <CardContent>
@@ -301,6 +306,7 @@ export default function Dashboard() {
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <Button
+                    onClick={() => setShowAddStaffModal(true)}
                     variant="outline"
                     className="flex flex-col items-center p-6 h-auto border-dashed hover:border-nigeria-green hover:bg-green-50"
                   >
@@ -310,6 +316,10 @@ export default function Dashboard() {
                   </Button>
 
                   <Button
+                    onClick={() => toast({
+                      title: "Coming Soon",
+                      description: "Bulk import functionality is under development",
+                    })}
                     variant="outline"
                     className="flex flex-col items-center p-6 h-auto border-dashed hover:border-blue-500 hover:bg-blue-50"
                   >
@@ -319,6 +329,10 @@ export default function Dashboard() {
                   </Button>
 
                   <Button
+                    onClick={() => toast({
+                      title: "Coming Soon", 
+                      description: "Staff analytics report generation is under development",
+                    })}
                     variant="outline"
                     className="flex flex-col items-center p-6 h-auto border-dashed hover:border-purple-500 hover:bg-purple-50"
                   >
@@ -400,6 +414,19 @@ export default function Dashboard() {
           </Card>
         </div>
       </div>
+
+      {/* Add Staff Modal */}
+      <AddStaffModal
+        open={showAddStaffModal}
+        onClose={() => setShowAddStaffModal(false)}
+        onSuccess={() => {
+          setShowAddStaffModal(false);
+          toast({
+            title: "Success",
+            description: "Staff member added successfully",
+          });
+        }}
+      />
     </div>
   );
 }

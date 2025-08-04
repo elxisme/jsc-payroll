@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/use-auth';
 import { supabase } from '@/lib/supabase';
+import { generatePayslipPDF } from '@/lib/pdf-generator';
+import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -21,12 +23,22 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
 import { Search, Download, Eye, FileText, Calendar } from 'lucide-react';
 
 export default function Payslips() {
   const { user, hasRole } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
   const [periodFilter, setPeriodFilter] = useState('all');
+  const [selectedPayslip, setSelectedPayslip] = useState<any>(null);
+  const [showPayslipModal, setShowPayslipModal] = useState(false);
+  const { toast } = useToast();
 
   // Fetch payslips based on user role
   const { data: payslips, isLoading } = useQuery({
@@ -104,14 +116,41 @@ export default function Payslips() {
     return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long' });
   };
 
-  const handleDownloadPayslip = (payslipId: string) => {
-    // TODO: Implement PDF download
-    console.log('Download payslip:', payslipId);
+  const handleDownloadPayslip = async (payslip: any) => {
+    try {
+      // Fetch staff data for the payslip
+      const { data: staffData, error } = await supabase
+        .from('staff')
+        .select(`
+          *,
+          departments!staff_department_id_fkey (
+            name,
+            code
+          )
+        `)
+        .eq('id', payslip.staff_id)
+        .single();
+
+      if (error) throw error;
+
+      await generatePayslipPDF(payslip, staffData);
+      toast({
+        title: "Success",
+        description: "Payslip downloaded successfully",
+      });
+    } catch (error) {
+      console.error('Error downloading payslip:', error);
+      toast({
+        title: "Error",
+        description: "Failed to download payslip",
+        variant: "destructive",
+      });
+    }
   };
 
-  const handleViewPayslip = (payslipId: string) => {
-    // TODO: Implement payslip viewer modal
-    console.log('View payslip:', payslipId);
+  const handleViewPayslip = (payslip: any) => {
+    setSelectedPayslip(payslip);
+    setShowPayslipModal(true);
   };
 
   return (
@@ -252,14 +291,14 @@ export default function Payslips() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => handleViewPayslip(payslip.id)}
+                          onClick={() => handleViewPayslip(payslip)}
                         >
                           <Eye className="h-4 w-4" />
                         </Button>
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => handleDownloadPayslip(payslip.id)}
+                          onClick={() => handleDownloadPayslip(payslip)}
                           className="text-nigeria-green hover:text-green-700"
                         >
                           <Download className="h-4 w-4" />
@@ -285,6 +324,54 @@ export default function Payslips() {
           )}
         </CardContent>
       </Card>
+
+      {/* Payslip View Modal */}
+      {selectedPayslip && (
+        <Dialog open={showPayslipModal} onOpenChange={setShowPayslipModal}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Payslip Details</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-gray-600">Period</Label>
+                  <p className="font-medium">{formatPeriod(selectedPayslip.period)}</p>
+                </div>
+                <div>
+                  <Label className="text-gray-600">Staff</Label>
+                  <p className="font-medium">
+                    {selectedPayslip.staff?.first_name} {selectedPayslip.staff?.last_name}
+                  </p>
+                </div>
+                <div>
+                  <Label className="text-gray-600">Gross Pay</Label>
+                  <p className="font-medium">{formatCurrency(selectedPayslip.gross_pay || 0)}</p>
+                </div>
+                <div>
+                  <Label className="text-gray-600">Net Pay</Label>
+                  <p className="font-medium text-green-600">{formatCurrency(selectedPayslip.net_pay || 0)}</p>
+                </div>
+              </div>
+              <div className="flex justify-end space-x-2">
+                <Button variant="outline" onClick={() => setShowPayslipModal(false)}>
+                  Close
+                </Button>
+                <Button 
+                  onClick={() => {
+                    handleDownloadPayslip(selectedPayslip);
+                    setShowPayslipModal(false);
+                  }}
+                  className="bg-nigeria-green hover:bg-green-700"
+                >
+                  <Download className="mr-2 h-4 w-4" />
+                  Download PDF
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 }

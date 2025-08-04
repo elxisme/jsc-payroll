@@ -44,6 +44,8 @@ type DepartmentFormData = z.infer<typeof departmentSchema>;
 
 export default function Departments() {
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [selectedDepartment, setSelectedDepartment] = useState<any>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -320,7 +322,18 @@ export default function Departments() {
                     </TableCell>
                     <TableCell>
                       <div className="flex space-x-2">
-                        <Button variant="ghost" size="sm">
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => {
+                            setSelectedDepartment(dept);
+                            setShowEditModal(true);
+                            toast({
+                              title: "Coming Soon",
+                              description: "Department editing functionality is under development",
+                            });
+                          }}
+                        >
                           <Edit className="h-4 w-4" />
                         </Button>
                       </div>
