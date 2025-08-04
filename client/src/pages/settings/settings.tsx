@@ -145,38 +145,51 @@ export default function Settings() {
   });
 
   // Create user mutation
-  const createUserMutation = useMutation({
-    mutationFn: async (data: UserFormData) => {
-      const { data: user, error } = await supabase
-        .from('users')
-        .insert({
-          email: data.email,
-          password: data.password || 'defaultpassword123',
-          role: data.role,
-        })
-        .select()
-        .single();
+  // Create user mutation
+const createUserMutation = useMutation({
+  mutationFn: async (data: UserFormData) => {
+    // First, sign up the user with Supabase Auth
+    const { data: authData, error: authError } = await supabase.auth.signUp({
+      email: data.email,
+      password: data.password, // Use the password from the form
+    });
 
-      if (error) throw error;
-      return user;
-    },
-    onSuccess: () => {
-      toast({
-        title: 'Success',
-        description: 'User created successfully',
-      });
-      queryClient.invalidateQueries({ queryKey: ['users'] });
-      userForm.reset();
-      setShowAddUser(false);
-    },
-    onError: (error: any) => {
-      toast({
-        title: 'Error',
-        description: error.message || 'Failed to create user',
-        variant: 'destructive',
-      });
-    },
-  });
+    if (authError) throw authError;
+
+    if (!authData.user) {
+      throw new Error('User not returned after signup');
+    }
+
+    // The handle_new_user trigger will have created an entry in public.users
+    // Now, update the role for that user in public.users
+    const { data: updatedUser, error: updateError } = await supabase
+      .from('users')
+      .update({ role: data.role })
+      .eq('id', authData.user.id)
+      .select()
+      .single();
+
+    if (updateError) throw updateError;
+    return updatedUser;
+  },
+  onSuccess: () => {
+    toast({
+      title: 'Success',
+      description: 'User created successfully',
+    });
+    queryClient.invalidateQueries({ queryKey: ['users'] });
+    userForm.reset();
+    setShowAddUser(false);
+  },
+  onError: (error: any) => {
+    toast({
+      title: 'Error',
+      description: error.message || 'Failed to create user',
+      variant: 'destructive',
+    });
+  },
+});
+
 
   // Create salary structure mutation
   const createSalaryMutation = useMutation({
