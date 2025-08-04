@@ -1,0 +1,197 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: hsl(0, 0%, 100%);
+  --foreground: hsl(20, 14.3%, 4.1%);
+  --muted: hsl(60, 4.8%, 95.9%);
+  --muted-foreground: hsl(25, 5.3%, 44.7%);
+  --popover: hsl(0, 0%, 100%);
+  --popover-foreground: hsl(20, 14.3%, 4.1%);
+  --card: hsl(0, 0%, 100%);
+  --card-foreground: hsl(20, 14.3%, 4.1%);
+  --border: hsl(20, 5.9%, 90%);
+  --input: hsl(20, 5.9%, 90%);
+  --primary: hsl(207, 90%, 54%);
+  --primary-foreground: hsl(211, 100%, 99%);
+  --secondary: hsl(60, 4.8%, 95.9%);
+  --secondary-foreground: hsl(24, 9.8%, 10%);
+  --accent: hsl(60, 4.8%, 95.9%);
+  --accent-foreground: hsl(24, 9.8%, 10%);
+  --destructive: hsl(0, 84.2%, 60.2%);
+  --destructive-foreground: hsl(60, 9.1%, 97.8%);
+  --ring: hsl(20, 14.3%, 4.1%);
+  --radius: 0.5rem;
+  
+  /* Nigerian Government Colors */
+  --nigeria-green: hsl(151, 100%, 26%);
+  --gov-navy: hsl(221, 83%, 23%);
+  --gov-gray: hsl(215, 16%, 47%);
+}
+
+.dark {
+  --background: hsl(240, 10%, 3.9%);
+  --foreground: hsl(0, 0%, 98%);
+  --muted: hsl(240, 3.7%, 15.9%);
+  --muted-foreground: hsl(240, 5%, 64.9%);
+  --popover: hsl(240, 10%, 3.9%);
+  --popover-foreground: hsl(0, 0%, 98%);
+  --card: hsl(240, 10%, 3.9%);
+  --card-foreground: hsl(0, 0%, 98%);
+  --border: hsl(240, 3.7%, 15.9%);
+  --input: hsl(240, 3.7%, 15.9%);
+  --primary: hsl(207, 90%, 54%);
+  --primary-foreground: hsl(211, 100%, 99%);
+  --secondary: hsl(240, 3.7%, 15.9%);
+  --secondary-foreground: hsl(0, 0%, 98%);
+  --accent: hsl(240, 3.7%, 15.9%);
+  --accent-foreground: hsl(0, 0%, 98%);
+  --destructive: hsl(0, 62.8%, 30.6%);
+  --destructive-foreground: hsl(0, 0%, 98%);
+  --ring: hsl(240, 4.9%, 83.9%);
+  --radius: 0.5rem;
+  
+  /* Nigerian Government Colors - Dark Mode */
+  --nigeria-green: hsl(151, 80%, 35%);
+  --gov-navy: hsl(221, 70%, 35%);
+  --gov-gray: hsl(215, 20%, 60%);
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply font-sans antialiased bg-background text-foreground;
+    /* Prevent horizontal scroll on mobile */
+    overflow-x: hidden;
+  }
+
+  html {
+    /* Better scroll behavior */
+    scroll-behavior: smooth;
+    /* Prevent zooming on iOS when inputs are focused */
+    -webkit-text-size-adjust: 100%;
+  }
+
+  /* Improve touch targets on mobile */
+  button, 
+  input, 
+  select, 
+  textarea, 
+  a {
+    /* Minimum touch target size for mobile */
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* Better mobile text rendering */
+  body {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+@layer utilities {
+  /* Nigerian Government Brand Colors */
+  .bg-nigeria-green {
+    background-color: var(--nigeria-green);
+  }
+  
+  .text-nigeria-green {
+    color: var(--nigeria-green);
+  }
+  
+  .border-nigeria-green {
+    border-color: var(--nigeria-green);
+  }
+  
+  .bg-gov-navy {
+    background-color: var(--gov-navy);
+  }
+  
+  .text-gov-navy {
+    color: var(--gov-navy);
+  }
+  
+  .bg-gov-gray {
+    background-color: var(--gov-gray);
+  }
+  
+  .text-gov-gray {
+    color: var(--gov-gray);
+  }
+
+  /* Mobile-optimized responsive utilities */
+  .safe-area-inset-top {
+    padding-top: env(safe-area-inset-top);
+  }
+  
+  .safe-area-inset-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  /* Mobile sidebar utilities */
+  .mobile-sidebar-open {
+    transform: translateX(0);
+  }
+  
+  .mobile-sidebar-closed {
+    transform: translateX(-100%);
+  }
+
+  /* Responsive text sizing */
+  .text-responsive-sm {
+    @apply text-sm sm:text-base;
+  }
+  
+  .text-responsive-base {
+    @apply text-base sm:text-lg;
+  }
+  
+  .text-responsive-lg {
+    @apply text-lg sm:text-xl;
+  }
+  
+  .text-responsive-xl {
+    @apply text-xl sm:text-2xl;
+  }
+
+  /* Responsive padding/margin */
+  .p-responsive {
+    @apply p-4 sm:p-6 lg:p-8;
+  }
+  
+  .px-responsive {
+    @apply px-4 sm:px-6 lg:px-8;
+  }
+  
+  .py-responsive {
+    @apply py-4 sm:py-6 lg:py-8;
+  }
+
+  /* Grid responsive utilities */
+  .grid-responsive-2 {
+    @apply grid-cols-1 sm:grid-cols-2;
+  }
+  
+  .grid-responsive-3 {
+    @apply grid-cols-1 sm:grid-cols-2 lg:grid-cols-3;
+  }
+  
+  .grid-responsive-4 {
+    @apply grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4;
+  }
+
+  /* Card responsive sizing */
+  .card-responsive {
+    @apply w-full max-w-sm sm:max-w-md lg:max-w-lg;
+  }
+
+  /* Mobile-first button sizing */
+  .btn-mobile {
+    @apply px-4 py-2 text-sm sm:px-6 sm:py-3 sm:text-base;
+  }
+}

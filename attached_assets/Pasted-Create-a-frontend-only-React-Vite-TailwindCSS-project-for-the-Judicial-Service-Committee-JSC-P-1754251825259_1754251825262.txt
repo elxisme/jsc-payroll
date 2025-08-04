@@ -1,0 +1,110 @@
+Create a frontend-only React + Vite + TailwindCSS project for the Judicial Service Committee (JSC) Payroll Management System.
+
+The system should be structured as a modular and secure payroll app connected to Supabase (PostgreSQL + Auth), optimized for Nigerian public service workflows. Do not include a Node.js or Express backend.
+
+⚠️ Supabase Auth/Data Fetching Architecture (Critical)
+Follow these best practices to avoid infinite loops or failed sessions:
+
+Use a global useAuth() or useSession() hook to get the user after mount.
+
+Never fetch Supabase data directly in the component body.
+
+Wrap Supabase calls inside useEffect() gated by if (!loading && user).
+
+Dynamic routes (e.g., [id].tsx) must wait for route params before fetching.
+
+Use AuthGuard components to block rendering private routes until auth is ready.
+
+For role-based access, query user metadata or join user_roles.
+
+
+# Target Users:
+Government payroll staff, HR managers, finance/accounts personnel, and system administrators within JSC.
+
+# Core Roles:
+Super Admin – System-level access, final payroll approval, role assignments.
+Account Admin – Reviews and approves payment requests before disbursement.
+Payroll Admin – Creates and processes payroll, manages staff records within assigned departments or role-based scope.
+
+# Important Supabase Note:
+Avoid infinite loading loops when using Supabase auth or dynamic data. Use the following architectural guidance:
+
+Use a global useAuth() hook to safely get the session after mount.
+Never call Supabase data fetching directly in the component body.
+Gate all logic behind if (!loading && user) inside useEffect().
+All private pages should use an AuthGuard to block render until auth session is loaded.
+Dynamic pages (e.g., [id]) must wait for route params to exist before triggering data fetch.
+Avoid SSR with Supabase unless session is passed securely to the server.
+Implement role checks through client-side metadata or Supabase user_roles joins.
+--- # Modules & Feature Requirements 
+
+ ## 1. User Authentication & Authorization
+Secure login/logout using Supabase Auth
+Role-based access control with scoped permissions
+Two-Factor Authentication (optional)
+Session timeout, token refresh, audit log on login/logout
+
+## 2. Organizational Structure (Departments)
+Create, update, and delete departments
+Assign department heads
+Track staff count per department
+Filterable and searchable views
+
+## 3. Staff Information Management
+Full staff profiles (personal, employment, banking, pension, next of kin)
+Auto-generate unique staff IDs (e.g., JSC/2025/00001)
+Attach to departments, grade levels, steps
+Status management: active, on-leave, retired, terminated
+Upload and manage documents (certificates, appointment letters)
+Secure audit trail for changes
+
+## 4. Salary Structure & Payroll Logic
+Support CONJUSS salary grid (GL 01–17, Step 1–15)
+Calculate:
+Basic salary
+Allowances: housing, transport, medical, leave, responsibility, hazard
+Deductions: PAYE, Pension, NHF, Insurance, Union dues, Loans, Cooperatives
+Handle:
+Arrears
+Prorated salaries
+Overtime & bonus entries
+Role-based workflow:
+Payroll Admin drafts → Account Admin approves → Super Admin finalizes
+
+## 5. Payslip Management
+Generate payslips as branded PDFs
+View, download, and print payslips
+Bulk generation by department or month
+Secure access control: staff see only their own payslips
+
+## 6. Bank Reports & Payment Processing
+Export bank transfer/Payment schedule CSV/Excel for Nigerian Banks.
+Bank reconciliation support
+Include staff name, account number, bank code, amount
+Report for auditing
+
+## 7. Staff Self-Service Portal
+Secure login
+View profile summary
+Download payslip history
+View salary trends (charts/graphs)
+Request profile updates (subject to admin approval)
+
+## 8. Notification & Alert Center
+Admin dashboard notifications:
+Pending approvals
+Staff document uploads
+Payroll run alerts
+Staff notifications (e.g., "Payslip ready", "Payroll submitted")
+
+## 12. Administrative Tools
+Create users and assign roles
+Configure deduction rates and salary structures
+System settings: logo, institution name, contact details
+Manual database backup trigger (or cron backup logic)
+
+## 13. Compliance & Security
+Follow Nigerian payroll tax law and contribution standards
+Secure environment variables
+Full audit logs on sensitive actions (payroll, profile updates)
+Limit exposure of data to only authorized roles

@@ -1,0 +1,254 @@
+import React, { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/lib/supabase';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { AddStaffModal } from './add-staff-modal';
+import { Search, Plus, Eye, Edit, Filter } from 'lucide-react';
+
+export default function StaffManagement() {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [departmentFilter, setDepartmentFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [showAddModal, setShowAddModal] = useState(false);
+
+  // Fetch staff data
+  const { data: staff, isLoading: staffLoading } = useQuery({
+    queryKey: ['staff', searchTerm, departmentFilter, statusFilter],
+    queryFn: async () => {
+      let query = supabase
+        .from('staff')
+        .select(`
+          *,
+          departments (
+            id,
+            name,
+            code
+          )
+        `)
+        .order('created_at', { ascending: false });
+
+      if (searchTerm) {
+        query = query.or(`first_name.ilike.%${searchTerm}%,last_name.ilike.%${searchTerm}%,staff_id.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%`);
+      }
+
+      if (departmentFilter !== 'all') {
+        query = query.eq('department_id', departmentFilter);
+      }
+
+      if (statusFilter !== 'all') {
+        query = query.eq('status', statusFilter);
+      }
+
+      const { data, error } = await query;
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  // Fetch departments for filter
+  const { data: departments } = useQuery({
+    queryKey: ['departments'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('departments')
+        .select('id, name, code')
+        .order('name');
+      
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'active':
+        return 'bg-green-100 text-green-800';
+      case 'on_leave':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'retired':
+        return 'bg-gray-100 text-gray-800';
+      case 'terminated':
+        return 'bg-red-100 text-red-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const formatStatus = (status: string) => {
+    return status.replace('_', ' ').toUpperCase();
+  };
+
+  return (
+    <div className="p-4 lg:p-8">
+      <div className="mb-8">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">Staff Management</h1>
+            <p className="text-gray-600">Manage staff profiles and information</p>
+          </div>
+          <Button
+            onClick={() => setShowAddModal(true)}
+            className="bg-nigeria-green hover:bg-green-700"
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            Add Staff
+          </Button>
+        </div>
+      </div>
+
+      {/* Filters and Search */}
+      <Card className="mb-6">
+        <CardContent className="p-6">
+          <div className="flex flex-col md:flex-row gap-4">
+            <div className="flex-1">
+              <div className="relative">
+                <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                <Input
+                  placeholder="Search by name, staff ID, or email..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <Select value={departmentFilter} onValueChange={setDepartmentFilter}>
+                <SelectTrigger className="w-48">
+                  <SelectValue placeholder="Filter by department" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Departments</SelectItem>
+                  {departments?.map((dept) => (
+                    <SelectItem key={dept.id} value={dept.id}>
+                      {dept.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-32">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="on_leave">On Leave</SelectItem>
+                  <SelectItem value="retired">Retired</SelectItem>
+                  <SelectItem value="terminated">Terminated</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Staff Table */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Staff Directory</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {staffLoading ? (
+            <div className="space-y-4">
+              {[...Array(5)].map((_, i) => (
+                <div key={i} className="animate-pulse flex space-x-4">
+                  <div className="rounded-full bg-gray-200 h-10 w-10"></div>
+                  <div className="flex-1 space-y-2 py-1">
+                    <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                    <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : staff && staff.length > 0 ? (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Staff ID</TableHead>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Department</TableHead>
+                  <TableHead>Position</TableHead>
+                  <TableHead>Grade Level</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {staff.map((member) => (
+                  <TableRow key={member.id}>
+                    <TableCell className="font-medium">{member.staff_id}</TableCell>
+                    <TableCell>
+                      <div>
+                        <div className="font-medium">
+                          {member.first_name} {member.last_name}
+                        </div>
+                        <div className="text-sm text-gray-500">{member.email}</div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      {member.departments?.name || 'Unassigned'}
+                    </TableCell>
+                    <TableCell>{member.position}</TableCell>
+                    <TableCell>GL {member.grade_level} Step {member.step}</TableCell>
+                    <TableCell>
+                      <Badge className={getStatusColor(member.status)}>
+                        {formatStatus(member.status)}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex space-x-2">
+                        <Button variant="ghost" size="sm">
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="sm">
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          ) : (
+            <div className="text-center py-8 text-gray-500">
+              <div className="h-16 w-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Search className="h-8 w-8 text-gray-400" />
+              </div>
+              <p>No staff members found</p>
+              <p className="text-sm">Try adjusting your search or filters</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Add Staff Modal */}
+      <AddStaffModal
+        open={showAddModal}
+        onClose={() => setShowAddModal(false)}
+        onSuccess={() => {
+          setShowAddModal(false);
+          // Refetch staff data
+        }}
+      />
+    </div>
+  );
+}

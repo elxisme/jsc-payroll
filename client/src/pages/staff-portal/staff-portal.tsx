@@ -1,0 +1,382 @@
+import React from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { useAuth } from '@/hooks/use-auth';
+import { supabase } from '@/lib/supabase';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { generatePayslipPDF } from '@/lib/pdf-generator';
+import { useToast } from '@/hooks/use-toast';
+import { 
+  Download, 
+  Eye, 
+  FileText, 
+  TrendingUp, 
+  Calendar,
+  Building,
+  Scale,
+  User,
+  DollarSign
+} from 'lucide-react';
+
+export default function StaffPortal() {
+  const { user } = useAuth();
+  const { toast } = useToast();
+
+  // Fetch staff profile
+  const { data: staffProfile, isLoading: profileLoading } = useQuery({
+    queryKey: ['staff-profile', user?.id],
+    queryFn: async () => {
+      if (!user?.staff_profile?.id) return null;
+
+      const { data, error } = await supabase
+        .from('staff')
+        .select(`
+          *,
+          departments (
+            name,
+            code
+          )
+        `)
+        .eq('id', user.staff_profile.id)
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user?.staff_profile?.id,
+  });
+
+  // Fetch payslip history
+  const { data: payslips, isLoading: payslipsLoading } = useQuery({
+    queryKey: ['staff-payslips', user?.staff_profile?.id],
+    queryFn: async () => {
+      if (!user?.staff_profile?.id) return [];
+
+      const { data, error } = await supabase
+        .from('payslips')
+        .select('*')
+        .eq('staff_id', user.staff_profile.id)
+        .order('created_at', { ascending: false })
+        .limit(12);
+
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!user?.staff_profile?.id,
+  });
+
+  // Calculate salary trends
+  const salaryTrends = React.useMemo(() => {
+    if (!payslips?.length) return [];
+    
+    return payslips.map(payslip => ({
+      period: payslip.period,
+      netPay: parseFloat(payslip.net_pay || '0'),
+      grossPay: parseFloat(payslip.gross_pay || '0'),
+      deductions: parseFloat(payslip.total_deductions || '0'),
+    })).reverse(); // Show oldest to newest for trend
+  }, [payslips]);
+
+  // Format currency
+  const formatCurrency = (amount: string | number) => {
+    const num = typeof amount === 'string' ? parseFloat(amount) : amount;
+    return new Intl.NumberFormat('en-NG', {
+      style: 'currency',
+      currency: 'NGN',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(num);
+  };
+
+  // Format period display
+  const formatPeriod = (period: string) => {
+    const [year, month] = period.split('-');
+    const date = new Date(parseInt(year), parseInt(month) - 1);
+    return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long' });
+  };
+
+  const handleDownloadPayslip = async (payslip: any) => {
+    try {
+      await generatePayslipPDF(payslip, staffProfile);
+      toast({
+        title: 'Success',
+        description: 'Payslip downloaded successfully',
+      });
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to download payslip',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const getInitials = () => {
+    if (!staffProfile) return 'U';
+    return `${staffProfile.first_name?.[0] || ''}${staffProfile.last_name?.[0] || ''}`.toUpperCase();
+  };
+
+  const getFullName = () => {
+    if (!staffProfile) return 'User';
+    return `${staffProfile.first_name || ''} ${staffProfile.last_name || ''}`.trim();
+  };
+
+  const latestPayslip = payslips?.[0];
+  const averageSalary = salaryTrends.length > 0 
+    ? salaryTrends.reduce((sum, trend) => sum + trend.netPay, 0) / salaryTrends.length 
+    : 0;
+
+  return (
+    <div className="p-4 lg:p-8">
+      <div className="mb-8">
+        <h1 className="text-2xl font-bold text-gray-900 mb-2">Staff Portal</h1>
+        <p className="text-gray-600">Your personal dashboard and salary information</p>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Profile Overview */}
+        <div className="lg:col-span-1">
+          <Card>
+            <CardContent className="p-6">
+              {profileLoading ? (
+                <div className="animate-pulse space-y-4">
+                  <div className="h-16 w-16 bg-gray-200 rounded-full mx-auto"></div>
+                  <div className="h-4 bg-gray-200 rounded w-3/4 mx-auto"></div>
+                  <div className="h-4 bg-gray-200 rounded w-1/2 mx-auto"></div>
+                </div>
+              ) : staffProfile ? (
+                <div className="bg-gradient-to-br from-nigeria-green to-green-600 rounded-xl p-6 text-white">
+                  <div className="flex items-center space-x-4">
+                    <div className="h-16 w-16 bg-white bg-opacity-20 rounded-full flex items-center justify-center">
+                      <span className="text-2xl font-bold">{getInitials()}</span>
+                    </div>
+                    <div>
+                      <h4 className="text-xl font-bold">{getFullName()}</h4>
+                      <p className="text-green-100">{staffProfile.staff_id}</p>
+                      <p className="text-green-100">{staffProfile.position}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="mt-6 grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-green-100 text-sm">Department</p>
+                      <p className="font-medium">{staffProfile.departments?.name || 'Unassigned'}</p>
+                    </div>
+                    <div>
+                      <p className="text-green-100 text-sm">Grade Level</p>
+                      <p className="font-medium">GL {staffProfile.grade_level} Step {staffProfile.step}</p>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-8 text-gray-500">
+                  <User className="mx-auto h-12 w-12 text-gray-300 mb-4" />
+                  <p>Profile not found</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Quick Actions */}
+          <div className="mt-6 space-y-3">
+            <Button
+              className="w-full flex items-center justify-start px-4 py-3 bg-blue-50 hover:bg-blue-100 text-blue-900 border-blue-200"
+              onClick={() => latestPayslip && handleDownloadPayslip(latestPayslip)}
+              disabled={!latestPayslip}
+            >
+              <Download className="mr-3 h-5 w-5" />
+              <div className="text-left">
+                <p className="text-sm font-medium">Download Latest Payslip</p>
+                <p className="text-xs text-blue-600">
+                  {latestPayslip ? formatPeriod(latestPayslip.period) : 'No payslips available'}
+                </p>
+              </div>
+            </Button>
+            
+            <Button
+              variant="outline"
+              className="w-full flex items-center justify-start px-4 py-3 border-purple-200 hover:bg-purple-50"
+            >
+              <TrendingUp className="mr-3 h-5 w-5 text-purple-600" />
+              <div className="text-left">
+                <p className="text-sm font-medium text-purple-900">View Salary Trends</p>
+                <p className="text-xs text-purple-600">12-month analysis</p>
+              </div>
+            </Button>
+          </div>
+        </div>
+        
+        {/* Main Content */}
+        <div className="lg:col-span-2 space-y-8">
+          {/* Summary Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">Latest Net Pay</p>
+                    <p className="text-2xl font-bold text-gray-900">
+                      {latestPayslip ? formatCurrency(latestPayslip.net_pay || 0) : '---'}
+                    </p>
+                  </div>
+                  <div className="h-10 w-10 bg-green-100 rounded-lg flex items-center justify-center">
+                    <DollarSign className="text-nigeria-green" size={20} />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">Average Salary</p>
+                    <p className="text-2xl font-bold text-gray-900">
+                      {formatCurrency(averageSalary)}
+                    </p>
+                  </div>
+                  <div className="h-10 w-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                    <TrendingUp className="text-blue-600" size={20} />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">Payslips Available</p>
+                    <p className="text-2xl font-bold text-gray-900">
+                      {payslips?.length || 0}
+                    </p>
+                  </div>
+                  <div className="h-10 w-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                    <FileText className="text-purple-600" size={20} />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Payslip History */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <FileText className="h-5 w-5" />
+                <span>Payslip History</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {payslipsLoading ? (
+                <div className="space-y-4">
+                  {[...Array(5)].map((_, i) => (
+                    <div key={i} className="animate-pulse flex space-x-4">
+                      <div className="rounded-full bg-gray-200 h-10 w-10"></div>
+                      <div className="flex-1 space-y-2 py-1">
+                        <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                        <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : payslips && payslips.length > 0 ? (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Period</TableHead>
+                      <TableHead>Gross Pay</TableHead>
+                      <TableHead>Deductions</TableHead>
+                      <TableHead>Net Pay</TableHead>
+                      <TableHead>Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {payslips.map((payslip) => (
+                      <TableRow key={payslip.id}>
+                        <TableCell>
+                          <div className="flex items-center space-x-2">
+                            <Calendar className="h-4 w-4 text-gray-400" />
+                            <span>{formatPeriod(payslip.period)}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="font-medium">
+                          {formatCurrency(payslip.gross_pay || 0)}
+                        </TableCell>
+                        <TableCell className="text-red-600">
+                          -{formatCurrency(payslip.total_deductions || 0)}
+                        </TableCell>
+                        <TableCell className="font-bold text-green-600">
+                          {formatCurrency(payslip.net_pay || 0)}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex space-x-2">
+                            <Button variant="ghost" size="sm">
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDownloadPayslip(payslip)}
+                              className="text-nigeria-green hover:text-green-700"
+                            >
+                              <Download className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              ) : (
+                <div className="text-center py-8 text-gray-500">
+                  <div className="h-16 w-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <FileText className="h-8 w-8 text-gray-400" />
+                  </div>
+                  <p>No payslips available</p>
+                  <p className="text-sm">Your payslips will appear here once generated</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Salary Trends Chart Placeholder */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <TrendingUp className="h-5 w-5" />
+                <span>12-Month Salary Trend</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="h-48 bg-gradient-to-br from-blue-50 to-purple-50 rounded-lg flex items-center justify-center border-2 border-dashed border-gray-300">
+                <div className="text-center">
+                  <TrendingUp className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                  <p className="text-gray-500 font-medium">Salary Trend Chart</p>
+                  <p className="text-xs text-gray-400 mt-1">
+                    Visual representation of your salary over time
+                  </p>
+                  {salaryTrends.length > 0 && (
+                    <div className="mt-4 text-sm text-gray-600">
+                      <p>Average: {formatCurrency(averageSalary)}</p>
+                      <p>Data points: {salaryTrends.length}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    </div>
+  );
+}
