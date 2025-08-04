@@ -48,8 +48,9 @@ import {
 const userSchema = z.object({
   email: z.string().email('Invalid email address'),
   role: z.string().min(1, 'Role is required'),
-  password: z.string().min(6, 'Password must be at least 6 characters').optional(),
+  password: z.string().min(6, 'Password must be at least 6 characters'), // Make it required
 });
+
 
 const salaryStructureSchema = z.object({
   gradeLevel: z.number().min(1).max(17),
