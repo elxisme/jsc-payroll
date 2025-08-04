@@ -54,6 +54,13 @@ const menuItems: MenuItem[] = [
     roles: ['super_admin', 'account_admin', 'payroll_admin'],
   },
   {
+    id: 'payroll-workflow',
+    label: 'Payroll Workflow',
+    icon: Calculator,
+    path: '/payroll/workflow',
+    roles: ['super_admin', 'account_admin', 'payroll_admin'],
+  },
+  {
     id: 'payslips',
     label: 'Payslips',
     icon: FileText,

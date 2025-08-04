@@ -35,6 +35,7 @@ const navigation = [
   { name: 'Staff Management', href: '/staff', icon: Users },
   { name: 'Departments', href: '/departments', icon: Building2 },
   { name: 'Payroll', href: '/payroll', icon: CreditCard },
+  { name: 'Payroll Workflow', href: '/payroll/workflow', icon: CreditCard },
   { name: 'Payslips', href: '/payslips', icon: FileText },
   { name: 'Reports', href: '/reports', icon: BarChart3 },
   { name: 'Settings', href: '/settings', icon: Settings },
