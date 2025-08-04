@@ -66,7 +66,7 @@ export default function Departments() {
         .from('departments')
         .select(`
           *,
-          staff!left (
+          staff!staff_department_id_fkey (
             id
           )
         `)
