@@ -1,4 +1,3 @@
-@@ .. @@
  -- Helper function to get user role
 -CREATE OR REPLACE FUNCTION get_user_role(user_id UUID)
 +CREATE OR REPLACE FUNCTION get_user_role(auth_user_id UUID)
