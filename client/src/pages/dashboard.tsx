@@ -27,8 +27,9 @@ import {
   BarChart3,
   TrendingUp,
 } from 'lucide-react';
-// CORRECTED LINE: 'Tooltip' from recharts is now aliased as 'RechartsTooltip'
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
+// The Recharts import is no longer needed since the chart is removed.
+// I am removing it to keep the code clean, as it's part of the "chart" functionality.
+// import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
 
 export default function Dashboard() {
   const { user, hasRole } = useAuth();
@@ -93,7 +94,7 @@ export default function Dashboard() {
     enabled: !!user && hasRole(['super_admin', 'account_admin', 'payroll_admin']),
   });
 
-  // Fetch payroll trends for charts
+  // Fetch payroll trends for charts (This function is no longer used by the UI but is kept as requested)
   const { data: payrollTrends, isLoading: trendsLoading } = useQuery({
     queryKey: ['payroll-trends'],
     queryFn: async () => {
@@ -332,97 +333,11 @@ export default function Dashboard() {
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Left Column */}
-        <div className="lg:col-span-3 space-y-8">
-          {/* Payroll Trends Chart */}
-          {hasRole(['super_admin', 'account_admin', 'payroll_admin']) && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <TrendingUp className="h-5 w-5" />
-                  <span>12-Month Payroll Trends</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {trendsLoading ? (
-                  <div className="h-64 flex items-center justify-center">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-nigeria-green"></div>
-                  </div>
-                ) : payrollTrends && payrollTrends.length > 0 ? (
-                  <div className="h-64">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <LineChart data={payrollTrends}>
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis 
-                          dataKey="period" 
-                          tickFormatter={(value) => {
-                            const [year, month] = value.split('-');
-                            const date = new Date(parseInt(year), parseInt(month) - 1);
-                            return date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
-                          }}
-                        />
-                        <YAxis 
-                          tickFormatter={(value) => `₦${(value / 1000000).toFixed(1)}M`}
-                        />
-                        {/* CORRECTED USAGE: Using the aliased name 'RechartsTooltip' */}
-                        <RechartsTooltip 
-                          formatter={(value: number, name: string) => [
-                            formatCurrency(value), 
-                            name === 'netAmount' ? 'Net Pay' : 
-                            name === 'grossAmount' ? 'Gross Pay' : 'Total Deductions'
-                          ]}
-                          labelFormatter={(label) => {
-                            const [year, month] = label.split('-');
-                            const date = new Date(parseInt(year), parseInt(month) - 1);
-                            return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long' });
-                          }}
-                        />
-                        <Line 
-                          type="monotone" 
-                          dataKey="netAmount" 
-                          stroke="#008751" 
-                          strokeWidth={3}
-                          dot={{ fill: '#008751', strokeWidth: 2, r: 4 }}
-                          activeDot={{ r: 6, stroke: '#008751', strokeWidth: 2 }}
-                        />
-                        <Line 
-                          type="monotone" 
-                          dataKey="grossAmount" 
-                          stroke="#3B82F6" 
-                          strokeWidth={2}
-                          strokeDasharray="5 5"
-                          dot={{ fill: '#3B82F6', strokeWidth: 2, r: 3 }}
-                        />
-                      </LineChart>
-                    </ResponsiveContainer>
-                    <div className="mt-4 flex justify-center space-x-6 text-sm">
-                      <div className="flex items-center space-x-2">
-                        <div className="w-4 h-0.5 bg-nigeria-green"></div>
-                        <span>Net Pay</span>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <div className="w-4 h-0.5 bg-blue-500 border-dashed border-t-2"></div>
-                        <span>Gross Pay</span>
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="h-64 bg-gradient-to-br from-blue-50 to-green-50 rounded-lg flex items-center justify-center border-2 border-dashed border-gray-300">
-                    <div className="text-center">
-                      <TrendingUp className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-                      <p className="text-gray-500 font-medium">No Payroll Data Available</p>
-                      <p className="text-xs text-gray-400 mt-1">
-                        Payroll trends will appear here once payroll runs are processed
-                      </p>
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          )}
-        </div>
-      </div>
+      {/*
+        THE PAYROLL TRENDS CHART HAS BEEN REMOVED FROM THIS SECTION FOR TROUBLESHOOTING.
+        The data fetching function 'useQuery({ queryKey: ['payroll-trends'], ... })' still exists
+        but the UI part that renders the chart is gone.
+      */}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-8">
         {/* Left Column */}
@@ -508,6 +423,139 @@ export default function Dashboard() {
                   </div>
                 )}
               </CardContent>
+            </Card>
+          )}
+
+          {/* Staff Management Quick Actions */}
+          {hasRole(['super_admin', 'payroll_admin']) && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Staff Management</CardTitle>
+                <p className="text-sm text-gray-600">Quick actions for staff records</p>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        onClick={() => setShowAddStaffModal(true)}
+                        variant="outline"
+                        className="flex flex-col items-center p-6 h-auto border-dashed hover:border-nigeria-green hover:bg-green-50"
+                      >
+                        <UserPlus className="h-8 w-8 text-gray-400 mb-2" />
+                        <span className="font-medium">Add New Staff</span>
+                        <span className="text-xs text-gray-500 mt-1">Create staff profile</span>
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Add a new staff member to the system</p>
+                    </TooltipContent>
+                  </Tooltip>
+
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        onClick={handleBulkImport}
+                        variant="outline"
+                        className="flex flex-col items-center p-6 h-auto border-dashed hover:border-blue-500 hover:bg-blue-50"
+                      >
+                        <Upload className="h-8 w-8 text-gray-400 mb-2" />
+                        <span className="font-medium">Bulk Import</span>
+                        <span className="text-xs text-gray-500 mt-1">Upload CSV/Excel</span>
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Import multiple staff members from Excel file</p>
+                    </TooltipContent>
+                  </Tooltip>
+
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        onClick={handleGenerateStaffReport}
+                        variant="outline"
+                        className="flex flex-col items-center p-6 h-auto border-dashed hover:border-purple-500 hover:bg-purple-50"
+                      >
+                        <BarChart3 className="h-8 w-8 text-gray-400 mb-2" />
+                        <span className="font-medium">Generate Report</span>
+                        <span className="text-xs text-gray-500 mt-1">Staff analytics</span>
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Generate and download staff analytics report</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+
+        {/* Right Column */}
+        <div className="space-y-8">
+          {/* Notifications Panel */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle>Recent Notifications</CardTitle>
+                <Badge variant="destructive">
+                  {notifications?.length || 0}
+                </Badge>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {notificationsLoading ? (
+                <div className="space-y-4">
+                  {[...Array(3)].map((_, i) => (
+                    <div key={i} className="animate-pulse flex space-x-4">
+                      <div className="rounded-full bg-gray-200 h-8 w-8"></div>
+                      <div className="flex-1 space-y-2 py-1">
+                        <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                        <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : notifications && notifications.length > 0 ? (
+                <div className="space-y-4">
+                  {notifications.map((notification) => (
+                    <div key={notification.id} className="flex items-start space-x-3 p-3 hover:bg-gray-50 rounded-lg">
+                      <div className="flex-shrink-0">
+                        <div className={`h-8 w-8 rounded-full flex items-center justify-center ${
+                          notification.type === 'warning' ? 'bg-orange-100' :
+                          notification.type === 'error' ? 'bg-red-100' :
+                          notification.type === 'success' ? 'bg-green-100' :
+                          'bg-blue-100'
+                        }`}>
+                          <Clock className={`h-4 w-4 ${
+                            notification.type === 'warning' ? 'text-orange-600' :
+                            notification.type === 'error' ? 'text-red-600' :
+                            notification.type === 'success' ? 'text-green-600' :
+                            'text-blue-600'
+                          }`} />
+                        </div>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-gray-900">
+                          {notification.title}
+                        </p>
+                        <p className="text-sm text-gray-600">
+                          {notification.message}
+                        </p>
+                        <p className="text-xs text-gray-500 mt-1">
+                          {new Date(notification.created_at).toLocaleString()}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-gray-500">
+                  <Clock className="mx-auto h-12 w-12 text-gray-300 mb-4" />
+                  <p>No notifications</p>
+                </div>
+              )}
+            </CardContent>
             </Card>
           )}
 
