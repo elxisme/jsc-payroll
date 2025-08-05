@@ -472,20 +472,4 @@ export function validateBankTransferData(data: BankTransferData[]): { isValid: b
   return {
     isValid: errors.length === 0,
     errors,
-    'stanbic': '221',
-    'polaris': '076',
-    'wema': '035',
-    'sterling': '232',
-    'unity': '215',
-    'ecobank': '050',
-    'keystone': '082',
-    'titan': '102',
-    'globus': '103',
-    'providus': '101',
-    'suntrust': '100',
-    'parallex': '104',
-    'premium': '105',
-    'taj': '302',
-    'jaiz': '301',
   };
-}
