@@ -328,6 +328,160 @@ export async function generatePayrollSummaryPDF(
   doc.save(fileName);
 }
 
+/**
+ * Generate staff analytics report PDF
+ */
+export async function generateStaffReportPDF(staffData: any[]): Promise<void> {
+  const doc = new jsPDF();
+  
+  // Header
+  const primaryColor = [0, 135, 81]; // Nigerian green
+  doc.setFillColor(...primaryColor);
+  doc.rect(0, 0, 210, 30, 'F');
+  
+  // Logo area (placeholder)
+  doc.setFillColor(255, 255, 255);
+  doc.circle(20, 15, 8, 'F');
+  doc.setTextColor(...primaryColor);
+  doc.setFontSize(10);
+  doc.text('JSC', 16, 18);
+  
+  // Title
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(18);
+  doc.setFont('helvetica', 'bold');
+  doc.text('STAFF ANALYTICS REPORT', 105, 15, { align: 'center' });
+  doc.setFontSize(12);
+  doc.setFont('helvetica', 'normal');
+  doc.text('Judicial Service Committee', 105, 22, { align: 'center' });
+  
+  // Report date
+  doc.setTextColor(55, 65, 81);
+  doc.setFontSize(10);
+  doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 105, 40, { align: 'center' });
+  
+  // Summary statistics
+  const totalStaff = staffData.length;
+  const activeStaff = staffData.filter(s => s.status === 'active').length;
+  const departments = Array.from(new Set(staffData.map(s => s.departments?.name).filter(Boolean)));
+  const avgGradeLevel = staffData.reduce((sum, s) => sum + s.grade_level, 0) / totalStaff;
+  
+  let yPos = 55;
+  
+  // Summary section
+  doc.setFontSize(14);
+  doc.setFont('helvetica', 'bold');
+  doc.text('SUMMARY', 20, yPos);
+  yPos += 10;
+  
+  const summaryData = [
+    ['Total Staff:', totalStaff.toString()],
+    ['Active Staff:', activeStaff.toString()],
+    ['Departments:', departments.length.toString()],
+    ['Average Grade Level:', avgGradeLevel.toFixed(1)],
+  ];
+  
+  doc.setFontSize(10);
+  summaryData.forEach(([label, value]) => {
+    doc.setFont('helvetica', 'bold');
+    doc.text(label, 20, yPos);
+    doc.setFont('helvetica', 'normal');
+    doc.text(value, 80, yPos);
+    yPos += 6;
+  });
+  
+  yPos += 10;
+  
+  // Staff breakdown by department
+  doc.setFontSize(14);
+  doc.setFont('helvetica', 'bold');
+  doc.text('DEPARTMENT BREAKDOWN', 20, yPos);
+  yPos += 10;
+  
+  const departmentBreakdown = departments.map(dept => {
+    const deptStaff = staffData.filter(s => s.departments?.name === dept);
+    return [
+      dept,
+      deptStaff.length.toString(),
+      deptStaff.filter(s => s.status === 'active').length.toString(),
+      (deptStaff.reduce((sum, s) => sum + s.grade_level, 0) / deptStaff.length).toFixed(1),
+    ];
+  });
+  
+  doc.autoTable({
+    startY: yPos,
+    head: [['Department', 'Total Staff', 'Active Staff', 'Avg Grade Level']],
+    body: departmentBreakdown,
+    theme: 'grid',
+    headStyles: {
+      fillColor: primaryColor,
+      textColor: [255, 255, 255],
+      fontStyle: 'bold',
+      fontSize: 10,
+    },
+    bodyStyles: {
+      fontSize: 9,
+    },
+  });
+  
+  // Add new page for detailed staff list
+  doc.addPage();
+  
+  // Header for second page
+  doc.setFillColor(...primaryColor);
+  doc.rect(0, 0, 210, 20, 'F');
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(14);
+  doc.setFont('helvetica', 'bold');
+  doc.text('DETAILED STAFF LIST', 105, 12, { align: 'center' });
+  
+  // Staff table
+  const staffTableData = staffData.map(staff => [
+    staff.staff_id,
+    `${staff.first_name} ${staff.last_name}`,
+    staff.departments?.name || 'Unassigned',
+    staff.position,
+    `GL${staff.grade_level} S${staff.step}`,
+    formatStatus(staff.status),
+  ]);
+  
+  doc.autoTable({
+    startY: 30,
+    head: [['Staff ID', 'Name', 'Department', 'Position', 'Grade/Step', 'Status']],
+    body: staffTableData,
+    theme: 'grid',
+    headStyles: {
+      fillColor: primaryColor,
+      textColor: [255, 255, 255],
+      fontStyle: 'bold',
+      fontSize: 9,
+    },
+    bodyStyles: {
+      fontSize: 8,
+    },
+    columnStyles: {
+      0: { cellWidth: 25 },
+      1: { cellWidth: 40 },
+      2: { cellWidth: 35 },
+      3: { cellWidth: 35 },
+      4: { cellWidth: 20 },
+      5: { cellWidth: 25 },
+    },
+  });
+  
+  // Footer
+  const pageCount = doc.getNumberOfPages();
+  for (let i = 1; i <= pageCount; i++) {
+    doc.setPage(i);
+    doc.setFontSize(8);
+    doc.setTextColor(100, 116, 139);
+    doc.text(`Page ${i} of ${pageCount}`, 190, 285, { align: 'right' });
+  }
+  
+  const fileName = `staff_analytics_report_${new Date().toISOString().split('T')[0]}.pdf`;
+  doc.save(fileName);
+}
+
 // Helper functions
 function formatCurrency(amount: string | number): string {
   const num = typeof amount === 'string' ? parseFloat(amount) : amount;

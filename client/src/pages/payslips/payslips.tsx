@@ -333,7 +333,8 @@ export default function Payslips() {
               <DialogTitle>Payslip Details</DialogTitle>
             </DialogHeader>
             <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+              {/* Header Information */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg">
                 <div>
                   <Label className="text-gray-600">Period</Label>
                   <p className="font-medium">{formatPeriod(selectedPayslip.period)}</p>
@@ -343,16 +344,88 @@ export default function Payslips() {
                   <p className="font-medium">
                     {selectedPayslip.staff?.first_name} {selectedPayslip.staff?.last_name}
                   </p>
+                  <p className="text-sm text-gray-500">{selectedPayslip.staff?.email}</p>
+                </div>
+                {hasRole(['super_admin', 'account_admin', 'payroll_admin']) && (
+                  <div>
+                    <Label className="text-gray-600">Department</Label>
+                    <p className="font-medium">{selectedPayslip.staff?.departments?.name || 'Unassigned'}</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Salary Breakdown */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <Label className="text-gray-600">Basic Salary</Label>
+                  <p className="font-medium">{formatCurrency(selectedPayslip.basic_salary || 0)}</p>
+                </div>
+                <div>
+                  <Label className="text-gray-600">Total Allowances</Label>
+                  <p className="font-medium text-green-600">
+                    +{formatCurrency((parseFloat(selectedPayslip.gross_pay || '0') - parseFloat(selectedPayslip.basic_salary || '0')))}
+                  </p>
                 </div>
                 <div>
                   <Label className="text-gray-600">Gross Pay</Label>
                   <p className="font-medium">{formatCurrency(selectedPayslip.gross_pay || 0)}</p>
                 </div>
+              </div>
+
+              {/* Allowances Breakdown */}
+              {selectedPayslip.allowances && (
+                <div>
+                  <Label className="text-gray-700 font-medium">Allowances Breakdown</Label>
+                  <div className="mt-2 grid grid-cols-2 gap-2 text-sm">
+                    {Object.entries(
+                      typeof selectedPayslip.allowances === 'string' 
+                        ? JSON.parse(selectedPayslip.allowances) 
+                        : selectedPayslip.allowances
+                    ).map(([key, value]) => (
+                      value && Number(value) > 0 && (
+                        <div key={key} className="flex justify-between p-2 bg-green-50 rounded">
+                          <span className="capitalize">{key.replace('_', ' ')}</span>
+                          <span className="font-medium">+{formatCurrency(Number(value))}</span>
+                        </div>
+                      )
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Deductions Breakdown */}
+              {selectedPayslip.deductions && (
+                <div>
+                  <Label className="text-gray-700 font-medium">Deductions Breakdown</Label>
+                  <div className="mt-2 grid grid-cols-2 gap-2 text-sm">
+                    {Object.entries(
+                      typeof selectedPayslip.deductions === 'string' 
+                        ? JSON.parse(selectedPayslip.deductions) 
+                        : selectedPayslip.deductions
+                    ).map(([key, value]) => (
+                      value && Number(value) > 0 && (
+                        <div key={key} className="flex justify-between p-2 bg-red-50 rounded">
+                          <span className="capitalize">{key.replace('_', ' ')}</span>
+                          <span className="font-medium text-red-600">-{formatCurrency(Number(value))}</span>
+                        </div>
+                      )
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Final Amounts */}
+              <div className="grid grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg border-t-2 border-nigeria-green">
+                <div>
+                  <Label className="text-gray-600">Total Deductions</Label>
+                  <p className="font-medium text-red-600">-{formatCurrency(selectedPayslip.total_deductions || 0)}</p>
+                </div>
                 <div>
                   <Label className="text-gray-600">Net Pay</Label>
-                  <p className="font-medium text-green-600">{formatCurrency(selectedPayslip.net_pay || 0)}</p>
+                  <p className="text-xl font-bold text-green-600">{formatCurrency(selectedPayslip.net_pay || 0)}</p>
                 </div>
               </div>
+
               <div className="flex justify-end space-x-2">
                 <Button variant="outline" onClick={() => setShowPayslipModal(false)}>
                   Close

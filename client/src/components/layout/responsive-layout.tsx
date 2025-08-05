@@ -46,6 +46,25 @@ export function ResponsiveLayout({ children }: ResponsiveLayoutProps) {
   const [location] = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
+  // Fetch unread notifications count
+  const { data: notificationCount } = useQuery({
+    queryKey: ['notification-count', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return 0;
+      
+      const { count, error } = await supabase
+        .from('notifications')
+        .select('id', { count: 'exact' })
+        .eq('user_id', user.id)
+        .eq('is_read', false);
+
+      if (error) throw error;
+      return count || 0;
+    },
+    enabled: !!user?.id,
+    refetchInterval: 30000, // Refetch every 30 seconds
+  });
+
   const handleSignOut = async () => {
     await signOut();
   };
@@ -197,12 +216,16 @@ export function ResponsiveLayout({ children }: ResponsiveLayoutProps) {
             <div className="flex flex-1"></div>
             <div className="flex items-center gap-x-4 lg:gap-x-6">
               {/* Notifications */}
-              <Button variant="ghost" size="sm" className="relative">
+              <Link href="/notifications">
+                <Button variant="ghost" size="sm" className="relative">
                 <Bell className="h-5 w-5" />
-                <span className="absolute -top-1 -right-1 h-4 w-4 bg-red-500 text-white rounded-full text-xs flex items-center justify-center">
-                  3
-                </span>
-              </Button>
+                  {notificationCount && notificationCount > 0 && (
+                    <span className="absolute -top-1 -right-1 h-4 w-4 bg-red-500 text-white rounded-full text-xs flex items-center justify-center">
+                      {notificationCount > 99 ? '99+' : notificationCount}
+                    </span>
+                  )}
+                </Button>
+              </Link>
 
               {/* Profile dropdown */}
               <DropdownMenu>

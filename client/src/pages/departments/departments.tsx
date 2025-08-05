@@ -33,6 +33,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useToast } from '@/hooks/use-toast';
 import { Plus, Edit, Users, Building, Loader2 } from 'lucide-react';
+import { EditDepartmentModal } from './edit-department-modal';
 
 const departmentSchema = z.object({
   name: z.string().min(1, 'Department name is required'),
@@ -331,10 +332,6 @@ export default function Departments() {
                           onClick={() => {
                             setSelectedDepartment(dept);
                             setShowEditModal(true);
-                            toast({
-                              title: "Coming Soon",
-                              description: "Department editing functionality is under development",
-                            });
                           }}
                         >
                           <Edit className="h-4 w-4" />
@@ -356,6 +353,22 @@ export default function Departments() {
           )}
         </CardContent>
       </Card>
+
+      {/* Edit Department Modal */}
+      {selectedDepartment && (
+        <EditDepartmentModal
+          open={showEditModal}
+          onClose={() => {
+            setShowEditModal(false);
+            setSelectedDepartment(null);
+          }}
+          department={selectedDepartment}
+          onSuccess={() => {
+            setShowEditModal(false);
+            setSelectedDepartment(null);
+          }}
+        />
+      )}
     </div>
   );
 }

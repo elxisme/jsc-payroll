@@ -22,6 +22,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { AddStaffModal } from './add-staff-modal';
+import { StaffDetailsModal } from './staff-details-modal';
 import { Search, Plus, Eye, Edit, Filter } from 'lucide-react';
 
 export default function StaffManagement() {
@@ -30,6 +31,7 @@ export default function StaffManagement() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [selectedStaff, setSelectedStaff] = useState<any>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -225,11 +227,8 @@ export default function StaffManagement() {
                           variant="ghost" 
                           size="sm"
                           onClick={() => {
-                            console.log('Viewing staff:', member);
-                            toast({
-                              title: "Staff Details",
-                              description: `Viewing ${member.first_name} ${member.last_name} (${member.staff_id})`,
-                            });
+                            setSelectedStaff(member);
+                            setShowDetailsModal(true);
                           }}
                         >
                           <Eye className="h-4 w-4" />
@@ -279,6 +278,18 @@ export default function StaffManagement() {
           });
         }}
       />
+
+      {/* Staff Details Modal */}
+      {selectedStaff && (
+        <StaffDetailsModal
+          open={showDetailsModal}
+          onClose={() => {
+            setShowDetailsModal(false);
+            setSelectedStaff(null);
+          }}
+          staff={selectedStaff}
+        />
+      )}
     </div>
   );
 }

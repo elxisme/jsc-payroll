@@ -3,6 +3,8 @@ import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/use-auth';
 import { supabase } from '@/lib/supabase';
 import { AddStaffModal } from '@/pages/staff/add-staff-modal';
+import { BulkImportStaffModal } from '@/pages/staff/bulk-import-staff-modal';
+import { generateStaffReportPDF } from '@/lib/pdf-generator';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -25,6 +27,7 @@ import {
 export default function Dashboard() {
   const { user, hasRole } = useAuth();
   const [showAddStaffModal, setShowAddStaffModal] = React.useState(false);
+  const [showBulkImportModal, setShowBulkImportModal] = React.useState(false);
   const { toast } = useToast();
 
   // Fetch dashboard statistics
@@ -127,6 +130,71 @@ export default function Dashboard() {
         return 'text-gray-600';
       default:
         return 'text-gray-600';
+    }
+  };
+
+  // Handle bulk import
+  const handleBulkImport = () => {
+    setShowBulkImportModal(true);
+  };
+
+  // Handle generate staff report
+  const handleGenerateStaffReport = async () => {
+    try {
+      const { data: staffData, error } = await supabase
+        .from('staff')
+        .select(`
+          *,
+          departments!staff_department_id_fkey (
+            name,
+            code
+          )
+        `)
+        .order('first_name');
+
+      if (error) throw error;
+
+      if (!staffData || staffData.length === 0) {
+        toast({
+          title: "No Data",
+          description: "No staff data available to generate report",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      await generateStaffReportPDF(staffData);
+      
+      toast({
+        title: "Success",
+        description: "Staff analytics report generated successfully",
+      });
+
+      // Create notification for admins
+      const { data: adminUsers } = await supabase
+        .from('users')
+        .select('id')
+        .in('role', ['super_admin', 'payroll_admin']);
+
+      if (adminUsers?.length) {
+        const notifications = adminUsers.map(admin => ({
+          user_id: admin.id,
+          title: 'Staff Report Generated',
+          message: 'A new staff analytics report has been generated and downloaded.',
+          type: 'info',
+        }));
+
+        await supabase
+          .from('notifications')
+          .insert(notifications);
+      }
+    } catch (error) {
+      console.error('Error generating staff report:', error);
+      toast({
+        title: "Error",
+        description: "Failed to generate staff report",
+        variant: "destructive",
+      });
     }
   };
 
@@ -318,10 +386,7 @@ export default function Dashboard() {
                   </Button>
 
                   <Button
-                    onClick={() => toast({
-                      title: "Coming Soon",
-                      description: "Bulk import functionality is under development",
-                    })}
+                    onClick={handleBulkImport}
                     variant="outline"
                     className="flex flex-col items-center p-6 h-auto border-dashed hover:border-blue-500 hover:bg-blue-50"
                   >
@@ -331,10 +396,7 @@ export default function Dashboard() {
                   </Button>
 
                   <Button
-                    onClick={() => toast({
-                      title: "Coming Soon", 
-                      description: "Staff analytics report generation is under development",
-                    })}
+                    onClick={handleGenerateStaffReport}
                     variant="outline"
                     className="flex flex-col items-center p-6 h-auto border-dashed hover:border-purple-500 hover:bg-purple-50"
                   >
@@ -426,6 +488,19 @@ export default function Dashboard() {
           toast({
             title: "Success",
             description: "Staff member added successfully",
+          });
+        }}
+      />
+
+      {/* Bulk Import Modal */}
+      <BulkImportStaffModal
+        open={showBulkImportModal}
+        onClose={() => setShowBulkImportModal(false)}
+        onSuccess={() => {
+          setShowBulkImportModal(false);
+          toast({
+            title: "Success",
+            description: "Staff data imported successfully",
           });
         }}
       />

@@ -160,6 +160,25 @@ export default function PayrollProcessing() {
       // Calculate payroll and create payslips
       await processPayrollRun(payrollRun.id, selectedPeriod, payrollInputs);
 
+      // Create notifications for relevant users
+      const { data: adminUsers } = await supabase
+        .from('users')
+        .select('id')
+        .in('role', ['super_admin', 'account_admin', 'payroll_admin']);
+
+      if (adminUsers?.length) {
+        const notifications = adminUsers.map(admin => ({
+          user_id: admin.id,
+          title: 'Payroll Run Completed',
+          message: `Payroll for ${selectedPeriod} has been processed for ${filteredStaff.length} staff members and is ready for review.`,
+          type: 'success',
+        }));
+
+        await supabase
+          .from('notifications')
+          .insert(notifications);
+      }
+
       toast({
         title: "Success",
         description: `Payroll processed successfully for ${filteredStaff.length} staff members.`,

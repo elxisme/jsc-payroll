@@ -133,6 +133,26 @@ export function AddStaffModal({ open, onClose, onSuccess }: AddStaffModalProps) 
       return staff;
     },
     onSuccess: () => {
+      // Create notification for admins about new staff
+      supabase
+        .from('users')
+        .select('id')
+        .in('role', ['super_admin', 'payroll_admin'])
+        .then(({ data: adminUsers }) => {
+          if (adminUsers?.length) {
+            const notifications = adminUsers.map(admin => ({
+              user_id: admin.id,
+              title: 'New Staff Member Added',
+              message: `A new staff member has been added to the system and requires review.`,
+              type: 'info',
+            }));
+
+            supabase
+              .from('notifications')
+              .insert(notifications);
+          }
+        });
+
       toast({
         title: 'Success',
         description: 'Staff member created successfully',
