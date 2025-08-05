@@ -66,7 +66,7 @@ export function EditDepartmentModal({ open, onClose, department, onSuccess }: Ed
   // Update department mutation
   const updateDepartmentMutation = useMutation({
     mutationFn: async (data: EditDepartmentFormData) => {
-      const { data: updatedDepartment, error } = await supabase
+      const { data: updatedDepartments, error } = await supabase
         .from('departments')
         .update({
           name: data.name,
@@ -75,11 +75,15 @@ export function EditDepartmentModal({ open, onClose, department, onSuccess }: Ed
           updated_at: new Date().toISOString(),
         })
         .eq('id', department.id)
-        .select()
-        .single();
+        .select();
 
       if (error) throw error;
-      return updatedDepartment;
+      
+      if (!updatedDepartments || updatedDepartments.length === 0) {
+        throw new Error('Department not found or no changes were made. The department may have been deleted by another user.');
+      }
+      
+      return updatedDepartments[0];
     },
     onSuccess: () => {
       toast({
