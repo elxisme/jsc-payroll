@@ -1,8 +1,14 @@
 import jsPDF from 'jspdf';
+// 1. Correctly import the autoTable function from the plugin
 import autoTable from 'jspdf-autotable';
-import { formatDisplayCurrency, formatDetailCurrency } from './currency-utils';
 
-// Note: Using autoTable as a function instead of method to avoid bundling issues
+// The 'declare module' is no longer necessary with this import style,
+// but leaving it won't cause harm. For cleanliness, it could be removed.
+declare module 'jspdf' {
+  interface jsPDF {
+    autoTable: (options: any) => jsPDF;
+  }
+}
 
 export interface PayslipData {
   id: string;
@@ -159,7 +165,7 @@ export async function generatePayslipPDF(payslip: PayslipData, staff: StaffData)
   tableData.push(['', 'TOTAL DEDUCTIONS', `-${formatCurrency(payslip.total_deductions)}`]);
   tableData.push(['', 'NET PAY', formatCurrency(payslip.net_pay)]);
   
-  // Create table
+  // 2. FIX: Call autoTable as a function, passing the doc instance
   autoTable(doc, {
     startY: yPos,
     head: [['EARNINGS', 'DEDUCTIONS', 'AMOUNT (₦)']],
@@ -197,7 +203,7 @@ export async function generatePayslipPDF(payslip: PayslipData, staff: StaffData)
   });
   
   // Footer
-  const finalY = (doc as any).lastAutoTable?.finalY || yPos + 100;
+  const finalY = (doc as any).lastAutoTable.finalY || yPos + 100;
   
   // Generated date and time
   doc.setFontSize(8);
@@ -307,6 +313,7 @@ export async function generatePayrollSummaryPDF(
       formatCurrency(dept.netAmount || 0),
     ]);
     
+    // 3. FIX: Call autoTable as a function, passing the doc instance
     autoTable(doc, {
       startY: yPos,
       head: [['Department', 'Staff Count', 'Gross Amount', 'Net Amount']],
@@ -404,6 +411,7 @@ export async function generateStaffReportPDF(staffData: any[]): Promise<void> {
     ];
   });
   
+  // 4. FIX: Call autoTable as a function, passing the doc instance
   autoTable(doc, {
     startY: yPos,
     head: [['Department', 'Total Staff', 'Active Staff', 'Avg Grade Level']],
@@ -441,6 +449,7 @@ export async function generateStaffReportPDF(staffData: any[]): Promise<void> {
     formatStatus(staff.status),
   ]);
   
+  // 5. FIX: Call autoTable as a function, passing the doc instance
   autoTable(doc, {
     startY: 30,
     head: [['Staff ID', 'Name', 'Department', 'Position', 'Grade/Step', 'Status']],
@@ -480,7 +489,11 @@ export async function generateStaffReportPDF(staffData: any[]): Promise<void> {
 
 // Helper functions
 function formatCurrency(amount: string | number): string {
-  return formatDetailCurrency(amount);
+  const num = typeof amount === 'string' ? parseFloat(amount) : amount;
+  return new Intl.NumberFormat('en-NG', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(num);
 }
 
 function formatPeriod(period: string): string {
@@ -638,7 +651,7 @@ async function generatePayslipContent(doc: jsPDF, payslip: PayslipData, staff: S
   tableData.push(['', 'TOTAL DEDUCTIONS', `-${formatCurrency(payslip.total_deductions)}`]);
   tableData.push(['', 'NET PAY', formatCurrency(payslip.net_pay)]);
   
-  // Create table
+  // 6. FIX: Call autoTable as a function, passing the doc instance
   autoTable(doc, {
     startY: yPos,
     head: [['EARNINGS', 'DEDUCTIONS', 'AMOUNT (₦)']],
@@ -676,7 +689,7 @@ async function generatePayslipContent(doc: jsPDF, payslip: PayslipData, staff: S
   });
   
   // Footer
-  const finalY = (doc as any).lastAutoTable?.finalY || yPos + 100;
+  const finalY = (doc as any).lastAutoTable.finalY || yPos + 100;
   
   // Generated date and time
   doc.setFontSize(8);
@@ -701,6 +714,8 @@ async function generatePayslipContent(doc: jsPDF, payslip: PayslipData, staff: S
   doc.text(`Page 1 of ${pageCount}`, 190, 285, { align: 'right' });
 }
 
+// This helper function was missing from your original code, but is used in generateStaffReportPDF
 function formatStatus(status: string): string {
-  return status ? status.charAt(0).toUpperCase() + status.slice(1) : 'Unknown';
+  if (!status) return 'Unknown';
+  return status.charAt(0).toUpperCase() + status.slice(1);
 }
