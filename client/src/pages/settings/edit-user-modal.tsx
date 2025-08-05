@@ -112,6 +112,7 @@ export function EditUserModal({ open, onClose, user, onSuccess }: EditUserModalP
         description: 'User updated successfully',
       });
       queryClient.invalidateQueries({ queryKey: ['system-users'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
       onSuccess();
     },
     onError: (error: any) => {

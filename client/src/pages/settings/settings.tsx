@@ -176,12 +176,22 @@ export default function Settings() {
   // Create user mutation
   const createUserMutation = useMutation({
     mutationFn: async (data: UserFormData) => {
+      // Check if email already exists
+      const { data: existingUser } = await supabase
+        .from('users')
+        .select('id')
+        .eq('email', data.email)
+        .single();
+
+      if (existingUser) {
+        throw new Error('A user with this email already exists');
+      }
+
       const { data: newUser, error } = await supabase
         .from('users')
         .insert({
           email: data.email,
           role: data.role,
-          password: 'temp123', // In production, this should be properly handled
         })
         .select()
         .single();
@@ -190,6 +200,16 @@ export default function Settings() {
       
       // Log user creation
       await logSystemEvent('user_created', 'users', newUser.id, null, data);
+
+      // Create notification for the new user
+      await supabase
+        .from('notifications')
+        .insert({
+          user_id: newUser.id,
+          title: 'Welcome to JSC Payroll System',
+          message: `Your account has been created with ${data.role.replace('_', ' ')} privileges. Please contact your administrator for login credentials.`,
+          type: 'info',
+        });
       
       return newUser;
     },
@@ -199,6 +219,7 @@ export default function Settings() {
         description: 'User created successfully',
       });
       queryClient.invalidateQueries({ queryKey: ['system-users'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
       userForm.reset();
       setShowAddUserModal(false);
     },
@@ -282,12 +303,28 @@ export default function Settings() {
   // Delete user mutation
   const deleteUserMutation = useMutation({
     mutationFn: async (userId: string) => {
+      // Prevent deletion of current user
+      if (userId === user?.id) {
+        throw new Error('You cannot delete your own account');
+      }
+
       // Get user data before deletion for audit log
       const { data: userData } = await supabase
         .from('users')
         .select('*')
         .eq('id', userId)
         .single();
+
+      // Check if user has associated staff record
+      const { data: staffRecord } = await supabase
+        .from('staff')
+        .select('id')
+        .eq('user_id', userId)
+        .single();
+
+      if (staffRecord) {
+        throw new Error('Cannot delete user with associated staff record. Please remove staff association first.');
+      }
 
       const { error } = await supabase
         .from('users')
@@ -307,6 +344,7 @@ export default function Settings() {
         description: 'User deleted successfully',
       });
       queryClient.invalidateQueries({ queryKey: ['system-users'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
     },
     onError: (error: any) => {
       toast({
@@ -557,7 +595,12 @@ export default function Settings() {
                             </Button>
                             <AlertDialog>
                               <AlertDialogTrigger asChild>
-                                <Button variant="ghost" size="sm" className="text-red-600">
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm" 
+                                  className="text-red-600"
+                                  disabled={user.id === user?.id} // Disable delete for current user
+                                >
                                   <Trash2 className="h-4 w-4" />
                                 </Button>
                               </AlertDialogTrigger>
@@ -566,6 +609,11 @@ export default function Settings() {
                                   <AlertDialogTitle>Delete User</AlertDialogTitle>
                                   <AlertDialogDescription>
                                     Are you sure you want to delete this user? This action cannot be undone.
+                                    {user.id === user?.id && (
+                                      <div className="mt-2 text-red-600 font-medium">
+                                        Note: You cannot delete your own account.
+                                      </div>
+                                    )}
                                   </AlertDialogDescription>
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>
@@ -573,6 +621,7 @@ export default function Settings() {
                                   <AlertDialogAction
                                     onClick={() => deleteUserMutation.mutate(user.id)}
                                     className="bg-red-600 hover:bg-red-700"
+                                    disabled={user.id === user?.id}
                                   >
                                     Delete
                                   </AlertDialogAction>
