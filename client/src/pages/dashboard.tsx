@@ -7,6 +7,7 @@ import { formatDisplayCurrency } from '@/lib/currency-utils';
 import { AddStaffModal } from '@/pages/staff/add-staff-modal';
 import { BulkImportStaffModal } from '@/pages/staff/bulk-import-staff-modal';
 import { generateStaffReportPDF } from '@/lib/pdf-generator';
+import { PayrollDetailsModal } from '@/components/payroll-details-modal';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -35,6 +36,8 @@ export default function Dashboard() {
   const { user, hasRole } = useAuth();
   const [showAddStaffModal, setShowAddStaffModal] = React.useState(false);
   const [showBulkImportModal, setShowBulkImportModal] = React.useState(false);
+  const [showPayrollDetailsModal, setShowPayrollDetailsModal] = React.useState(false);
+  const [selectedPayrollRun, setSelectedPayrollRun] = React.useState<any>(null);
   const { toast } = useToast();
 
   // Enable real-time updates for dashboard
@@ -394,6 +397,11 @@ export default function Dashboard() {
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <Button variant="ghost" size="sm">
+                                  onClick={() => {
+                                    setSelectedPayrollRun(payroll);
+                                    setShowPayrollDetailsModal(true);
+                                  }}
+                                >
                                   <Eye size={16} />
                                 </Button>
                               </TooltipTrigger>
@@ -585,6 +593,18 @@ export default function Dashboard() {
           });
         }}
       />
+
+      {/* Payroll Details Modal */}
+      {selectedPayrollRun && (
+        <PayrollDetailsModal
+          open={showPayrollDetailsModal}
+          onClose={() => {
+            setShowPayrollDetailsModal(false);
+            setSelectedPayrollRun(null);
+          }}
+          payrollRun={selectedPayrollRun}
+        />
+      )}
     </div>
   );
 }

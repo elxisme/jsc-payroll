@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase';
 import { formatDisplayCurrency } from '@/lib/currency-utils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { logPayrollEvent } from '@/lib/audit-logger';
+import { PayrollDetailsModal } from '@/components/payroll-details-modal';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -42,6 +43,7 @@ export default function PayrollWorkflow() {
   const { user, hasRole } = useAuth();
   const [selectedRun, setSelectedRun] = useState<any>(null);
   const [showApprovalModal, setShowApprovalModal] = useState(false);
+  const [showRunDetailsModal, setShowRunDetailsModal] = useState(false);
   const [approvalComments, setApprovalComments] = useState('');
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -348,7 +350,10 @@ export default function PayrollWorkflow() {
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => setSelectedRun(run)}
+                              onClick={() => {
+                                setSelectedRun(run);
+                                setShowRunDetailsModal(true);
+                              }}
                             >
                               <Eye className="h-4 w-4" />
                             </Button>
@@ -480,6 +485,18 @@ export default function PayrollWorkflow() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Payroll Run Details Modal */}
+      {selectedRun && (
+        <PayrollDetailsModal
+          open={showRunDetailsModal}
+          onClose={() => {
+            setShowRunDetailsModal(false);
+            setSelectedRun(null);
+          }}
+          payrollRun={selectedRun}
+        />
+      )}
     </div>
   );
 }
