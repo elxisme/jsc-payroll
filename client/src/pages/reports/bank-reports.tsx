@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
-import { formatDisplayCurrency } from '@/lib/currency-utils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -68,17 +67,23 @@ export default function BankReports() {
           )
         `)
         .eq('period', selectedPeriod)
-        .not('staff.bank_name', 'is', null)
-        .not('staff.account_number', 'is', null);
+        // FIX: Specify the referenced table for filtering
+        .not('bank_name', 'is', null, { referencedTable: 'staff' })
+        .not('account_number', 'is', null, { referencedTable: 'staff' });
 
       if (selectedBank !== 'all') {
-        // Fix: Use proper foreign table filtering syntax
-        query = query.filter('staff.bank_name', 'eq', selectedBank);
+        // FIX: Specify the referenced table for filtering
+        query = query.eq('bank_name', selectedBank, { referencedTable: 'staff' });
       }
 
-      // Fix: Use proper foreign table ordering syntax
-      const { data, error } = await query.order('bank_name', { foreignTable: 'staff', ascending: true });
-      if (error) throw error;
+      // FIX: Specify the referenced table for ordering
+      const { data, error } = await query.order('bank_name', { referencedTable: 'staff', ascending: true });
+      
+      if (error) {
+        // Provide more detailed error logging
+        console.error("Supabase request failed", error);
+        throw error;
+      }
       return data || [];
     },
     enabled: !!selectedPeriod,
@@ -104,7 +109,13 @@ export default function BankReports() {
 
   // Format currency
   const formatCurrency = (amount: string | number) => {
-    return formatDisplayCurrency(amount);
+    const num = typeof amount === 'string' ? parseFloat(amount) : amount;
+    return new Intl.NumberFormat('en-NG', {
+      style: 'currency',
+      currency: 'NGN',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(num);
   };
 
   // Format period display
@@ -418,33 +429,4 @@ export default function BankReports() {
       </Card>
     </div>
   );
-}
-
-// Add the missing getBankCode function that was referenced but not defined
-function getBankCode(bankName: string): string {
-  const bankCodes: Record<string, string> = {
-    'access': '044',
-    'zenith': '057',
-    'gtb': '058',
-    'firstbank': '011',
-    'uba': '033',
-    'fidelity': '070',
-    'union': '032',
-    'stanbic': '221',
-    'polaris': '076',
-    'wema': '035',
-    'sterling': '232',
-    'unity': '215',
-    'ecobank': '050',
-    'keystone': '082',
-    'titan': '102',
-    'globus': '103',
-    'providus': '101',
-    'suntrust': '100',
-    'parallex': '104',
-    'premium': '105',
-    'taj': '302',
-    'jaiz': '301',
-  };
-  return bankCodes[bankName.toLowerCase()] || '000';
 }
