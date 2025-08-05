@@ -1,5 +1,37 @@
 import * as XLSX from 'xlsx';
 
+/**
+ * A mapping of common Nigerian bank names to their 3-digit codes.
+ */
+const NIGERIAN_BANK_CODES = {
+    'access': '044',
+    'citibank': '023',
+    'ecobank': '050',
+    'fidelity': '070',
+    'firstbank': '011',
+    'fcmb': '214',
+    'globus': '103',
+    'gtb': '058',
+    'heritage': '030',
+    'jaiz': '301',
+    'keystone': '082',
+    'parallex': '104',
+    'polaris': '076',
+    'premium': '105',
+    'providus': '101',
+    'stanbic': '221',
+    'standard chartered': '068',
+    'sterling': '232',
+    'suntrust': '100',
+    'taj': '302',
+    'titan': '102',
+    'uba': '033',
+    'union': '032',
+    'unity': '215',
+    'wema': '035',
+    'zenith': '057',
+};
+
 export interface BankTransferData {
   staffId: string;
   staffName: string;
@@ -57,7 +89,7 @@ export async function exportToBankExcel(data: any[], filename: string): Promise<
   // Create worksheet with custom headers
   const headers = [
     'Staff ID',
-    'Staff Name', 
+    'Staff Name',
     'Account Number',
     'Account Name',
     'Bank Name',
@@ -66,7 +98,7 @@ export async function exportToBankExcel(data: any[], filename: string): Promise<
     'Department',
     'Pay Period'
   ];
-  
+
   // Format data for export
   const formattedData = data.map(row => ({
     'Staff ID': row.staffId || row['Staff ID'] || '',
@@ -80,9 +112,9 @@ export async function exportToBankExcel(data: any[], filename: string): Promise<
     'Pay Period': row.period || row['Pay Period'] || '',
   }));
 
-  const worksheet = XLSX.utils.json_to_sheet(formattedData);
+  const worksheet = XLSX.utils.json_to_sheet(formattedData, { header: headers, skipHeader: true });
   const workbook = XLSX.utils.book_new();
-  
+
   // Add report metadata at the top
   const reportInfo = [
     ['JSC PAYROLL MANAGEMENT SYSTEM'],
@@ -91,17 +123,15 @@ export async function exportToBankExcel(data: any[], filename: string): Promise<
     [`Total Records: ${data.length}`],
     [`Total Amount: ₦${data.reduce((sum, row) => sum + (typeof row.amount === 'number' ? row.amount : (row['Amount (NGN)'] || 0)), 0).toLocaleString()}`],
     [''], // Empty row
+    headers // Add the actual header row
   ];
-  
-  // Insert report info at the beginning
+
+  // Insert report info and headers at the beginning
   XLSX.utils.sheet_add_aoa(worksheet, reportInfo, { origin: 'A1' });
-  
-  // Adjust the data range to start after the report info
-  const dataRange = XLSX.utils.encode_range({
-    s: { c: 0, r: reportInfo.length },
-    e: { c: headers.length - 1, r: reportInfo.length + formattedData.length }
-  });
-  
+
+  // Adjust the data to start after the report info and headers
+  XLSX.utils.sheet_add_json(worksheet, formattedData, { origin: `A${reportInfo.length + 1}`, skipHeader: true });
+
   // Set column widths
   const columnWidths = [
     { wch: 15 }, // Staff ID
@@ -115,11 +145,11 @@ export async function exportToBankExcel(data: any[], filename: string): Promise<
     { wch: 15 }, // Period
   ];
   worksheet['!cols'] = columnWidths;
-  
+
   // Style the header row
-  const headerRow = reportInfo.length + 1;
+  const headerRowIndex = reportInfo.length - 1;
   for (let col = 0; col < headers.length; col++) {
-    const cellAddress = XLSX.utils.encode_cell({ r: headerRow, c: col });
+    const cellAddress = XLSX.utils.encode_cell({ r: headerRowIndex, c: col });
     if (!worksheet[cellAddress]) continue;
     worksheet[cellAddress].s = {
       font: { bold: true, color: { rgb: "FFFFFF" } },
@@ -127,10 +157,11 @@ export async function exportToBankExcel(data: any[], filename: string): Promise<
       alignment: { horizontal: "center" }
     };
   }
-  
+
   XLSX.utils.book_append_sheet(workbook, worksheet, 'Bank Transfers');
   XLSX.writeFile(workbook, filename);
 }
+
 
 /**
  * Export payroll data to Excel format
@@ -150,7 +181,7 @@ export async function exportPayrollToExcel(data: PayrollExportData[], filename: 
     'Net Pay (NGN)',
     'Pay Period'
   ];
-  
+
   // Format data for export
   const formattedData = data.map(row => ({
     'Staff ID': row.staffId,
@@ -166,9 +197,9 @@ export async function exportPayrollToExcel(data: PayrollExportData[], filename: 
     'Pay Period': row.period,
   }));
 
-  const worksheet = XLSX.utils.json_to_sheet(formattedData);
+  const worksheet = XLSX.utils.json_to_sheet(formattedData, { header: headers, skipHeader: true });
   const workbook = XLSX.utils.book_new();
-  
+
   // Add report metadata
   const reportInfo = [
     ['JSC PAYROLL MANAGEMENT SYSTEM'],
@@ -178,11 +209,15 @@ export async function exportPayrollToExcel(data: PayrollExportData[], filename: 
     [`Total Gross Pay: ₦${data.reduce((sum, row) => sum + row.grossPay, 0).toLocaleString()}`],
     [`Total Net Pay: ₦${data.reduce((sum, row) => sum + row.netPay, 0).toLocaleString()}`],
     [''], // Empty row
+    headers // Add the actual header row
   ];
-  
+
   // Insert report info at the beginning
   XLSX.utils.sheet_add_aoa(worksheet, reportInfo, { origin: 'A1' });
-  
+
+  // Adjust the data to start after the report info
+  XLSX.utils.sheet_add_json(worksheet, formattedData, { origin: `A${reportInfo.length + 1}`, skipHeader: true });
+
   // Set column widths
   const columnWidths = [
     { wch: 15 }, // Staff ID
@@ -198,11 +233,11 @@ export async function exportPayrollToExcel(data: PayrollExportData[], filename: 
     { wch: 15 }, // Period
   ];
   worksheet['!cols'] = columnWidths;
-  
+
   // Style the header row
-  const headerRow = reportInfo.length + 1;
+  const headerRowIndex = reportInfo.length - 1;
   for (let col = 0; col < headers.length; col++) {
-    const cellAddress = XLSX.utils.encode_cell({ r: headerRow, c: col });
+    const cellAddress = XLSX.utils.encode_cell({ r: headerRowIndex, c: col });
     if (!worksheet[cellAddress]) continue;
     worksheet[cellAddress].s = {
       font: { bold: true, color: { rgb: "FFFFFF" } },
@@ -210,7 +245,7 @@ export async function exportPayrollToExcel(data: PayrollExportData[], filename: 
       alignment: { horizontal: "center" }
     };
   }
-  
+
   XLSX.utils.book_append_sheet(workbook, worksheet, 'Payroll Data');
   XLSX.writeFile(workbook, filename);
 }
@@ -236,10 +271,10 @@ export async function exportStaffTemplate(): Promise<void> {
       'Account Name': '',
     }
   ];
-  
+
   const worksheet = XLSX.utils.json_to_sheet(templateData);
   const workbook = XLSX.utils.book_new();
-  
+
   // Add instructions sheet
   const instructions = [
     ['JSC Staff Import Template'],
@@ -250,7 +285,7 @@ export async function exportStaffTemplate(): Promise<void> {
     ['3. Department Code should match existing department codes'],
     ['4. Grade Level should be between 1-17'],
     ['5. Step should be between 1-15'],
-    ['6. Bank Name should match: access, gtb, firstbank, zenith, uba, fidelity, union'],
+    ['6. Bank Name should match one of the recognized banks.'],
     ['7. Save as .xlsx and upload through the system'],
     [''],
     ['Required Fields:'],
@@ -259,12 +294,12 @@ export async function exportStaffTemplate(): Promise<void> {
     ['Optional Fields:'],
     ['- Middle Name, Phone Number, Bank Details'],
   ];
-  
+
   const instructionsSheet = XLSX.utils.aoa_to_sheet(instructions);
-  
+
   XLSX.utils.book_append_sheet(workbook, instructionsSheet, 'Instructions');
   XLSX.utils.book_append_sheet(workbook, worksheet, 'Staff Data');
-  
+
   XLSX.writeFile(workbook, 'staff_import_template.xlsx');
 }
 
@@ -274,7 +309,7 @@ export async function exportStaffTemplate(): Promise<void> {
 export async function exportSalaryStructureToExcel(data: any[], filename: string): Promise<void> {
   const worksheet = XLSX.utils.json_to_sheet(data);
   const workbook = XLSX.utils.book_new();
-  
+
   // Set column widths
   const columnWidths = [
     { wch: 12 }, // Grade Level
@@ -282,7 +317,7 @@ export async function exportSalaryStructureToExcel(data: any[], filename: string
     { wch: 15 }, // Basic Salary
   ];
   worksheet['!cols'] = columnWidths;
-  
+
   XLSX.utils.book_append_sheet(workbook, worksheet, 'Salary Structure');
   XLSX.writeFile(workbook, filename);
 }
@@ -293,10 +328,10 @@ export async function exportSalaryStructureToExcel(data: any[], filename: string
 export function parseCSVToJSON(csvContent: string): any[] {
   const lines = csvContent.trim().split('\n');
   if (lines.length < 2) return [];
-  
+
   const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
   const data = [];
-  
+
   for (let i = 1; i < lines.length; i++) {
     const values = parseCSVLine(lines[i]);
     if (values.length === headers.length) {
@@ -307,7 +342,7 @@ export function parseCSVToJSON(csvContent: string): any[] {
       data.push(row);
     }
   }
-  
+
   return data;
 }
 
@@ -344,9 +379,9 @@ export async function generateNigerianBankFile(
 ): Promise<void> {
   // This would generate bank-specific file formats
   // Different Nigerian banks may have different requirements
-  
+
   let content = '';
-  
+
   switch (bankCode.toLowerCase()) {
     case 'gtb':
     case '058':
@@ -363,7 +398,7 @@ export async function generateNigerianBankFile(
     default:
       content = generateStandardFormat(data);
   }
-  
+
   downloadFile(content, filename, 'text/plain');
 }
 
@@ -384,10 +419,10 @@ function parseCSVLine(line: string): string[] {
   const result = [];
   let current = '';
   let inQuotes = false;
-  
+
   for (let i = 0; i < line.length; i++) {
     const char = line[i];
-    
+
     if (char === '"') {
       inQuotes = !inQuotes;
     } else if (char === ',' && !inQuotes) {
@@ -397,7 +432,7 @@ function parseCSVLine(line: string): string[] {
       current += char;
     }
   }
-  
+
   result.push(current.trim());
   return result;
 }
@@ -405,41 +440,41 @@ function parseCSVLine(line: string): string[] {
 function generateGTBFormat(data: BankTransferData[]): string {
   // GTB bulk payment format
   let content = 'HEADER,BULK PAYMENT,JSC PAYROLL,' + new Date().toISOString().split('T')[0] + '\n';
-  
+
   data.forEach((row, index) => {
     content += `${index + 1},${row.accountNumber},${row.amount.toFixed(2)},${row.staffName},JSC SALARY,${row.period}\n`;
   });
-  
+
   content += `TRAILER,${data.length},${data.reduce((sum, row) => sum + row.amount, 0).toFixed(2)}\n`;
-  
+
   return content;
 }
 
 function generateAccessBankFormat(data: BankTransferData[]): string {
   // Access Bank bulk payment format
   let content = 'S/N,Account Number,Amount,Beneficiary Name,Payment Details,Reference\n';
-  
+
   data.forEach((row, index) => {
     content += `${index + 1},"${row.accountNumber}",${row.amount.toFixed(2)},"${row.staffName}","Salary Payment","${row.staffId}-${row.period}"\n`;
   });
-  
+
   return content;
 }
 
 function generateFirstBankFormat(data: BankTransferData[]): string {
   // First Bank bulk payment format
   let content = 'Record Type,Account Number,Amount,Narration,Beneficiary Name\n';
-  
+
   data.forEach((row) => {
     content += `D,"${row.accountNumber}",${row.amount.toFixed(2)},"SALARY ${row.period}","${row.staffName}"\n`;
   });
-  
+
   return content;
 }
 
 function generateStandardFormat(data: BankTransferData[]): string {
   // Standard format for other banks
-  return data.map(row => 
+  return data.map(row =>
     `${row.accountNumber},${row.amount.toFixed(2)},${row.staffName},SALARY ${row.period}`
   ).join('\n');
 }
@@ -449,26 +484,25 @@ function generateStandardFormat(data: BankTransferData[]): string {
  */
 export function validateBankTransferData(data: BankTransferData[]): { isValid: boolean; errors: string[] } {
   const errors: string[] = [];
-  
+
   data.forEach((row, index) => {
     if (!row.staffId) errors.push(`Row ${index + 1}: Staff ID is required`);
     if (!row.staffName) errors.push(`Row ${index + 1}: Staff name is required`);
     if (!row.accountNumber) errors.push(`Row ${index + 1}: Account number is required`);
     if (!row.bankCode) errors.push(`Row ${index + 1}: Bank code is required`);
     if (!row.amount || row.amount <= 0) errors.push(`Row ${index + 1}: Invalid amount`);
-    
+
     // Validate account number format (Nigerian banks typically use 10 digits)
     if (row.accountNumber && !/^\d{10}$/.test(row.accountNumber)) {
       errors.push(`Row ${index + 1}: Account number should be 10 digits`);
     }
-    
+
     // Validate bank code format
     if (row.bankCode && !/^\d{3}$/.test(row.bankCode)) {
       errors.push(`Row ${index + 1}: Bank code should be 3 digits`);
     }
-    'zenith': '057';
   });
-  
+
   return {
     isValid: errors.length === 0,
     errors,
