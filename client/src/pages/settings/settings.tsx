@@ -43,6 +43,20 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useToast } from '@/hooks/use-toast';
+import { EditUserModal } from './edit-user-modal';
+import { EditAllowanceModal } from './edit-allowance-modal';
+import { EditDeductionModal } from './edit-deduction-modal';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { 
   Settings as SettingsIcon, 
   Users, 
@@ -81,6 +95,12 @@ export default function Settings() {
   const [showAddUserModal, setShowAddUserModal] = useState(false);
   const [showAddAllowanceModal, setShowAddAllowanceModal] = useState(false);
   const [showAddDeductionModal, setShowAddDeductionModal] = useState(false);
+  const [showEditUserModal, setShowEditUserModal] = useState(false);
+  const [showEditAllowanceModal, setShowEditAllowanceModal] = useState(false);
+  const [showEditDeductionModal, setShowEditDeductionModal] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<any>(null);
+  const [selectedAllowance, setSelectedAllowance] = useState<any>(null);
+  const [selectedDeduction, setSelectedDeduction] = useState<any>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -246,6 +266,84 @@ export default function Settings() {
     },
   });
 
+  // Delete user mutation
+  const deleteUserMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      const { error } = await supabase
+        .from('users')
+        .delete()
+        .eq('id', userId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast({
+        title: 'Success',
+        description: 'User deleted successfully',
+      });
+      queryClient.invalidateQueries({ queryKey: ['system-users'] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to delete user',
+        variant: 'destructive',
+      });
+    },
+  });
+
+  // Delete allowance mutation
+  const deleteAllowanceMutation = useMutation({
+    mutationFn: async (allowanceId: string) => {
+      const { error } = await supabase
+        .from('allowances')
+        .delete()
+        .eq('id', allowanceId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast({
+        title: 'Success',
+        description: 'Allowance deleted successfully',
+      });
+      queryClient.invalidateQueries({ queryKey: ['system-allowances'] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to delete allowance',
+        variant: 'destructive',
+      });
+    },
+  });
+
+  // Delete deduction mutation
+  const deleteDeductionMutation = useMutation({
+    mutationFn: async (deductionId: string) => {
+      const { error } = await supabase
+        .from('deductions')
+        .delete()
+        .eq('id', deductionId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast({
+        title: 'Success',
+        description: 'Deduction deleted successfully',
+      });
+      queryClient.invalidateQueries({ queryKey: ['system-deductions'] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to delete deduction',
+        variant: 'destructive',
+      });
+    },
+  });
+
   const getRoleColor = (role: string) => {
     switch (role) {
       case 'super_admin':
@@ -398,12 +496,40 @@ export default function Settings() {
                         </TableCell>
                         <TableCell>
                           <div className="flex space-x-2">
-                            <Button variant="ghost" size="sm">
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={() => {
+                                setSelectedUser(user);
+                                setShowEditUserModal(true);
+                              }}
+                            >
                               <Edit className="h-4 w-4" />
                             </Button>
-                            <Button variant="ghost" size="sm" className="text-red-600">
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button variant="ghost" size="sm" className="text-red-600">
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Delete User</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Are you sure you want to delete this user? This action cannot be undone.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={() => deleteUserMutation.mutate(user.id)}
+                                    className="bg-red-600 hover:bg-red-700"
+                                  >
+                                    Delete
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
                           </div>
                         </TableCell>
                       </TableRow>
@@ -556,12 +682,40 @@ export default function Settings() {
                         </TableCell>
                         <TableCell>
                           <div className="flex space-x-2">
-                            <Button variant="ghost" size="sm">
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={() => {
+                                setSelectedAllowance(allowance);
+                                setShowEditAllowanceModal(true);
+                              }}
+                            >
                               <Edit className="h-4 w-4" />
                             </Button>
-                            <Button variant="ghost" size="sm" className="text-red-600">
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button variant="ghost" size="sm" className="text-red-600">
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Delete Allowance</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Are you sure you want to delete this allowance? This action cannot be undone.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={() => deleteAllowanceMutation.mutate(allowance.id)}
+                                    className="bg-red-600 hover:bg-red-700"
+                                  >
+                                    Delete
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
                           </div>
                         </TableCell>
                       </TableRow>
@@ -714,12 +868,40 @@ export default function Settings() {
                         </TableCell>
                         <TableCell>
                           <div className="flex space-x-2">
-                            <Button variant="ghost" size="sm">
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={() => {
+                                setSelectedDeduction(deduction);
+                                setShowEditDeductionModal(true);
+                              }}
+                            >
                               <Edit className="h-4 w-4" />
                             </Button>
-                            <Button variant="ghost" size="sm" className="text-red-600">
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button variant="ghost" size="sm" className="text-red-600">
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Delete Deduction</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Are you sure you want to delete this deduction? This action cannot be undone.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={() => deleteDeductionMutation.mutate(deduction.id)}
+                                    className="bg-red-600 hover:bg-red-700"
+                                  >
+                                    Delete
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
                           </div>
                         </TableCell>
                       </TableRow>
@@ -850,6 +1032,54 @@ export default function Settings() {
           </div>
         </TabsContent>
       </Tabs>
+
+      {/* Edit User Modal */}
+      {selectedUser && (
+        <EditUserModal
+          open={showEditUserModal}
+          onClose={() => {
+            setShowEditUserModal(false);
+            setSelectedUser(null);
+          }}
+          user={selectedUser}
+          onSuccess={() => {
+            setShowEditUserModal(false);
+            setSelectedUser(null);
+          }}
+        />
+      )}
+
+      {/* Edit Allowance Modal */}
+      {selectedAllowance && (
+        <EditAllowanceModal
+          open={showEditAllowanceModal}
+          onClose={() => {
+            setShowEditAllowanceModal(false);
+            setSelectedAllowance(null);
+          }}
+          allowance={selectedAllowance}
+          onSuccess={() => {
+            setShowEditAllowanceModal(false);
+            setSelectedAllowance(null);
+          }}
+        />
+      )}
+
+      {/* Edit Deduction Modal */}
+      {selectedDeduction && (
+        <EditDeductionModal
+          open={showEditDeductionModal}
+          onClose={() => {
+            setShowEditDeductionModal(false);
+            setSelectedDeduction(null);
+          }}
+          deduction={selectedDeduction}
+          onSuccess={() => {
+            setShowEditDeductionModal(false);
+            setSelectedDeduction(null);
+          }}
+        />
+      )}
     </div>
   );
 }
