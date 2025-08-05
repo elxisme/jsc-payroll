@@ -466,7 +466,7 @@ export function validateBankTransferData(data: BankTransferData[]): { isValid: b
     if (row.bankCode && !/^\d{3}$/.test(row.bankCode)) {
       errors.push(`Row ${index + 1}: Bank code should be 3 digits`);
     }
-    'zenith': '057',
+    'zenith': '057';
   });
   
   return {
