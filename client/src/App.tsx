@@ -9,6 +9,8 @@ import { ResponsiveLayout } from "@/components/layout/responsive-layout";
 
 // Pages
 import LoginPage from "@/pages/login";
+import ForgotPasswordPage from "@/pages/auth/forgot-password";
+import ResetPasswordPage from "@/pages/auth/reset-password";
 import Dashboard from "@/pages/dashboard";
 import StaffManagement from "@/pages/staff/staff-management";
 import Departments from "@/pages/departments/departments";
@@ -34,7 +36,17 @@ function AppContent() {
 
   if (!user) {
     return <LoginPage />;
-  }
+      <Switch>
+        <Route path="/forgot-password">
+          <ForgotPasswordPage />
+        </Route>
+        <Route path="/reset-password">
+          <ResetPasswordPage />
+        </Route>
+        <Route>
+          <LoginPage />
+        </Route>
+      </Switch>
 
   return (
     <ResponsiveLayout>

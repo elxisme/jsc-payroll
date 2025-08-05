@@ -96,9 +96,11 @@ export default function LoginPage() {
                 </div>
 
                 <div className="text-sm">
-                  <a href="#" className="text-nigeria-green hover:text-green-600">
+                  <Link href="/forgot-password">
+                    <a className="text-nigeria-green hover:text-green-600">
                     Forgot password?
-                  </a>
+                    </a>
+                  </Link>
                 </div>
               </div>
 
