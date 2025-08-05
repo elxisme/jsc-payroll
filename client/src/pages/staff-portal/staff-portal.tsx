@@ -6,7 +6,8 @@ import { formatDisplayCurrency, formatDetailCurrency } from '@/lib/currency-util
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+// FIX: Rename the imported Tooltip from the UI library to avoid conflict
+import { Tooltip as UiTooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import {
   Table,
   TableBody,
@@ -17,6 +18,7 @@ import {
 } from '@/components/ui/table';
 import { generatePayslipPDF } from '@/lib/pdf-generator';
 import { useToast } from '@/hooks/use-toast';
+// The Tooltip from recharts can now be imported without conflict
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { 
   Download, 
@@ -185,7 +187,8 @@ export default function StaffPortal() {
 
           {/* Quick Actions */}
           <div className="mt-6 space-y-3">
-            <Tooltip>
+            {/* FIX: Use the renamed UiTooltip component */}
+            <UiTooltip>
               <TooltipTrigger asChild>
                 <Button
                   className="w-full flex items-center justify-start px-4 py-3 bg-blue-50 hover:bg-blue-100 text-blue-900 border-blue-200"
@@ -204,9 +207,10 @@ export default function StaffPortal() {
               <TooltipContent>
                 <p>Download your most recent payslip as PDF</p>
               </TooltipContent>
-            </Tooltip>
+            </UiTooltip>
             
-            <Tooltip>
+            {/* FIX: Use the renamed UiTooltip component */}
+            <UiTooltip>
               <TooltipTrigger asChild>
                 <Button
                   variant="outline"
@@ -222,7 +226,7 @@ export default function StaffPortal() {
               <TooltipContent>
                 <p>View your salary trends and analytics</p>
               </TooltipContent>
-            </Tooltip>
+            </UiTooltip>
           </div>
         </div>
         
@@ -331,7 +335,8 @@ export default function StaffPortal() {
                         </TableCell>
                         <TableCell>
                           <div className="flex space-x-2">
-                            <Tooltip>
+                            {/* FIX: Use the renamed UiTooltip component */}
+                            <UiTooltip>
                               <TooltipTrigger asChild>
                                 <Button 
                                   variant="ghost" 
@@ -350,8 +355,9 @@ export default function StaffPortal() {
                               <TooltipContent>
                                 <p>View payslip details</p>
                               </TooltipContent>
-                            </Tooltip>
-                            <Tooltip>
+                            </UiTooltip>
+                            {/* FIX: Use the renamed UiTooltip component */}
+                            <UiTooltip>
                               <TooltipTrigger asChild>
                                 <Button
                                   variant="ghost"
@@ -365,7 +371,7 @@ export default function StaffPortal() {
                               <TooltipContent>
                                 <p>Download payslip as PDF</p>
                               </TooltipContent>
-                            </Tooltip>
+                            </UiTooltip>
                           </div>
                         </TableCell>
                       </TableRow>
@@ -409,6 +415,7 @@ export default function StaffPortal() {
                       <YAxis 
                         tickFormatter={(value) => `₦${(value / 1000).toFixed(0)}k`}
                       />
+                      {/* This is the recharts Tooltip, no name change needed here */}
                       <Tooltip 
                         formatter={(value: number) => [formatDetailCurrency(value), 'Net Pay']}
                         labelFormatter={(label) => formatPeriod(label)}
