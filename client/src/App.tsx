@@ -20,6 +20,7 @@ import Payslips from "@/pages/payslips/payslips";
 import BankReports from "@/pages/reports/bank-reports";
 import Notifications from "@/pages/notifications/notifications";
 import Settings from "@/pages/settings/settings";
+import ProfileSettings from "@/pages/settings/profile-settings";
 import StaffPortal from "@/pages/staff-portal/staff-portal";
 import NotFound from "@/pages/not-found";
 
@@ -106,6 +107,8 @@ function AppContent() {
                 <Settings />
               </AuthGuard>
             </Route>
+            
+            <Route path="/settings/profile" component={ProfileSettings} />
             
             <Route path="/staff-portal">
               <AuthGuard roles={['staff']}>

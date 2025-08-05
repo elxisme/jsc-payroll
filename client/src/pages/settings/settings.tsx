@@ -47,6 +47,7 @@ import { useToast } from '@/hooks/use-toast';
 import { EditUserModal } from './edit-user-modal';
 import { EditAllowanceModal } from './edit-allowance-modal';
 import { EditDeductionModal } from './edit-deduction-modal';
+import { SalaryStructureSettings } from './salary-structure-settings';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -458,8 +459,9 @@ export default function Settings() {
       </div>
 
       <Tabs defaultValue="users" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="users">Users</TabsTrigger>
+          <TabsTrigger value="salary">Salary Structure</TabsTrigger>
           <TabsTrigger value="allowances">Allowances</TabsTrigger>
           <TabsTrigger value="deductions">Deductions</TabsTrigger>
           <TabsTrigger value="system">System</TabsTrigger>
@@ -637,6 +639,11 @@ export default function Settings() {
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* Salary Structure Tab */}
+        <TabsContent value="salary">
+          <SalaryStructureSettings />
         </TabsContent>
 
         {/* Allowances Tab */}
