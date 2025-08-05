@@ -424,21 +424,37 @@ export function EditStaffModal({ open, onClose, staff, onSuccess }: EditStaffMod
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Bank Name</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
+                      <Select onValueChange={field.onChange} value={field.value || ""}>
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Select Bank" />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="">No Bank Selected</SelectItem>
+                          <SelectItem value="">Select Bank</SelectItem>
                           <SelectItem value="access">Access Bank</SelectItem>
+                          <SelectItem value="zenith">Zenith Bank</SelectItem>
                           <SelectItem value="gtb">Guaranty Trust Bank</SelectItem>
                           <SelectItem value="firstbank">First Bank of Nigeria</SelectItem>
                           <SelectItem value="zenith">Zenith Bank</SelectItem>
                           <SelectItem value="uba">United Bank for Africa</SelectItem>
                           <SelectItem value="fidelity">Fidelity Bank</SelectItem>
                           <SelectItem value="union">Union Bank</SelectItem>
+                          <SelectItem value="stanbic">Stanbic IBTC Bank</SelectItem>
+                          <SelectItem value="polaris">Polaris Bank</SelectItem>
+                          <SelectItem value="wema">Wema Bank</SelectItem>
+                          <SelectItem value="sterling">Sterling Bank</SelectItem>
+                          <SelectItem value="unity">Unity Bank</SelectItem>
+                          <SelectItem value="ecobank">Ecobank Nigeria</SelectItem>
+                          <SelectItem value="keystone">Keystone Bank</SelectItem>
+                          <SelectItem value="titan">Titan Trust Bank</SelectItem>
+                          <SelectItem value="globus">Globus Bank</SelectItem>
+                          <SelectItem value="providus">Providus Bank</SelectItem>
+                          <SelectItem value="suntrust">SunTrust Bank</SelectItem>
+                          <SelectItem value="parallex">Parallex Bank</SelectItem>
+                          <SelectItem value="premium">Premium Trust Bank</SelectItem>
+                          <SelectItem value="taj">TAJ Bank</SelectItem>
+                          <SelectItem value="jaiz">Jaiz Bank</SelectItem>
                         </SelectContent>
                       </Select>
                       <FormMessage />

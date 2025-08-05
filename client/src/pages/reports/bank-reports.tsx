@@ -425,12 +425,27 @@ export default function BankReports() {
 function getBankCode(bankName: string): string {
   const bankCodes: Record<string, string> = {
     'access': '044',
-    'gtb': '058', 
-    'firstbank': '011',
     'zenith': '057',
+    'gtb': '058',
+    'firstbank': '011',
     'uba': '033',
     'fidelity': '070',
     'union': '032',
+    'stanbic': '221',
+    'polaris': '076',
+    'wema': '035',
+    'sterling': '232',
+    'unity': '215',
+    'ecobank': '050',
+    'keystone': '082',
+    'titan': '102',
+    'globus': '103',
+    'providus': '101',
+    'suntrust': '100',
+    'parallex': '104',
+    'premium': '105',
+    'taj': '302',
+    'jaiz': '301',
   };
   return bankCodes[bankName.toLowerCase()] || '000';
 }

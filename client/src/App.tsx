@@ -34,85 +34,93 @@ function AppContent() {
     );
   }
 
-  if (!user) {
-    return <LoginPage />;
-      <Switch>
-        <Route path="/forgot-password">
-          <ForgotPasswordPage />
-        </Route>
-        <Route path="/reset-password">
-          <ResetPasswordPage />
-        </Route>
-        <Route>
-          <LoginPage />
-        </Route>
-      </Switch>
-  }
-
   return (
-    <ResponsiveLayout>
-      <Switch>
-        <Route path="/">
-          <Dashboard />
-        </Route>
-        
-        <Route path="/dashboard">
-          <Dashboard />
-        </Route>
-        
-        <Route path="/staff">
-          <AuthGuard roles={['super_admin', 'account_admin', 'payroll_admin']}>
-            <StaffManagement />
-          </AuthGuard>
-        </Route>
-        
-        <Route path="/departments">
-          <AuthGuard roles={['super_admin', 'account_admin', 'payroll_admin']}>
-            <Departments />
-          </AuthGuard>
-        </Route>
-        
-        <Route path="/payroll">
-          <AuthGuard roles={['super_admin', 'account_admin', 'payroll_admin']}>
-            <PayrollProcessing />
-          </AuthGuard>
-        </Route>
-        
-        <Route path="/payroll/workflow">
-          <AuthGuard roles={['super_admin', 'account_admin', 'payroll_admin']}>
-            <PayrollWorkflow />
-          </AuthGuard>
-        </Route>
-        
-        <Route path="/payslips">
-          <AuthGuard roles={['super_admin', 'account_admin', 'payroll_admin', 'staff']}>
-            <Payslips />
-          </AuthGuard>
-        </Route>
-        
-        <Route path="/reports">
-          <AuthGuard roles={['super_admin', 'account_admin']}>
-            <BankReports />
-          </AuthGuard>
-        </Route>
-        
-        <Route path="/notifications" component={Notifications} />
-        
-        <Route path="/settings">
-          <AuthGuard roles={['super_admin']}>
-            <Settings />
-          </AuthGuard>
-        </Route>
-        
-        <Route path="/staff-portal">
-          <AuthGuard roles={['staff']}>
-            <StaffPortal />
-          </AuthGuard>
-        </Route>
-        
-        <Route component={NotFound} />
-      </Switch>
-    </ResponsiveLayout>
+    <Switch>
+      {/* Unauthenticated routes */}
+      {!user && (
+        <>
+          <Route path="/forgot-password">
+            <ForgotPasswordPage />
+          </Route>
+          <Route path="/reset-password">
+            <ResetPasswordPage />
+          </Route>
+          <Route>
+            <LoginPage />
+          </Route>
+        </>
+      )}
+      
+      {/* Authenticated routes */}
+      {user && (
+        <ResponsiveLayout>
+          <Switch>
+            <Route path="/">
+              <Dashboard />
+            </Route>
+            
+            <Route path="/dashboard">
+              <Dashboard />
+            </Route>
+            
+            <Route path="/staff">
+              <AuthGuard roles={['super_admin', 'account_admin', 'payroll_admin']}>
+                <StaffManagement />
+              </AuthGuard>
+            </Route>
+            
+            <Route path="/departments">
+              <AuthGuard roles={['super_admin', 'account_admin', 'payroll_admin']}>
+                <Departments />
+              </AuthGuard>
+            </Route>
+            
+            <Route path="/payroll">
+              <AuthGuard roles={['super_admin', 'account_admin', 'payroll_admin']}>
+                <PayrollProcessing />
+              </AuthGuard>
+            </Route>
+            
+            <Route path="/payroll/workflow">
+              <AuthGuard roles={['super_admin', 'account_admin', 'payroll_admin']}>
+                <PayrollWorkflow />
+              </AuthGuard>
+            </Route>
+            
+            <Route path="/payslips">
+              <AuthGuard roles={['super_admin', 'account_admin', 'payroll_admin', 'staff']}>
+                <Payslips />
+              </AuthGuard>
+            </Route>
+            
+            <Route path="/reports">
+              <AuthGuard roles={['super_admin', 'account_admin']}>
+                <BankReports />
+              </AuthGuard>
+            </Route>
+            
+            <Route path="/notifications" component={Notifications} />
+            
+            <Route path="/settings">
+              <AuthGuard roles={['super_admin']}>
+                <Settings />
+              </AuthGuard>
+            </Route>
+            
+            <Route path="/staff-portal">
+              <AuthGuard roles={['staff']}>
+                <StaffPortal />
+              </AuthGuard>
+            </Route>
+            
+            <Route component={NotFound} />
+          </Switch>
+        </ResponsiveLayout>
+      )}
+      
+      {/* Fallback route */}
+      <Route component={NotFound} />
+    </Switch>
   );
 }
 

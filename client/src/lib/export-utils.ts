@@ -466,10 +466,26 @@ export function validateBankTransferData(data: BankTransferData[]): { isValid: b
     if (row.bankCode && !/^\d{3}$/.test(row.bankCode)) {
       errors.push(`Row ${index + 1}: Bank code should be 3 digits`);
     }
+    'zenith': '057',
   });
   
   return {
     isValid: errors.length === 0,
     errors,
+    'stanbic': '221',
+    'polaris': '076',
+    'wema': '035',
+    'sterling': '232',
+    'unity': '215',
+    'ecobank': '050',
+    'keystone': '082',
+    'titan': '102',
+    'globus': '103',
+    'providus': '101',
+    'suntrust': '100',
+    'parallex': '104',
+    'premium': '105',
+    'taj': '302',
+    'jaiz': '301',
   };
 }
