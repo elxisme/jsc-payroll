@@ -420,3 +420,17 @@ export default function BankReports() {
     </div>
   );
 }
+
+// Add the missing getBankCode function that was referenced but not defined
+function getBankCode(bankName: string): string {
+  const bankCodes: Record<string, string> = {
+    'access': '044',
+    'gtb': '058', 
+    'firstbank': '011',
+    'zenith': '057',
+    'uba': '033',
+    'fidelity': '070',
+    'union': '032',
+  };
+  return bankCodes[bankName.toLowerCase()] || '000';
+}

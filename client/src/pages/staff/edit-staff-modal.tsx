@@ -4,6 +4,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { supabase } from '@/lib/supabase';
+import { logStaffEvent } from '@/lib/audit-logger';
 import {
   Dialog,
   DialogContent,
@@ -116,29 +117,51 @@ export function EditStaffModal({ open, onClose, staff, onSuccess }: EditStaffMod
   // Update staff mutation
   const updateStaffMutation = useMutation({
     mutationFn: async (data: EditStaffFormData) => {
+      // Store old values for audit logging
+      const oldValues = {
+        first_name: staff.first_name,
+        last_name: staff.last_name,
+        middle_name: staff.middle_name,
+        email: staff.email,
+        phone_number: staff.phone_number,
+        department_id: staff.department_id,
+        position: staff.position,
+        grade_level: staff.grade_level,
+        step: staff.step,
+        status: staff.status,
+        bank_name: staff.bank_name,
+        account_number: staff.account_number,
+        account_name: staff.account_name,
+      };
+
+      const newValues = {
+        first_name: data.firstName,
+        last_name: data.lastName,
+        middle_name: data.middleName || null,
+        email: data.email,
+        phone_number: data.phoneNumber || null,
+        department_id: data.departmentId,
+        position: data.position,
+        grade_level: data.gradeLevel,
+        step: data.step,
+        status: data.status,
+        bank_name: data.bankName || null,
+        account_number: data.accountNumber || null,
+        account_name: data.accountName || null,
+        updated_at: new Date().toISOString(),
+      };
+
       const { data: updatedStaff, error } = await supabase
         .from('staff')
-        .update({
-          first_name: data.firstName,
-          last_name: data.lastName,
-          middle_name: data.middleName || null,
-          email: data.email,
-          phone_number: data.phoneNumber || null,
-          department_id: data.departmentId,
-          position: data.position,
-          grade_level: data.gradeLevel,
-          step: data.step,
-          status: data.status,
-          bank_name: data.bankName || null,
-          account_number: data.accountNumber || null,
-          account_name: data.accountName || null,
-          updated_at: new Date().toISOString(),
-        })
+        .update(newValues)
         .eq('id', staff.id)
         .select()
         .single();
 
       if (error) throw error;
+
+      // Log the update for audit trail
+      await logStaffEvent('updated', staff.id, oldValues, newValues);
 
       // Create notification for admins about staff update
       const { data: adminUsers } = await supabase

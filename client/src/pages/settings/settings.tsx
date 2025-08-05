@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/use-auth';
 import { supabase } from '@/lib/supabase';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { logSystemEvent } from '@/lib/audit-logger';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -186,6 +187,10 @@ export default function Settings() {
         .single();
 
       if (error) throw error;
+      
+      // Log user creation
+      await logSystemEvent('user_created', 'users', newUser.id, null, data);
+      
       return newUser;
     },
     onSuccess: () => {
@@ -216,6 +221,10 @@ export default function Settings() {
         .single();
 
       if (error) throw error;
+      
+      // Log allowance creation
+      await logSystemEvent('allowance_created', 'allowances', newAllowance.id, null, data);
+      
       return newAllowance;
     },
     onSuccess: () => {
@@ -246,6 +255,10 @@ export default function Settings() {
         .single();
 
       if (error) throw error;
+      
+      // Log deduction creation
+      await logSystemEvent('deduction_created', 'deductions', newDeduction.id, null, data);
+      
       return newDeduction;
     },
     onSuccess: () => {
@@ -269,12 +282,24 @@ export default function Settings() {
   // Delete user mutation
   const deleteUserMutation = useMutation({
     mutationFn: async (userId: string) => {
+      // Get user data before deletion for audit log
+      const { data: userData } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', userId)
+        .single();
+
       const { error } = await supabase
         .from('users')
         .delete()
         .eq('id', userId);
 
       if (error) throw error;
+      
+      // Log user deletion
+      if (userData) {
+        await logSystemEvent('user_deleted', 'users', userId, userData, null);
+      }
     },
     onSuccess: () => {
       toast({
@@ -295,12 +320,24 @@ export default function Settings() {
   // Delete allowance mutation
   const deleteAllowanceMutation = useMutation({
     mutationFn: async (allowanceId: string) => {
+      // Get allowance data before deletion for audit log
+      const { data: allowanceData } = await supabase
+        .from('allowances')
+        .select('*')
+        .eq('id', allowanceId)
+        .single();
+
       const { error } = await supabase
         .from('allowances')
         .delete()
         .eq('id', allowanceId);
 
       if (error) throw error;
+      
+      // Log allowance deletion
+      if (allowanceData) {
+        await logSystemEvent('allowance_deleted', 'allowances', allowanceId, allowanceData, null);
+      }
     },
     onSuccess: () => {
       toast({
@@ -321,12 +358,24 @@ export default function Settings() {
   // Delete deduction mutation
   const deleteDeductionMutation = useMutation({
     mutationFn: async (deductionId: string) => {
+      // Get deduction data before deletion for audit log
+      const { data: deductionData } = await supabase
+        .from('deductions')
+        .select('*')
+        .eq('id', deductionId)
+        .single();
+
       const { error } = await supabase
         .from('deductions')
         .delete()
         .eq('id', deductionId);
 
       if (error) throw error;
+      
+      // Log deduction deletion
+      if (deductionData) {
+        await logSystemEvent('deduction_deleted', 'deductions', deductionId, deductionData, null);
+      }
     },
     onSuccess: () => {
       toast({
@@ -916,6 +965,19 @@ export default function Settings() {
         {/* System Tab */}
         <TabsContent value="system">
           <div className="space-y-6">
+            {/* Audit Logs Section */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <Shield className="h-5 w-5" />
+                  <span>Audit Logs</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <AuditLogsTable />
+              </CardContent>
+            </Card>
+
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
@@ -1079,6 +1141,104 @@ export default function Settings() {
             setSelectedDeduction(null);
           }}
         />
+      )}
+    </div>
+  );
+}
+
+// Audit Logs Component
+function AuditLogsTable() {
+  const { data: auditLogs, isLoading } = useQuery({
+    queryKey: ['audit-logs'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('audit_logs')
+        .select(`
+          *,
+          users (
+            email
+          )
+        `)
+        .order('created_at', { ascending: false })
+        .limit(50);
+
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  const getActionColor = (action: string) => {
+    if (action.includes('created')) return 'bg-green-100 text-green-800';
+    if (action.includes('updated')) return 'bg-blue-100 text-blue-800';
+    if (action.includes('deleted')) return 'bg-red-100 text-red-800';
+    if (action.includes('login')) return 'bg-purple-100 text-purple-800';
+    return 'bg-gray-100 text-gray-800';
+  };
+
+  const formatAction = (action: string) => {
+    return action.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+  };
+
+  if (isLoading) {
+    return (
+      <div className="space-y-4">
+        {[...Array(5)].map((_, i) => (
+          <div key={i} className="animate-pulse flex space-x-4">
+            <div className="rounded-full bg-gray-200 h-8 w-8"></div>
+            <div className="flex-1 space-y-2 py-1">
+              <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+              <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="text-sm text-gray-600">
+        Showing the last 50 audit log entries
+      </div>
+      
+      {auditLogs && auditLogs.length > 0 ? (
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>User</TableHead>
+              <TableHead>Action</TableHead>
+              <TableHead>Resource</TableHead>
+              <TableHead>Resource ID</TableHead>
+              <TableHead>Timestamp</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {auditLogs.map((log) => (
+              <TableRow key={log.id}>
+                <TableCell className="font-medium">
+                  {log.users?.email || 'System'}
+                </TableCell>
+                <TableCell>
+                  <Badge className={getActionColor(log.action)}>
+                    {formatAction(log.action)}
+                  </Badge>
+                </TableCell>
+                <TableCell className="capitalize">{log.resource}</TableCell>
+                <TableCell className="font-mono text-xs">
+                  {log.resource_id ? log.resource_id.slice(0, 8) + '...' : '-'}
+                </TableCell>
+                <TableCell className="text-sm text-gray-600">
+                  {new Date(log.created_at).toLocaleString()}
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      ) : (
+        <div className="text-center py-8 text-gray-500">
+          <Database className="mx-auto h-12 w-12 text-gray-300 mb-4" />
+          <p>No audit logs found</p>
+        </div>
       )}
     </div>
   );

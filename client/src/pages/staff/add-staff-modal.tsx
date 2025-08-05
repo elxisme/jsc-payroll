@@ -4,6 +4,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { supabase } from '@/lib/supabase';
+import { logStaffEvent } from '@/lib/audit-logger';
 import {
   Dialog,
   DialogContent,
@@ -107,29 +108,35 @@ export function AddStaffModal({ open, onClose, onSuccess }: AddStaffModalProps) 
     mutationFn: async (data: AddStaffFormData) => {
       const staffId = await generateStaffId();
       
+      const staffData = {
+        staff_id: staffId,
+        first_name: data.firstName,
+        last_name: data.lastName,
+        middle_name: data.middleName || null,
+        email: data.email,
+        phone_number: data.phoneNumber || null,
+        department_id: data.departmentId,
+        position: data.position,
+        grade_level: data.gradeLevel,
+        step: data.step,
+        employment_date: data.employmentDate,
+        bank_name: data.bankName || null,
+        account_number: data.accountNumber || null,
+        account_name: data.accountName || null,
+        status: 'active',
+      };
+
       const { data: staff, error } = await supabase
         .from('staff')
-        .insert({
-          staff_id: staffId,
-          first_name: data.firstName,
-          last_name: data.lastName,
-          middle_name: data.middleName || null,
-          email: data.email,
-          phone_number: data.phoneNumber || null,
-          department_id: data.departmentId,
-          position: data.position,
-          grade_level: data.gradeLevel,
-          step: data.step,
-          employment_date: data.employmentDate,
-          bank_name: data.bankName || null,
-          account_number: data.accountNumber || null,
-          account_name: data.accountName || null,
-          status: 'active',
-        })
+        .insert(staffData)
         .select()
         .single();
 
       if (error) throw error;
+      
+      // Log the creation for audit trail
+      await logStaffEvent('created', staff.id, null, staffData);
+      
       return staff;
     },
     onSuccess: () => {

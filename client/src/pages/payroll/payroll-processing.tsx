@@ -12,6 +12,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { supabase } from '@/lib/supabase';
 import { calculateBulkPayroll, processPayrollRun } from '@/lib/payroll-calculator';
 import { useToast } from '@/hooks/use-toast';
+import { logPayrollEvent } from '@/lib/audit-logger';
 
 interface Staff {
   id: string;
@@ -143,6 +144,13 @@ export default function PayrollProcessing() {
         .single();
 
       if (runError) throw runError;
+
+      // Log payroll run creation
+      await logPayrollEvent('created', payrollRun.id, null, {
+        period: selectedPeriod,
+        department_id: selectedDepartment === 'all' ? null : selectedDepartment,
+        total_staff: filteredStaff.length,
+      });
 
       // Prepare payroll inputs for calculation
       const payrollInputs = filteredStaff.map(staffMember => ({

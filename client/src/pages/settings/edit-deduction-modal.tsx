@@ -4,6 +4,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { supabase } from '@/lib/supabase';
+import { logSystemEvent } from '@/lib/audit-logger';
 import {
   Dialog,
   DialogContent,
@@ -76,6 +77,14 @@ export function EditDeductionModal({ open, onClose, deduction, onSuccess }: Edit
   // Update deduction mutation
   const updateDeductionMutation = useMutation({
     mutationFn: async (data: EditDeductionFormData) => {
+      // Store old values for audit logging
+      const oldValues = {
+        name: deduction.name,
+        type: deduction.type,
+        value: deduction.value,
+        is_active: deduction.is_active,
+      };
+
       const { data: updatedDeduction, error } = await supabase
         .from('deductions')
         .update({
@@ -89,6 +98,10 @@ export function EditDeductionModal({ open, onClose, deduction, onSuccess }: Edit
         .single();
 
       if (error) throw error;
+      
+      // Log the update for audit trail
+      await logSystemEvent('deduction_updated', 'deductions', deduction.id, oldValues, data);
+      
       return updatedDeduction;
     },
     onSuccess: () => {

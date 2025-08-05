@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/use-auth';
 import { supabase } from '@/lib/supabase';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { logPayrollEvent } from '@/lib/audit-logger';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -80,6 +81,11 @@ export default function PayrollWorkflow() {
   // Approve payroll run mutation
   const approvePayrollMutation = useMutation({
     mutationFn: async ({ runId, action }: { runId: string; action: 'approve' | 'reject' }) => {
+      const oldValues = {
+        status: selectedRun?.status,
+        approved_by: selectedRun?.approved_by,
+      };
+
       const updates: any = {
         approved_by: user?.id,
       };
@@ -96,6 +102,9 @@ export default function PayrollWorkflow() {
         .eq('id', runId);
 
       if (error) throw error;
+
+      // Log the approval/rejection for audit trail
+      await logPayrollEvent(action === 'approve' ? 'approved' : 'rejected', runId, oldValues, updates);
 
       // Create notification for the creator
       if (selectedRun?.created_by) {
@@ -131,15 +140,25 @@ export default function PayrollWorkflow() {
   // Finalize payroll run mutation (Super Admin only)
   const finalizePayrollMutation = useMutation({
     mutationFn: async (runId: string) => {
+      const oldValues = {
+        status: selectedRun?.status,
+        processed_at: selectedRun?.processed_at,
+      };
+
+      const newValues = {
+        status: 'processed',
+        processed_at: new Date().toISOString(),
+      };
+
       const { error } = await supabase
         .from('payroll_runs')
-        .update({
-          status: 'processed',
-          processed_at: new Date().toISOString(),
-        })
+        .update(newValues)
         .eq('id', runId);
 
       if (error) throw error;
+
+      // Log the finalization for audit trail
+      await logPayrollEvent('processed', runId, oldValues, newValues);
 
       // Create notification for all admins
       const { data: adminUsers } = await supabase

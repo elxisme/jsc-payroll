@@ -4,6 +4,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { supabase } from '@/lib/supabase';
+import { logSystemEvent } from '@/lib/audit-logger';
 import {
   Dialog,
   DialogContent,
@@ -76,6 +77,14 @@ export function EditAllowanceModal({ open, onClose, allowance, onSuccess }: Edit
   // Update allowance mutation
   const updateAllowanceMutation = useMutation({
     mutationFn: async (data: EditAllowanceFormData) => {
+      // Store old values for audit logging
+      const oldValues = {
+        name: allowance.name,
+        type: allowance.type,
+        value: allowance.value,
+        is_active: allowance.is_active,
+      };
+
       const { data: updatedAllowance, error } = await supabase
         .from('allowances')
         .update({
@@ -89,6 +98,10 @@ export function EditAllowanceModal({ open, onClose, allowance, onSuccess }: Edit
         .single();
 
       if (error) throw error;
+      
+      // Log the update for audit trail
+      await logSystemEvent('allowance_updated', 'allowances', allowance.id, oldValues, data);
+      
       return updatedAllowance;
     },
     onSuccess: () => {

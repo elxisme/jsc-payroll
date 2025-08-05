@@ -22,7 +22,9 @@ import {
   UserPlus,
   Upload,
   BarChart3,
+  TrendingUp,
 } from 'lucide-react';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 export default function Dashboard() {
   const { user, hasRole } = useAuth();
@@ -68,6 +70,30 @@ export default function Dashboard() {
 
       if (error) throw error;
       return data || [];
+    },
+    enabled: !!user && hasRole(['super_admin', 'account_admin', 'payroll_admin']),
+  });
+
+  // Fetch payroll trends for charts
+  const { data: payrollTrends, isLoading: trendsLoading } = useQuery({
+    queryKey: ['payroll-trends'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('payroll_runs')
+        .select('period, gross_amount, net_amount, total_deductions, total_staff')
+        .eq('status', 'processed')
+        .order('period', { ascending: true })
+        .limit(12);
+
+      if (error) throw error;
+      
+      return (data || []).map(run => ({
+        period: run.period,
+        grossAmount: parseFloat(run.gross_amount || '0'),
+        netAmount: parseFloat(run.net_amount || '0'),
+        totalDeductions: parseFloat(run.total_deductions || '0'),
+        totalStaff: run.total_staff || 0,
+      }));
     },
     enabled: !!user && hasRole(['super_admin', 'account_admin', 'payroll_admin']),
   });
@@ -294,6 +320,97 @@ export default function Dashboard() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Left Column */}
+        <div className="lg:col-span-3 space-y-8">
+          {/* Payroll Trends Chart */}
+          {hasRole(['super_admin', 'account_admin', 'payroll_admin']) && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <TrendingUp className="h-5 w-5" />
+                  <span>12-Month Payroll Trends</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {trendsLoading ? (
+                  <div className="h-64 flex items-center justify-center">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-nigeria-green"></div>
+                  </div>
+                ) : payrollTrends && payrollTrends.length > 0 ? (
+                  <div className="h-64">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={payrollTrends}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis 
+                          dataKey="period" 
+                          tickFormatter={(value) => {
+                            const [year, month] = value.split('-');
+                            const date = new Date(parseInt(year), parseInt(month) - 1);
+                            return date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+                          }}
+                        />
+                        <YAxis 
+                          tickFormatter={(value) => `₦${(value / 1000000).toFixed(1)}M`}
+                        />
+                        <Tooltip 
+                          formatter={(value: number, name: string) => [
+                            formatCurrency(value), 
+                            name === 'netAmount' ? 'Net Pay' : 
+                            name === 'grossAmount' ? 'Gross Pay' : 'Total Deductions'
+                          ]}
+                          labelFormatter={(label) => {
+                            const [year, month] = label.split('-');
+                            const date = new Date(parseInt(year), parseInt(month) - 1);
+                            return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long' });
+                          }}
+                        />
+                        <Line 
+                          type="monotone" 
+                          dataKey="netAmount" 
+                          stroke="#008751" 
+                          strokeWidth={3}
+                          dot={{ fill: '#008751', strokeWidth: 2, r: 4 }}
+                          activeDot={{ r: 6, stroke: '#008751', strokeWidth: 2 }}
+                        />
+                        <Line 
+                          type="monotone" 
+                          dataKey="grossAmount" 
+                          stroke="#3B82F6" 
+                          strokeWidth={2}
+                          strokeDasharray="5 5"
+                          dot={{ fill: '#3B82F6', strokeWidth: 2, r: 3 }}
+                        />
+                      </LineChart>
+                    </ResponsiveContainer>
+                    <div className="mt-4 flex justify-center space-x-6 text-sm">
+                      <div className="flex items-center space-x-2">
+                        <div className="w-4 h-0.5 bg-nigeria-green"></div>
+                        <span>Net Pay</span>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <div className="w-4 h-0.5 bg-blue-500 border-dashed border-t-2"></div>
+                        <span>Gross Pay</span>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="h-64 bg-gradient-to-br from-blue-50 to-green-50 rounded-lg flex items-center justify-center border-2 border-dashed border-gray-300">
+                    <div className="text-center">
+                      <TrendingUp className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                      <p className="text-gray-500 font-medium">No Payroll Data Available</p>
+                      <p className="text-xs text-gray-400 mt-1">
+                        Payroll trends will appear here once payroll runs are processed
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-8">
         {/* Left Column */}
         <div className="lg:col-span-2 space-y-8">
           {/* Recent Payroll Runs */}

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
+import { logDepartmentEvent } from '@/lib/audit-logger';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -99,6 +100,10 @@ export default function Departments() {
         .single();
 
       if (error) throw error;
+      
+      // Log the creation for audit trail
+      await logDepartmentEvent('created', department.id, null, data);
+      
       return department;
     },
     onSuccess: () => {

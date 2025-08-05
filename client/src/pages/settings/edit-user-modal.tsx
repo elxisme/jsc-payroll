@@ -4,6 +4,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { supabase } from '@/lib/supabase';
+import { logSystemEvent } from '@/lib/audit-logger';
 import {
   Dialog,
   DialogContent,
@@ -69,6 +70,12 @@ export function EditUserModal({ open, onClose, user, onSuccess }: EditUserModalP
   // Update user mutation
   const updateUserMutation = useMutation({
     mutationFn: async (data: EditUserFormData) => {
+      // Store old values for audit logging
+      const oldValues = {
+        email: user.email,
+        role: user.role,
+      };
+
       const { data: updatedUser, error } = await supabase
         .from('users')
         .update({
@@ -81,6 +88,9 @@ export function EditUserModal({ open, onClose, user, onSuccess }: EditUserModalP
         .single();
 
       if (error) throw error;
+
+      // Log the update for audit trail
+      await logSystemEvent('user_updated', 'users', user.id, oldValues, data);
 
       // Create notification for the user about role change
       if (data.role !== user.role) {

@@ -4,6 +4,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { supabase } from '@/lib/supabase';
+import { logDepartmentEvent } from '@/lib/audit-logger';
 import {
   Dialog,
   DialogContent,
@@ -66,7 +67,14 @@ export function EditDepartmentModal({ open, onClose, department, onSuccess }: Ed
   // Update department mutation
   const updateDepartmentMutation = useMutation({
     mutationFn: async (data: EditDepartmentFormData) => {
-      const { data: updatedDepartments, error } = await supabase
+      // Store old values for audit logging
+      const oldValues = {
+        name: department.name,
+        code: department.code,
+        description: department.description,
+      };
+
+      const { data: updatedDepartment, error } = await supabase
         .from('departments')
         .update({
           name: data.name,
@@ -76,14 +84,16 @@ export function EditDepartmentModal({ open, onClose, department, onSuccess }: Ed
         })
         .eq('id', department.id)
         .select();
-
       if (error) throw error;
       
-      if (!updatedDepartments || updatedDepartments.length === 0) {
+      if (!updatedDepartment || updatedDepartment.length === 0) {
         throw new Error('Department not found or no changes were made. The department may have been deleted by another user.');
       }
       
-      return updatedDepartments[0];
+      // Log the update for audit trail
+      await logDepartmentEvent('updated', department.id, oldValues, data);
+      
+      return updatedDepartment[0];
     },
     onSuccess: () => {
       toast({
