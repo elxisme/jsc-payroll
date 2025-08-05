@@ -557,7 +557,7 @@ export default function Dashboard() {
               )}
             </CardContent>
             </Card>
-          )}
+          )
 
           {/* Staff Management Quick Actions */}
           {hasRole(['super_admin', 'payroll_admin']) && (
