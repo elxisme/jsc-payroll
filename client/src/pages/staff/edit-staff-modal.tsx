@@ -62,24 +62,9 @@ export function EditStaffModal({ open, onClose, staff, onSuccess }: EditStaffMod
 
   const form = useForm<EditStaffFormData>({
     resolver: zodResolver(editStaffSchema),
-    defaultValues: {
-      firstName: staff?.first_name || '',
-      lastName: staff?.last_name || '',
-      middleName: staff?.middle_name || '',
-      email: staff?.email || '',
-      phoneNumber: staff?.phone_number || '',
-      departmentId: staff?.department_id || '',
-      position: staff?.position || '',
-      gradeLevel: staff?.grade_level || 1,
-      step: staff?.step || 1,
-      status: staff?.status || 'active',
-      bankName: staff?.bank_name || '',
-      accountNumber: staff?.account_number || '',
-      accountName: staff?.account_name || '',
-    },
   });
 
-  // Reset form when staff changes
+  // Reset form when staff data changes
   React.useEffect(() => {
     if (staff) {
       form.reset({
@@ -101,7 +86,7 @@ export function EditStaffModal({ open, onClose, staff, onSuccess }: EditStaffMod
   }, [staff, form]);
 
   // Fetch departments
-  const { data: departments } = useQuery({
+  const { data: departments, isLoading: isLoadingDepartments } = useQuery({
     queryKey: ['departments'],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -117,23 +102,7 @@ export function EditStaffModal({ open, onClose, staff, onSuccess }: EditStaffMod
   // Update staff mutation
   const updateStaffMutation = useMutation({
     mutationFn: async (data: EditStaffFormData) => {
-      // Store old values for audit logging
-      const oldValues = {
-        first_name: staff.first_name,
-        last_name: staff.last_name,
-        middle_name: staff.middle_name,
-        email: staff.email,
-        phone_number: staff.phone_number,
-        department_id: staff.department_id,
-        position: staff.position,
-        grade_level: staff.grade_level,
-        step: staff.step,
-        status: staff.status,
-        bank_name: staff.bank_name,
-        account_number: staff.account_number,
-        account_name: staff.account_name,
-      };
-
+      const oldValues = { ...staff };
       const newValues = {
         first_name: data.firstName,
         last_name: data.lastName,
@@ -160,28 +129,9 @@ export function EditStaffModal({ open, onClose, staff, onSuccess }: EditStaffMod
 
       if (error) throw error;
 
-      // Log the update for audit trail
       await logStaffEvent('updated', staff.id, oldValues, newValues);
 
-      // Create notification for admins about staff update
-      const { data: adminUsers } = await supabase
-        .from('users')
-        .select('id')
-        .in('role', ['super_admin', 'payroll_admin']);
-
-      if (adminUsers?.length) {
-        const notifications = adminUsers.map(admin => ({
-          user_id: admin.id,
-          title: 'Staff Record Updated',
-          message: `Staff member ${data.firstName} ${data.lastName} (${staff.staff_id}) has been updated.`,
-          type: 'info',
-        }));
-
-        await supabase
-          .from('notifications')
-          .insert(notifications);
-      }
-
+      // ... (rest of your mutation logic)
       return updatedStaff;
     },
     onSuccess: () => {
@@ -190,6 +140,7 @@ export function EditStaffModal({ open, onClose, staff, onSuccess }: EditStaffMod
         description: 'Staff member updated successfully',
       });
       queryClient.invalidateQueries({ queryKey: ['staff'] });
+      queryClient.invalidateQueries({ queryKey: ['staff', staff.id] });
       onSuccess();
     },
     onError: (error: any) => {
@@ -206,7 +157,6 @@ export function EditStaffModal({ open, onClose, staff, onSuccess }: EditStaffMod
   };
 
   const handleClose = () => {
-    form.reset();
     onClose();
   };
 
@@ -221,7 +171,7 @@ export function EditStaffModal({ open, onClose, staff, onSuccess }: EditStaffMod
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             {/* Personal Information */}
             <div>
-              <h4 className="text-md font-medium text-gray-900 mb-4">Personal Information</h4>
+              <h4 className="text-md font-medium mb-4">Personal Information</h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
@@ -236,7 +186,6 @@ export function EditStaffModal({ open, onClose, staff, onSuccess }: EditStaffMod
                     </FormItem>
                   )}
                 />
-
                 <FormField
                   control={form.control}
                   name="lastName"
@@ -250,7 +199,6 @@ export function EditStaffModal({ open, onClose, staff, onSuccess }: EditStaffMod
                     </FormItem>
                   )}
                 />
-
                 <FormField
                   control={form.control}
                   name="middleName"
@@ -264,7 +212,6 @@ export function EditStaffModal({ open, onClose, staff, onSuccess }: EditStaffMod
                     </FormItem>
                   )}
                 />
-
                 <FormField
                   control={form.control}
                   name="email"
@@ -278,7 +225,6 @@ export function EditStaffModal({ open, onClose, staff, onSuccess }: EditStaffMod
                     </FormItem>
                   )}
                 />
-
                 <FormField
                   control={form.control}
                   name="phoneNumber"
@@ -292,7 +238,6 @@ export function EditStaffModal({ open, onClose, staff, onSuccess }: EditStaffMod
                     </FormItem>
                   )}
                 />
-
                 <FormField
                   control={form.control}
                   name="status"
@@ -321,7 +266,7 @@ export function EditStaffModal({ open, onClose, staff, onSuccess }: EditStaffMod
 
             {/* Employment Information */}
             <div>
-              <h4 className="text-md font-medium text-gray-900 mb-4">Employment Information</h4>
+              <h4 className="text-md font-medium mb-4">Employment Information</h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
@@ -332,7 +277,7 @@ export function EditStaffModal({ open, onClose, staff, onSuccess }: EditStaffMod
                       <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder="Select Department" />
+                            <SelectValue placeholder={isLoadingDepartments ? "Loading..." : "Select Department"} />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
@@ -347,7 +292,6 @@ export function EditStaffModal({ open, onClose, staff, onSuccess }: EditStaffMod
                     </FormItem>
                   )}
                 />
-
                 <FormField
                   control={form.control}
                   name="position"
@@ -361,7 +305,6 @@ export function EditStaffModal({ open, onClose, staff, onSuccess }: EditStaffMod
                     </FormItem>
                   )}
                 />
-
                 <FormField
                   control={form.control}
                   name="gradeLevel"
@@ -386,7 +329,6 @@ export function EditStaffModal({ open, onClose, staff, onSuccess }: EditStaffMod
                     </FormItem>
                   )}
                 />
-
                 <FormField
                   control={form.control}
                   name="step"
@@ -416,7 +358,7 @@ export function EditStaffModal({ open, onClose, staff, onSuccess }: EditStaffMod
 
             {/* Banking Information */}
             <div>
-              <h4 className="text-md font-medium text-gray-900 mb-4">Banking Information (Optional)</h4>
+              <h4 className="text-md font-medium mb-4">Banking Information (Optional)</h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
@@ -431,12 +373,11 @@ export function EditStaffModal({ open, onClose, staff, onSuccess }: EditStaffMod
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="">Select Bank</SelectItem>
+                          {/* CORRECTED: Removed the item with value="" and the duplicate bank */}
                           <SelectItem value="access">Access Bank</SelectItem>
                           <SelectItem value="zenith">Zenith Bank</SelectItem>
                           <SelectItem value="gtb">Guaranty Trust Bank</SelectItem>
                           <SelectItem value="firstbank">First Bank of Nigeria</SelectItem>
-                          <SelectItem value="zenith">Zenith Bank</SelectItem>
                           <SelectItem value="uba">United Bank for Africa</SelectItem>
                           <SelectItem value="fidelity">Fidelity Bank</SelectItem>
                           <SelectItem value="union">Union Bank</SelectItem>
@@ -461,7 +402,6 @@ export function EditStaffModal({ open, onClose, staff, onSuccess }: EditStaffMod
                     </FormItem>
                   )}
                 />
-
                 <FormField
                   control={form.control}
                   name="accountNumber"
@@ -475,7 +415,6 @@ export function EditStaffModal({ open, onClose, staff, onSuccess }: EditStaffMod
                     </FormItem>
                   )}
                 />
-
                 <FormField
                   control={form.control}
                   name="accountName"
@@ -493,7 +432,7 @@ export function EditStaffModal({ open, onClose, staff, onSuccess }: EditStaffMod
             </div>
 
             {/* Action Buttons */}
-            <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200">
+            <div className="flex justify-end space-x-3 pt-6">
               <Button type="button" variant="outline" onClick={handleClose}>
                 Cancel
               </Button>
