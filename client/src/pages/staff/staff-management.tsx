@@ -23,6 +23,7 @@ import {
 } from '@/components/ui/select';
 import { AddStaffModal } from './add-staff-modal';
 import { StaffDetailsModal } from './staff-details-modal';
+import { EditStaffModal } from './edit-staff-modal';
 import { Search, Plus, Eye, Edit, Filter } from 'lucide-react';
 
 export default function StaffManagement() {
@@ -30,8 +31,8 @@ export default function StaffManagement() {
   const [departmentFilter, setDepartmentFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [showAddModal, setShowAddModal] = useState(false);
-  const [showEditModal, setShowEditModal] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
   const [selectedStaff, setSelectedStaff] = useState<any>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -239,10 +240,6 @@ export default function StaffManagement() {
                           onClick={() => {
                             setSelectedStaff(member);
                             setShowEditModal(true);
-                            toast({
-                              title: "Coming Soon",
-                              description: "Staff editing functionality is under development",
-                            });
                           }}
                         >
                           <Edit className="h-4 w-4" />
@@ -288,6 +285,26 @@ export default function StaffManagement() {
             setSelectedStaff(null);
           }}
           staff={selectedStaff}
+        />
+      )}
+
+      {/* Edit Staff Modal */}
+      {selectedStaff && (
+        <EditStaffModal
+          open={showEditModal}
+          onClose={() => {
+            setShowEditModal(false);
+            setSelectedStaff(null);
+          }}
+          staff={selectedStaff}
+          onSuccess={() => {
+            setShowEditModal(false);
+            setSelectedStaff(null);
+            toast({
+              title: "Success",
+              description: "Staff member updated successfully",
+            });
+          }}
         />
       )}
     </div>
