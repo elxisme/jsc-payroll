@@ -67,20 +67,19 @@ export default function BankReports() {
           )
         `)
         .eq('period', selectedPeriod)
-        // FIX: Specify the referenced table for filtering
-        .not('bank_name', 'is', null, { referencedTable: 'staff' })
-        .not('account_number', 'is', null, { referencedTable: 'staff' });
+        // FIX: Use dot notation to specify the related table for filters
+        .not('staff.bank_name', 'is', null)
+        .not('staff.account_number', 'is', null);
 
       if (selectedBank !== 'all') {
-        // FIX: Specify the referenced table for filtering
-        query = query.eq('bank_name', selectedBank, { referencedTable: 'staff' });
+        // FIX: Use dot notation here as well
+        query = query.eq('staff.bank_name', selectedBank);
       }
 
-      // FIX: Specify the referenced table for ordering
+      // This part was already correct from the previous fix, but is kept for completeness
       const { data, error } = await query.order('bank_name', { referencedTable: 'staff', ascending: true });
       
       if (error) {
-        // Provide more detailed error logging
         console.error("Supabase request failed", error);
         throw error;
       }
@@ -140,7 +139,6 @@ export default function BankReports() {
   };
 
   const handleExportCSV = async () => {
-    console.log('Export CSV clicked, bankTransfers length:', bankTransfers?.length);
     if (!bankTransfers?.length) {
       toast({
         title: 'Error',
@@ -179,7 +177,6 @@ export default function BankReports() {
   };
 
   const handleExportExcel = async () => {
-    console.log('Export Excel clicked, bankTransfers length:', bankTransfers?.length);
     if (!bankTransfers?.length) {
       toast({
         title: 'Error',
