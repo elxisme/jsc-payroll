@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useRealtime } from '@/hooks/use-realtime';
 import { supabase } from '@/lib/supabase';
 import { logDepartmentEvent } from '@/lib/audit-logger';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -51,6 +52,11 @@ export default function Departments() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  // Enable real-time updates for departments
+  useRealtime({
+    enableNotifications: true,
+    enableDepartmentUpdates: true,
+  });
   const form = useForm<DepartmentFormData>({
     resolver: zodResolver(departmentSchema),
     defaultValues: {

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { parseExcelToJSON } from '@/lib/export-utils';
+import { z } from 'zod';
 import {
   Dialog,
   DialogContent,
@@ -30,26 +31,51 @@ interface BulkImportStaffModalProps {
   onSuccess: () => void;
 }
 
-interface ImportStaffData {
-  'First Name': string;
-  'Last Name': string;
-  'Middle Name'?: string;
-  'Email': string;
-  'Phone Number'?: string;
-  'Department Code': string;
-  'Position': string;
-  'Grade Level': string;
-  'Step': string;
-  'Employment Date': string;
-  'Bank Name'?: string;
-  'Account Number'?: string;
-  'Account Name'?: string;
+// Enhanced validation schema for staff import
+const staffRowSchema = z.object({
+  'First Name': z.string().min(1, 'First Name is required'),
+  'Last Name': z.string().min(1, 'Last Name is required'),
+  'Middle Name': z.string().optional(),
+  'Email': z.string().email('Invalid email format'),
+  'Phone Number': z.string().optional().refine(
+    (val) => !val || /^\+?[\d\s\-\(\)]{10,15}$/.test(val),
+    'Invalid phone number format (10-15 digits)'
+  ),
+  'Department Code': z.string().min(1, 'Department Code is required'),
+  'Position': z.string().min(1, 'Position is required'),
+  'Grade Level': z.preprocess(
+    (val) => val === '' ? undefined : Number(val),
+    z.number().int().min(1, 'Grade Level must be between 1-17').max(17, 'Grade Level must be between 1-17')
+  ),
+  'Step': z.preprocess(
+    (val) => val === '' ? undefined : Number(val),
+    z.number().int().min(1, 'Step must be between 1-15').max(15, 'Step must be between 1-15')
+  ),
+  'Employment Date': z.string().regex(
+    /^\d{4}-\d{2}-\d{2}$/,
+    'Employment Date must be in YYYY-MM-DD format'
+  ),
+  'Bank Name': z.enum(['access', 'gtb', 'firstbank', 'zenith', 'uba', 'fidelity', 'union', '']).optional(),
+  'Account Number': z.string().optional().refine(
+    (val) => !val || /^\d{10}$/.test(val),
+    'Account number must be exactly 10 digits'
+  ),
+  'Account Name': z.string().optional(),
+});
+
+type ImportStaffData = z.infer<typeof staffRowSchema>;
+
+interface ValidationError {
+  row: number;
+  field: string;
+  message: string;
 }
 
 export function BulkImportStaffModal({ open, onClose, onSuccess }: BulkImportStaffModalProps) {
   const [file, setFile] = useState<File | null>(null);
   const [importData, setImportData] = useState<ImportStaffData[]>([]);
-  const [validationErrors, setValidationErrors] = useState<string[]>([]);
+  const [validationErrors, setValidationErrors] = useState<ValidationError[]>([]);
+  const [duplicateEmails, setDuplicateEmails] = useState<string[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -85,7 +111,7 @@ export function BulkImportStaffModal({ open, onClose, onSuccess }: BulkImportSta
     try {
       const data = await parseExcelToJSON(selectedFile);
       setImportData(data as ImportStaffData[]);
-      validateImportData(data as ImportStaffData[]);
+      await validateImportData(data as ImportStaffData[]);
     } catch (error) {
       toast({
         title: 'Error',
@@ -95,50 +121,110 @@ export function BulkImportStaffModal({ open, onClose, onSuccess }: BulkImportSta
     }
   };
 
-  const validateImportData = (data: ImportStaffData[]) => {
-    const errors: string[] = [];
+  const validateImportData = async (data: ImportStaffData[]) => {
+    const errors: ValidationError[] = [];
     const departmentCodes = departments?.map(d => d.code.toLowerCase()) || [];
+    const emailsInFile = new Set<string>();
+    const duplicatesInFile: string[] = [];
 
+    // Check for existing emails in database
+    const emails = data.map(row => row['Email']).filter(Boolean);
+    const { data: existingStaff } = await supabase
+      .from('staff')
+      .select('email')
+      .in('email', emails);
+    
+    const existingEmails = new Set(existingStaff?.map(s => s.email.toLowerCase()) || []);
     data.forEach((row, index) => {
       const rowNum = index + 1;
       
-      if (!row['First Name']) errors.push(`Row ${rowNum}: First Name is required`);
-      if (!row['Last Name']) errors.push(`Row ${rowNum}: Last Name is required`);
-      if (!row['Email']) errors.push(`Row ${rowNum}: Email is required`);
-      if (!row['Position']) errors.push(`Row ${rowNum}: Position is required`);
-      if (!row['Grade Level']) errors.push(`Row ${rowNum}: Grade Level is required`);
-      if (!row['Step']) errors.push(`Row ${rowNum}: Step is required`);
-      if (!row['Employment Date']) errors.push(`Row ${rowNum}: Employment Date is required`);
-      
-      // Validate email format
-      if (row['Email'] && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(row['Email'])) {
-        errors.push(`Row ${rowNum}: Invalid email format`);
+      // Validate using Zod schema
+      const result = staffRowSchema.safeParse(row);
+      if (!result.success) {
+        result.error.errors.forEach(error => {
+          errors.push({
+            row: rowNum,
+            field: error.path[0] as string,
+            message: error.message,
+          });
+        });
       }
       
-      // Validate grade level
-      const gradeLevel = parseInt(row['Grade Level']);
-      if (isNaN(gradeLevel) || gradeLevel < 1 || gradeLevel > 17) {
-        errors.push(`Row ${rowNum}: Grade Level must be between 1-17`);
+      // Check for duplicate emails within the file
+      const email = row['Email']?.toLowerCase();
+      if (email) {
+        if (emailsInFile.has(email)) {
+          duplicatesInFile.push(email);
+          errors.push({
+            row: rowNum,
+            field: 'Email',
+            message: 'Duplicate email within import file',
+          });
+        } else {
+          emailsInFile.add(email);
+        }
+        
+        // Check if email already exists in database
+        if (existingEmails.has(email)) {
+          errors.push({
+            row: rowNum,
+            field: 'Email',
+            message: 'Email already exists in database',
+          });
+        }
       }
       
-      // Validate step
-      const step = parseInt(row['Step']);
-      if (isNaN(step) || step < 1 || step > 15) {
-        errors.push(`Row ${rowNum}: Step must be between 1-15`);
-      }
-      
-      // Validate department code
+      // Additional business logic validations
       if (row['Department Code'] && !departmentCodes.includes(row['Department Code'].toLowerCase())) {
-        errors.push(`Row ${rowNum}: Invalid department code "${row['Department Code']}"`);
+        errors.push({
+          row: rowNum,
+          field: 'Department Code',
+          message: `Department code "${row['Department Code']}" does not exist`,
+        });
       }
       
-      // Validate employment date
-      if (row['Employment Date'] && isNaN(Date.parse(row['Employment Date']))) {
-        errors.push(`Row ${rowNum}: Invalid employment date format`);
+      // Validate employment date is not in the future
+      if (row['Employment Date']) {
+        const empDate = new Date(row['Employment Date']);
+        const today = new Date();
+        if (empDate > today) {
+          errors.push({
+            row: rowNum,
+            field: 'Employment Date',
+            message: 'Employment date cannot be in the future',
+          });
+        }
+      }
+      
+      // Validate bank details consistency
+      const hasAnyBankInfo = row['Bank Name'] || row['Account Number'] || row['Account Name'];
+      if (hasAnyBankInfo) {
+        if (!row['Bank Name']) {
+          errors.push({
+            row: rowNum,
+            field: 'Bank Name',
+            message: 'Bank Name is required when bank details are provided',
+          });
+        }
+        if (!row['Account Number']) {
+          errors.push({
+            row: rowNum,
+            field: 'Account Number',
+            message: 'Account Number is required when bank details are provided',
+          });
+        }
+        if (!row['Account Name']) {
+          errors.push({
+            row: rowNum,
+            field: 'Account Name',
+            message: 'Account Name is required when bank details are provided',
+          });
+        }
       }
     });
 
     setValidationErrors(errors);
+    setDuplicateEmails(duplicatesInFile);
   };
 
   // Generate staff ID
@@ -305,15 +391,47 @@ export function BulkImportStaffModal({ open, onClose, onSuccess }: BulkImportSta
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>
                 <div className="space-y-1">
-                  <p className="font-medium">Validation Errors:</p>
-                  <ul className="list-disc list-inside text-sm space-y-1">
-                    {validationErrors.slice(0, 10).map((error, index) => (
-                      <li key={index}>{error}</li>
+                  <p className="font-medium">Validation Errors ({validationErrors.length}):</p>
+                  <div className="max-h-32 overflow-y-auto">
+                    <ul className="list-disc list-inside text-sm space-y-1">
+                      {validationErrors.slice(0, 15).map((error, index) => (
+                        <li key={index}>
+                          <strong>Row {error.row}</strong> - {error.field}: {error.message}
+                        </li>
+                      ))}
+                      {validationErrors.length > 15 && (
+                        <li className="text-gray-600">... and {validationErrors.length - 15} more errors</li>
+                      )}
+                    </ul>
+                  </div>
+                  <div className="mt-2 text-xs text-gray-600">
+                    <p>💡 <strong>Tips:</strong></p>
+                    <ul className="list-disc list-inside ml-4 space-y-1">
+                      <li>Ensure all required fields are filled</li>
+                      <li>Use YYYY-MM-DD format for dates</li>
+                      <li>Grade Level: 1-17, Step: 1-15</li>
+                      <li>Account numbers must be exactly 10 digits</li>
+                      <li>Department codes must match existing departments</li>
+                    </ul>
+                  </div>
+                </div>
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {/* Duplicate Emails Warning */}
+          {duplicateEmails.length > 0 && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                <div className="space-y-1">
+                  <p className="font-medium">Duplicate Emails Found:</p>
+                  <ul className="list-disc list-inside text-sm">
+                    {duplicateEmails.map((email, index) => (
+                      <li key={index}>{email}</li>
                     ))}
-                    {validationErrors.length > 10 && (
-                      <li>... and {validationErrors.length - 10} more errors</li>
-                    )}
                   </ul>
+                  <p className="text-xs mt-2">Each email address must be unique.</p>
                 </div>
               </AlertDescription>
             </Alert>

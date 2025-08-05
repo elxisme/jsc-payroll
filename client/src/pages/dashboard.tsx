@@ -1,6 +1,7 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/use-auth';
+import { useRealtime } from '@/hooks/use-realtime';
 import { supabase } from '@/lib/supabase';
 import { AddStaffModal } from '@/pages/staff/add-staff-modal';
 import { BulkImportStaffModal } from '@/pages/staff/bulk-import-staff-modal';
@@ -32,6 +33,13 @@ export default function Dashboard() {
   const [showBulkImportModal, setShowBulkImportModal] = React.useState(false);
   const { toast } = useToast();
 
+  // Enable real-time updates for dashboard
+  const { isConnected, activeSubscriptions } = useRealtime({
+    enableNotifications: true,
+    enablePayrollUpdates: hasRole(['super_admin', 'account_admin', 'payroll_admin']),
+    enableStaffUpdates: hasRole(['super_admin', 'payroll_admin']),
+    enableDepartmentUpdates: hasRole(['super_admin', 'payroll_admin']),
+  });
   // Fetch dashboard statistics
   const { data: stats, isLoading: statsLoading } = useQuery({
     queryKey: ['dashboard-stats'],

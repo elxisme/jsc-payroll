@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/use-auth';
+import { useRealtime } from '@/hooks/use-realtime';
 import { supabase } from '@/lib/supabase';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { logPayrollEvent } from '@/lib/audit-logger';
@@ -43,6 +44,11 @@ export default function PayrollWorkflow() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  // Enable real-time updates for payroll workflow
+  useRealtime({
+    enableNotifications: true,
+    enablePayrollUpdates: true,
+  });
   // Fetch payroll runs based on user role
   const { data: payrollRuns, isLoading } = useQuery({
     queryKey: ['payroll-workflow'],

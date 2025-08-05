@@ -55,7 +55,40 @@ export default function Notifications() {
       return data || [];
     },
     enabled: !!user,
+    refetchOnWindowFocus: false, // Prevent refetch on focus since we have real-time updates
   });
+
+  // Set up real-time subscription for this page
+  React.useEffect(() => {
+    if (!user?.id) return;
+
+    const subscription = supabase
+      .channel('notifications-page')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'notifications',
+          filter: `user_id=eq.${user.id}`,
+        },
+        (payload) => {
+          // Invalidate queries to trigger refetch
+          queryClient.invalidateQueries({ queryKey: ['notifications', user.id, filterType] });
+          
+          // Show a subtle indicator for new notifications
+          if (payload.eventType === 'INSERT') {
+            // Add a brief visual feedback without showing duplicate toast
+            // (since the main toast is already shown in use-auth.tsx)
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(subscription);
+    };
+  }, [user?.id, filterType, queryClient]);
 
   // Mark notification as read
   const markAsReadMutation = useMutation({

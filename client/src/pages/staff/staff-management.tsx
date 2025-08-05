@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useRealtime } from '@/hooks/use-realtime';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import {
   Table,
@@ -30,6 +32,11 @@ export default function StaffManagement() {
   const [searchTerm, setSearchTerm] = useState('');
   const [departmentFilter, setDepartmentFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [gradeLevelFilter, setGradeLevelFilter] = useState('all');
+  const [stepFilter, setStepFilter] = useState('all');
+  const [employmentDateStart, setEmploymentDateStart] = useState('');
+  const [employmentDateEnd, setEmploymentDateEnd] = useState('');
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -37,9 +44,14 @@ export default function StaffManagement() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  // Enable real-time updates for staff management
+  useRealtime({
+    enableNotifications: true,
+    enableStaffUpdates: true,
+  });
   // Fetch staff data
   const { data: staff, isLoading: staffLoading } = useQuery({
-    queryKey: ['staff', searchTerm, departmentFilter, statusFilter],
+    queryKey: ['staff', searchTerm, departmentFilter, statusFilter, gradeLevelFilter, stepFilter, employmentDateStart, employmentDateEnd],
     queryFn: async () => {
       let query = supabase
         .from('staff')
@@ -65,6 +77,21 @@ export default function StaffManagement() {
         query = query.eq('status', statusFilter);
       }
 
+      if (gradeLevelFilter !== 'all') {
+        query = query.eq('grade_level', parseInt(gradeLevelFilter));
+      }
+
+      if (stepFilter !== 'all') {
+        query = query.eq('step', parseInt(stepFilter));
+      }
+
+      if (employmentDateStart) {
+        query = query.gte('employment_date', employmentDateStart);
+      }
+
+      if (employmentDateEnd) {
+        query = query.lte('employment_date', employmentDateEnd);
+      }
       const { data, error } = await query;
       if (error) throw error;
       return data || [];
@@ -104,6 +131,18 @@ export default function StaffManagement() {
     return status.replace('_', ' ').toUpperCase();
   };
 
+  const clearAllFilters = () => {
+    setSearchTerm('');
+    setDepartmentFilter('all');
+    setStatusFilter('all');
+    setGradeLevelFilter('all');
+    setStepFilter('all');
+    setEmploymentDateStart('');
+    setEmploymentDateEnd('');
+  };
+
+  const hasActiveFilters = searchTerm || departmentFilter !== 'all' || statusFilter !== 'all' || 
+    gradeLevelFilter !== 'all' || stepFilter !== 'all' || employmentDateStart || employmentDateEnd;
   return (
     <div className="p-4 lg:p-8">
       <div className="mb-8">
@@ -125,7 +164,229 @@ export default function StaffManagement() {
       {/* Filters and Search */}
       <Card className="mb-6">
         <CardContent className="p-6">
-          <div className="flex flex-col md:flex-row gap-4">
+          <div className="space-y-4">
+            {/* Primary Filters Row */}
+            <div className="flex flex-col md:flex-row gap-4">
+              <div className="flex-1">
+                <div className="relative">
+                  <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                  <Input
+                    placeholder="Search by name, staff ID, or email..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <Select value={departmentFilter} onValueChange={setDepartmentFilter}>
+                  <SelectTrigger className="w-48">
+                    <SelectValue placeholder="Filter by department" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Departments</SelectItem>
+                    {departments?.map((dept) => (
+                      <SelectItem key={dept.id} value={dept.id}>
+                        {dept.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger className="w-32">
+                    <SelectValue placeholder="Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Status</SelectItem>
+                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="on_leave">On Leave</SelectItem>
+                    <SelectItem value="retired">Retired</SelectItem>
+                    <SelectItem value="terminated">Terminated</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                <Button
+                  variant="outline"
+                  onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+                  className="flex items-center gap-2"
+                >
+                  <Filter className="h-4 w-4" />
+                  Advanced
+                  {hasActiveFilters && (
+                    <Badge variant="secondary" className="ml-1 h-4 w-4 p-0 flex items-center justify-center">
+                      !
+                    </Badge>
+                  )}
+                </Button>
+              </div>
+            </div>
+
+            {/* Advanced Filters Row */}
+            {showAdvancedFilters && (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 p-4 bg-gray-50 rounded-lg border">
+                <div>
+                  <Label className="text-sm font-medium text-gray-700 mb-1 block">Grade Level</Label>
+                  <Select value={gradeLevelFilter} onValueChange={setGradeLevelFilter}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="All Grades" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Grade Levels</SelectItem>
+                      {[...Array(17)].map((_, i) => (
+                        <SelectItem key={i + 1} value={(i + 1).toString()}>
+                          Grade Level {i + 1}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label className="text-sm font-medium text-gray-700 mb-1 block">Step</Label>
+                  <Select value={stepFilter} onValueChange={setStepFilter}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="All Steps" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Steps</SelectItem>
+                      {[...Array(15)].map((_, i) => (
+                        <SelectItem key={i + 1} value={(i + 1).toString()}>
+                          Step {i + 1}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label className="text-sm font-medium text-gray-700 mb-1 block">Employment From</Label>
+                  <Input
+                    type="date"
+                    value={employmentDateStart}
+                    onChange={(e) => setEmploymentDateStart(e.target.value)}
+                    className="text-sm"
+                  />
+                </div>
+
+                <div>
+                  <Label className="text-sm font-medium text-gray-700 mb-1 block">Employment To</Label>
+                  <Input
+                    type="date"
+                    value={employmentDateEnd}
+                    onChange={(e) => setEmploymentDateEnd(e.target.value)}
+                    className="text-sm"
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Filter Summary and Clear */}
+            {hasActiveFilters && (
+              <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg border border-blue-200">
+                <div className="flex items-center gap-2 text-sm text-blue-800">
+                  <Filter className="h-4 w-4" />
+                  <span>
+                    Showing {staff?.length || 0} staff members with active filters
+                  </span>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={clearAllFilters}
+                  className="text-blue-600 hover:text-blue-700 hover:bg-blue-100"
+                >
+                  Clear All Filters
+                </Button>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Quick Filter Chips */}
+      <div className="mb-6 flex flex-wrap gap-2">
+        {searchTerm && (
+          <Badge variant="secondary" className="flex items-center gap-1">
+            Search: "{searchTerm}"
+            <button
+              onClick={() => setSearchTerm('')}
+              className="ml-1 hover:bg-gray-300 rounded-full p-0.5"
+            >
+              ×
+            </button>
+          </Badge>
+        )}
+        {departmentFilter !== 'all' && (
+          <Badge variant="secondary" className="flex items-center gap-1">
+            Dept: {departments?.find(d => d.id === departmentFilter)?.name}
+            <button
+              onClick={() => setDepartmentFilter('all')}
+              className="ml-1 hover:bg-gray-300 rounded-full p-0.5"
+            >
+              ×
+            </button>
+          </Badge>
+        )}
+        {statusFilter !== 'all' && (
+          <Badge variant="secondary" className="flex items-center gap-1">
+            Status: {formatStatus(statusFilter)}
+            <button
+              onClick={() => setStatusFilter('all')}
+              className="ml-1 hover:bg-gray-300 rounded-full p-0.5"
+            >
+              ×
+            </button>
+          </Badge>
+        )}
+        {gradeLevelFilter !== 'all' && (
+          <Badge variant="secondary" className="flex items-center gap-1">
+            GL: {gradeLevelFilter}
+            <button
+              onClick={() => setGradeLevelFilter('all')}
+              className="ml-1 hover:bg-gray-300 rounded-full p-0.5"
+            >
+              ×
+            </button>
+          </Badge>
+        )}
+        {stepFilter !== 'all' && (
+          <Badge variant="secondary" className="flex items-center gap-1">
+            Step: {stepFilter}
+            <button
+              onClick={() => setStepFilter('all')}
+              className="ml-1 hover:bg-gray-300 rounded-full p-0.5"
+            >
+              ×
+            </button>
+          </Badge>
+        )}
+        {employmentDateStart && (
+          <Badge variant="secondary" className="flex items-center gap-1">
+            From: {employmentDateStart}
+            <button
+              onClick={() => setEmploymentDateStart('')}
+              className="ml-1 hover:bg-gray-300 rounded-full p-0.5"
+            >
+              ×
+            </button>
+          </Badge>
+        )}
+        {employmentDateEnd && (
+          <Badge variant="secondary" className="flex items-center gap-1">
+            To: {employmentDateEnd}
+            <button
+              onClick={() => setEmploymentDateEnd('')}
+              className="ml-1 hover:bg-gray-300 rounded-full p-0.5"
+            >
+              ×
+            </button>
+          </Badge>
+        )}
+      </div>
+
+      {/* Remove the old filters section since it's now integrated above */}
+      {/* <Card className="mb-6">
             <div className="flex-1">
               <div className="relative">
                 <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
@@ -167,7 +428,7 @@ export default function StaffManagement() {
             </div>
           </div>
         </CardContent>
-      </Card>
+      </Card> */}
 
       {/* Staff Table */}
       <Card>

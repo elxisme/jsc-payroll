@@ -3,6 +3,7 @@ import { User } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
 import { logAuthEvent } from '@/lib/audit-logger';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface AuthUser extends User {
   role?: string;
@@ -23,6 +24,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     // Get initial session
@@ -48,6 +50,48 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     return () => subscription.unsubscribe();
   }, []);
+
+  // Set up real-time notifications subscription
+  useEffect(() => {
+    if (!user?.id) return;
+
+    // Subscribe to notifications for the current user
+    const notificationsSubscription = supabase
+      .channel('user-notifications')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'notifications',
+          filter: `user_id=eq.${user.id}`,
+        },
+        (payload) => {
+          console.log('Real-time notification update:', payload);
+          
+          // Invalidate notification queries to trigger refetch
+          queryClient.invalidateQueries({ queryKey: ['notification-count', user.id] });
+          queryClient.invalidateQueries({ queryKey: ['recent-notifications'] });
+          queryClient.invalidateQueries({ queryKey: ['notifications', user.id] });
+          
+          // Show toast for new notifications
+          if (payload.eventType === 'INSERT' && payload.new) {
+            const notification = payload.new;
+            toast({
+              title: notification.title,
+              description: notification.message,
+              variant: notification.type === 'error' ? 'destructive' : 'default',
+            });
+          }
+        }
+      )
+      .subscribe();
+
+    // Cleanup subscription on user change or unmount
+    return () => {
+      supabase.removeChannel(notificationsSubscription);
+    };
+  }, [user?.id, queryClient, toast]);
 
   const fetchUserProfile = async (authUser: User) => {
     try {

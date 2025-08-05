@@ -47,6 +47,7 @@ export function ResponsiveLayout({ children }: ResponsiveLayoutProps) {
   const { user, signOut } = useAuth();
   const [location] = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [hasNewNotifications, setHasNewNotifications] = useState(false);
 
   // Fetch unread notifications count
   const { data: notificationCount } = useQuery({
@@ -67,6 +68,17 @@ export function ResponsiveLayout({ children }: ResponsiveLayoutProps) {
     refetchInterval: 30000, // Refetch every 30 seconds
   });
 
+  // Track when notification count increases to show animation
+  const previousCount = React.useRef(notificationCount);
+  React.useEffect(() => {
+    if (notificationCount && previousCount.current !== undefined && notificationCount > previousCount.current) {
+      setHasNewNotifications(true);
+      // Reset the animation after 3 seconds
+      const timer = setTimeout(() => setHasNewNotifications(false), 3000);
+      return () => clearTimeout(timer);
+    }
+    previousCount.current = notificationCount;
+  }, [notificationCount]);
   const handleSignOut = async () => {
     await signOut();
   };
@@ -219,12 +231,23 @@ export function ResponsiveLayout({ children }: ResponsiveLayoutProps) {
             <div className="flex items-center gap-x-4 lg:gap-x-6">
               {/* Notifications */}
               <Link href="/notifications">
-                <Button variant="ghost" size="sm" className="relative">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className={`relative transition-all duration-300 ${
+                    hasNewNotifications ? 'animate-pulse bg-blue-50 hover:bg-blue-100' : ''
+                  }`}
+                >
                 <Bell className="h-5 w-5" />
                   {notificationCount && notificationCount > 0 && (
-                    <span className="absolute -top-1 -right-1 h-4 w-4 bg-red-500 text-white rounded-full text-xs flex items-center justify-center">
+                    <span className={`absolute -top-1 -right-1 h-4 w-4 bg-red-500 text-white rounded-full text-xs flex items-center justify-center transition-all duration-300 ${
+                      hasNewNotifications ? 'animate-bounce scale-110' : ''
+                    }`}>
                       {notificationCount > 99 ? '99+' : notificationCount}
                     </span>
+                  )}
+                  {hasNewNotifications && (
+                    <span className="absolute -top-1 -right-1 h-4 w-4 bg-blue-500 rounded-full animate-ping"></span>
                   )}
                 </Button>
               </Link>
