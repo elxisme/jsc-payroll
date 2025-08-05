@@ -79,7 +79,7 @@ export function AddStaffModal({ open, onClose, onSuccess }: AddStaffModalProps) 
   });
 
   // Fetch departments
-  const { data: departments } = useQuery({
+  const { data: departments, isLoading: isLoadingDepartments } = useQuery({
     queryKey: ['departments'],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -95,9 +95,15 @@ export function AddStaffModal({ open, onClose, onSuccess }: AddStaffModalProps) 
   // Generate staff ID
   const generateStaffId = async () => {
     const year = new Date().getFullYear();
-    const { count } = await supabase
+    const { count, error } = await supabase
       .from('staff')
-      .select('id', { count: 'exact' });
+      .select('id', { count: 'exact', head: true });
+
+    if (error) {
+        console.error("Error counting staff:", error);
+        // Fallback or throw error
+        throw new Error("Could not generate staff ID due to a database error.");
+    }
     
     const nextNumber = (count || 0) + 1;
     return `JSC/${year}/${nextNumber.toString().padStart(5, '0')}`;
@@ -139,7 +145,7 @@ export function AddStaffModal({ open, onClose, onSuccess }: AddStaffModalProps) 
       
       return staff;
     },
-    onSuccess: () => {
+    onSuccess: (newStaff) => {
       // Create notification for admins about new staff
       supabase
         .from('users')
@@ -150,13 +156,14 @@ export function AddStaffModal({ open, onClose, onSuccess }: AddStaffModalProps) 
             const notifications = adminUsers.map(admin => ({
               user_id: admin.id,
               title: 'New Staff Member Added',
-              message: `A new staff member has been added to the system and requires review.`,
+              message: `A new staff member, ${newStaff.first_name} ${newStaff.last_name}, has been added.`,
               type: 'info',
             }));
 
             supabase
               .from('notifications')
-              .insert(notifications);
+              .insert(notifications)
+              .then(); // Fire and forget
           }
         });
 
@@ -197,7 +204,7 @@ export function AddStaffModal({ open, onClose, onSuccess }: AddStaffModalProps) 
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             {/* Personal Information */}
             <div>
-              <h4 className="text-md font-medium text-gray-900 mb-4">Personal Information</h4>
+              <h4 className="text-md font-medium mb-4">Personal Information</h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
@@ -206,7 +213,7 @@ export function AddStaffModal({ open, onClose, onSuccess }: AddStaffModalProps) 
                     <FormItem>
                       <FormLabel>First Name</FormLabel>
                       <FormControl>
-                        <Input {...field} />
+                        <Input {...field} placeholder="e.g. John" />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -220,7 +227,7 @@ export function AddStaffModal({ open, onClose, onSuccess }: AddStaffModalProps) 
                     <FormItem>
                       <FormLabel>Last Name</FormLabel>
                       <FormControl>
-                        <Input {...field} />
+                        <Input {...field} placeholder="e.g. Doe" />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -248,7 +255,7 @@ export function AddStaffModal({ open, onClose, onSuccess }: AddStaffModalProps) 
                     <FormItem>
                       <FormLabel>Email</FormLabel>
                       <FormControl>
-                        <Input type="email" {...field} />
+                        <Input type="email" {...field} placeholder="e.g. user@example.com" />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -262,7 +269,7 @@ export function AddStaffModal({ open, onClose, onSuccess }: AddStaffModalProps) 
                     <FormItem>
                       <FormLabel>Phone Number (Optional)</FormLabel>
                       <FormControl>
-                        <Input {...field} />
+                        <Input {...field} placeholder="e.g. 08012345678" />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -273,7 +280,7 @@ export function AddStaffModal({ open, onClose, onSuccess }: AddStaffModalProps) 
 
             {/* Employment Information */}
             <div>
-              <h4 className="text-md font-medium text-gray-900 mb-4">Employment Information</h4>
+              <h4 className="text-md font-medium mb-4">Employment Information</h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
@@ -284,7 +291,7 @@ export function AddStaffModal({ open, onClose, onSuccess }: AddStaffModalProps) 
                       <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder="Select Department" />
+                            <SelectValue placeholder={isLoadingDepartments ? "Loading..." : "Select Department"} />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
@@ -307,7 +314,7 @@ export function AddStaffModal({ open, onClose, onSuccess }: AddStaffModalProps) 
                     <FormItem>
                       <FormLabel>Position</FormLabel>
                       <FormControl>
-                        <Input {...field} />
+                        <Input {...field} placeholder="e.g. Software Engineer" />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -382,7 +389,7 @@ export function AddStaffModal({ open, onClose, onSuccess }: AddStaffModalProps) 
 
             {/* Banking Information */}
             <div>
-              <h4 className="text-md font-medium text-gray-900 mb-4">Banking Information (Optional)</h4>
+              <h4 className="text-md font-medium mb-4">Banking Information (Optional)</h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
@@ -397,12 +404,11 @@ export function AddStaffModal({ open, onClose, onSuccess }: AddStaffModalProps) 
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="">Select Bank</SelectItem>
+                          {/* CORRECTED: Removed the item with value="" */}
                           <SelectItem value="access">Access Bank</SelectItem>
                           <SelectItem value="zenith">Zenith Bank</SelectItem>
                           <SelectItem value="gtb">Guaranty Trust Bank</SelectItem>
                           <SelectItem value="firstbank">First Bank of Nigeria</SelectItem>
-                          <SelectItem value="zenith">Zenith Bank</SelectItem>
                           <SelectItem value="uba">United Bank for Africa</SelectItem>
                           <SelectItem value="fidelity">Fidelity Bank</SelectItem>
                           <SelectItem value="union">Union Bank</SelectItem>
@@ -435,7 +441,7 @@ export function AddStaffModal({ open, onClose, onSuccess }: AddStaffModalProps) 
                     <FormItem>
                       <FormLabel>Account Number</FormLabel>
                       <FormControl>
-                        <Input {...field} />
+                        <Input {...field} placeholder="10-digit number" />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -449,7 +455,7 @@ export function AddStaffModal({ open, onClose, onSuccess }: AddStaffModalProps) 
                     <FormItem className="md:col-span-2">
                       <FormLabel>Account Name</FormLabel>
                       <FormControl>
-                        <Input {...field} />
+                        <Input {...field} placeholder="Official name on the account" />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -459,7 +465,7 @@ export function AddStaffModal({ open, onClose, onSuccess }: AddStaffModalProps) 
             </div>
 
             {/* Action Buttons */}
-            <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200">
+            <div className="flex justify-end space-x-3 pt-6">
               <Button type="button" variant="outline" onClick={handleClose}>
                 Cancel
               </Button>
