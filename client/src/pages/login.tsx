@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '@/hooks/use-auth';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -39,76 +39,85 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-nigeria-green to-gov-navy py-6 px-4 sm:py-12 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-6 sm:space-y-8">
-        <div className="text-center">
-          <div className="mx-auto h-16 w-16 sm:h-20 sm:w-20 bg-white rounded-full flex items-center justify-center shadow-lg">
-            <Scale className="text-nigeria-green" size={24} />
+    // Use a flex container that takes the full screen height and centers content
+    <div className="flex min-h-screen w-full items-center justify-center bg-gradient-to-br from-nigeria-green to-gov-navy p-4">
+      
+      {/* Main container for the login form and header */}
+      <div className="w-full max-w-md space-y-6">
+        
+        {/* Header Section */}
+        <div className="text-center space-y-4">
+          <div className="mx-auto h-16 w-16 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center shadow-lg">
+            <Scale className="text-nigeria-green h-8 w-8" />
           </div>
-          <h2 className="mt-4 sm:mt-6 text-2xl sm:text-3xl font-bold text-white">Judicial Service Committee</h2>
-          <p className="mt-2 text-base sm:text-lg text-green-100">Payroll Management System</p>
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight text-white">
+              Judicial Service Committee
+            </h1>
+            <p className="mt-1 text-lg text-green-100">
+              Payroll Management System
+            </p>
+          </div>
         </div>
 
-        <Card className="mt-6 sm:mt-8 shadow-2xl">
-          <CardContent className="p-6 sm:p-8">
+        {/* Card for the form */}
+        <Card className="shadow-2xl">
+          <CardHeader>
+            <CardTitle>Welcome Back</CardTitle>
+            <CardDescription>Enter your credentials to access your account.</CardDescription>
+          </CardHeader>
+          <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
-              <div>
-                <Label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                  Email Address
-                </Label>
+              <div className="space-y-2">
+                <Label htmlFor="email">Email Address</Label>
                 <Input
                   id="email"
                   name="email"
                   type="email"
+                  autoComplete="email"
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="mt-1 focus:ring-nigeria-green focus:border-nigeria-green"
-                  placeholder="Enter your email"
+                  placeholder="you@example.com"
                 />
               </div>
 
-              <div>
-                <Label htmlFor="password" className="block text-sm font-medium text-gray-700">
-                  Password
-                </Label>
+              <div className="space-y-2">
+                <Label htmlFor="password">Password</Label>
                 <Input
                   id="password"
                   name="password"
                   type="password"
+                  autoComplete="current-password"
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="mt-1 focus:ring-nigeria-green focus:border-nigeria-green"
-                  placeholder="Enter your password"
+                  placeholder="••••••••"
                 />
               </div>
 
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
+              <div className="flex items-center justify-between text-sm">
+                <div className="flex items-center gap-2">
                   <Checkbox
                     id="remember-me"
                     checked={rememberMe}
                     onCheckedChange={(checked) => setRememberMe(checked as boolean)}
                   />
-                  <Label htmlFor="remember-me" className="text-sm text-gray-700">
+                  <Label htmlFor="remember-me" className="cursor-pointer">
                     Remember me
                   </Label>
                 </div>
-
-                <div className="text-sm">
-                  <Link href="/forgot-password">
-                    <a className="text-nigeria-green hover:text-green-600">
+                <Link href="/forgot-password">
+                  <a className="font-medium text-nigeria-green hover:text-green-600 hover:underline">
                     Forgot password?
-                    </a>
-                  </Link>
-                </div>
+                  </a>
+                </Link>
               </div>
 
               <Button
                 type="submit"
                 disabled={isLoading}
-                className="w-full bg-nigeria-green hover:bg-green-700 text-white"
+                className="w-full bg-nigeria-green hover:bg-green-700"
               >
                 {isLoading ? (
                   <>
@@ -119,20 +128,24 @@ export default function LoginPage() {
                   'Sign In'
                 )}
               </Button>
-
-              {/* Test Users Info */}
-              <div className="mt-6 p-4 bg-blue-50 rounded-lg">
-                <h3 className="text-sm font-medium text-blue-800 mb-2">Test Users:</h3>
-                <div className="text-xs text-blue-700 space-y-1">
-                  <div><strong>Super Admin:</strong> superadmin@jsc.gov.ng / admin123</div>
-                  <div><strong>Account Manager:</strong> accounts@jsc.gov.ng / acc123</div>
-                  <div><strong>Payroll Manager:</strong> payroll@jsc.gov.ng / pay123</div>
-                  <div><strong>Staff:</strong> staff@jsc.gov.ng / staff123</div>
-                </div>
-              </div>
             </form>
+            
+            {/* Test Users Info */}
+            <div className="mt-6 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <h3 className="text-sm font-semibold text-blue-800 mb-2">Test Users:</h3>
+              <div className="text-xs text-blue-700 space-y-1.5">
+                <p><strong>Super Admin:</strong> superadmin@jsc.gov.ng / admin123</p>
+                <p><strong>Account Manager:</strong> accounts@jsc.gov.ng / acc123</p>
+                <p><strong>Payroll Manager:</strong> payroll@jsc.gov.ng / pay123</p>
+                <p><strong>Staff:</strong> staff@jsc.gov.ng / staff123</p>
+              </div>
+            </div>
           </CardContent>
         </Card>
+        
+        <footer className="text-center text-sm text-green-200">
+          &copy; {new Date().getFullYear()} Judicial Service Committee. All Rights Reserved.
+        </footer>
       </div>
     </div>
   );
