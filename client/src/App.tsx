@@ -47,6 +47,7 @@ function AppContent() {
           <LoginPage />
         </Route>
       </Switch>
+  }
 
   return (
     <ResponsiveLayout>
