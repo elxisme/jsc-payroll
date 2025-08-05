@@ -44,6 +44,7 @@ export default function Dashboard() {
   const { data: stats, isLoading: statsLoading } = useQuery({
     queryKey: ['dashboard-stats'],
     queryFn: async () => {
+      console.log('Fetching dashboard stats...');
       const [staffCount, payrollData, pendingApprovals, departmentCount] = await Promise.all([
         supabase.from('staff').select('id', { count: 'exact' }).eq('status', 'active'),
         supabase.from('payroll_runs').select('gross_amount, net_amount').eq('status', 'processed').order('created_at', { ascending: false }).limit(1),
@@ -51,6 +52,12 @@ export default function Dashboard() {
         supabase.from('departments').select('id', { count: 'exact' }),
       ]);
 
+      console.log('Dashboard stats result:', {
+        totalStaff: staffCount.count,
+        monthlyPayroll: payrollData.data?.[0]?.gross_amount,
+        pendingApprovals: pendingApprovals.count,
+        departments: departmentCount.count,
+      });
       return {
         totalStaff: staffCount.count || 0,
         monthlyPayroll: payrollData.data?.[0]?.gross_amount || '0',
@@ -59,6 +66,7 @@ export default function Dashboard() {
       };
     },
     enabled: !!user,
+    refetchInterval: 30000, // Refetch every 30 seconds to keep stats current
   });
 
   // Fetch recent payroll runs

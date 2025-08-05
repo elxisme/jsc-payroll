@@ -132,6 +132,7 @@ export default function BankReports() {
   };
 
   const handleExportCSV = async () => {
+    console.log('Export CSV clicked, bankTransfers length:', bankTransfers?.length);
     if (!bankTransfers?.length) {
       toast({
         title: 'Error',
@@ -170,6 +171,7 @@ export default function BankReports() {
   };
 
   const handleExportExcel = async () => {
+    console.log('Export Excel clicked, bankTransfers length:', bankTransfers?.length);
     if (!bankTransfers?.length) {
       toast({
         title: 'Error',
@@ -256,10 +258,6 @@ export default function BankReports() {
                   ))}
                 </SelectContent>
               </Select>
-              {/* Debug info */}
-              <div className="text-xs text-gray-500 mt-1">
-                Selected: {selectedPeriod || 'None'} | Available: {payrollRuns?.length || 0} periods
-              </div>
             </div>
             <div className="flex-1">
               <label className="block text-sm font-medium text-gray-700 mb-1">
