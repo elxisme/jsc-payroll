@@ -46,6 +46,7 @@ const departmentSchema = z.object({
 type DepartmentFormData = z.infer<typeof departmentSchema>;
 
 export default function Departments() {
+  const { hasRole } = useAuth();
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedDepartment, setSelectedDepartment] = useState<any>(null);

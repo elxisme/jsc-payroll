@@ -328,7 +328,7 @@ export default function Payslips() {
       {/* Payslip View Modal */}
       {selectedPayslip && (
         <Dialog open={showPayslipModal} onOpenChange={setShowPayslipModal}>
-          <DialogContent className="max-w-2xl">
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Payslip Details</DialogTitle>
             </DialogHeader>

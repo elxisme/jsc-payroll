@@ -87,6 +87,7 @@ export default function PayrollWorkflow() {
   // Approve payroll run mutation
   const approvePayrollMutation = useMutation({
     mutationFn: async ({ runId, action }: { runId: string; action: 'approve' | 'reject' }) => {
+      console.log('approvePayrollMutation started:', { runId, action, isPending: true });
       const oldValues = {
         status: selectedRun?.status,
         approved_by: selectedRun?.approved_by,
@@ -125,16 +126,19 @@ export default function PayrollWorkflow() {
       }
     },
     onSuccess: (_, { action }) => {
+      console.log('approvePayrollMutation success:', { action });
       toast({
         title: 'Success',
         description: `Payroll run ${action}d successfully`,
       });
       queryClient.invalidateQueries({ queryKey: ['payroll-workflow'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
       setShowApprovalModal(false);
       setApprovalComments('');
       setSelectedRun(null);
     },
     onError: (error: any) => {
+      console.log('approvePayrollMutation error:', error);
       toast({
         title: 'Error',
         description: error.message || 'Failed to update payroll run',
@@ -146,6 +150,7 @@ export default function PayrollWorkflow() {
   // Finalize payroll run mutation (Super Admin only)
   const finalizePayrollMutation = useMutation({
     mutationFn: async (runId: string) => {
+      console.log('finalizePayrollMutation started:', { runId, isPending: true });
       const oldValues = {
         status: selectedRun?.status,
         processed_at: selectedRun?.processed_at,
@@ -186,14 +191,17 @@ export default function PayrollWorkflow() {
       }
     },
     onSuccess: () => {
+      console.log('finalizePayrollMutation success');
       toast({
         title: 'Success',
         description: 'Payroll run finalized successfully',
       });
       queryClient.invalidateQueries({ queryKey: ['payroll-workflow'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
       setSelectedRun(null);
     },
     onError: (error: any) => {
+      console.log('finalizePayrollMutation error:', error);
       toast({
         title: 'Error',
         description: error.message || 'Failed to finalize payroll run',
@@ -249,10 +257,22 @@ export default function PayrollWorkflow() {
   };
 
   const canApprove = (run: any) => {
+    console.log('canApprove check:', { 
+      userRole: user?.role, 
+      runStatus: run.status, 
+      hasRole: hasRole(['account_admin', 'super_admin']),
+      result: hasRole(['account_admin', 'super_admin']) && run.status === 'pending_review'
+    });
     return hasRole(['account_admin', 'super_admin']) && run.status === 'pending_review';
   };
 
   const canFinalize = (run: any) => {
+    console.log('canFinalize check:', { 
+      userRole: user?.role, 
+      runStatus: run.status, 
+      hasRole: hasRole(['super_admin']),
+      result: hasRole(['super_admin']) && run.status === 'approved'
+    });
     return hasRole(['super_admin']) && run.status === 'approved';
   };
 

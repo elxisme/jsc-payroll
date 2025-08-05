@@ -526,6 +526,185 @@ function formatDeductionName(key: string): string {
 
 // Internal function to generate payslip content
 async function generatePayslipContent(doc: jsPDF, payslip: PayslipData, staff: StaffData): Promise<void> {
-  // This would contain the same logic as generatePayslipPDF but without creating a new document
-  // Implementation would be similar to the main function above
+  // Set up colors
+  const primaryColor = [0, 135, 81]; // Nigerian green
+  const secondaryColor = [30, 58, 138]; // Government navy
+  const textColor = [55, 65, 81]; // Gray-700
+  
+  // Header
+  doc.setFillColor(...primaryColor);
+  doc.rect(0, 0, 210, 30, 'F');
+  
+  // Logo area (placeholder)
+  doc.setFillColor(255, 255, 255);
+  doc.circle(20, 15, 8, 'F');
+  doc.setTextColor(...primaryColor);
+  doc.setFontSize(10);
+  doc.text('JSC', 16, 18);
+  
+  // Title
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(20);
+  doc.setFont('helvetica', 'bold');
+  doc.text('JUDICIAL SERVICE COMMITTEE', 40, 15);
+  doc.setFontSize(12);
+  doc.setFont('helvetica', 'normal');
+  doc.text('FEDERAL REPUBLIC OF NIGERIA', 40, 22);
+  
+  // Payslip title
+  doc.setTextColor(...textColor);
+  doc.setFontSize(16);
+  doc.setFont('helvetica', 'bold');
+  doc.text('PAYSLIP', 105, 45, { align: 'center' });
+  
+  // Period
+  const period = formatPeriod(payslip.period);
+  doc.setFontSize(12);
+  doc.setFont('helvetica', 'normal');
+  doc.text(`Pay Period: ${period}`, 105, 52, { align: 'center' });
+  
+  // Staff Information
+  const staffInfo = [
+    ['Staff ID:', staff.staff_id],
+    ['Name:', `${staff.first_name} ${staff.middle_name || ''} ${staff.last_name}`.trim()],
+    ['Position:', staff.position],
+    ['Department:', staff.departments?.name || 'Unassigned'],
+    ['Grade Level:', `GL ${staff.grade_level} Step ${staff.step}`],
+  ];
+  
+  let yPos = 65;
+  doc.setFontSize(10);
+  
+  staffInfo.forEach(([label, value]) => {
+    doc.setFont('helvetica', 'bold');
+    doc.text(label, 20, yPos);
+    doc.setFont('helvetica', 'normal');
+    doc.text(value, 60, yPos);
+    yPos += 6;
+  });
+  
+  // Bank Information (if available)
+  if (staff.bank_name && staff.account_number) {
+    yPos += 5;
+    doc.setFont('helvetica', 'bold');
+    doc.text('Bank Details:', 20, yPos);
+    yPos += 6;
+    
+    const bankInfo = [
+      ['Bank:', staff.bank_name.toUpperCase()],
+      ['Account No:', staff.account_number],
+      ['Account Name:', staff.account_name || ''],
+    ];
+    
+    bankInfo.forEach(([label, value]) => {
+      doc.setFont('helvetica', 'bold');
+      doc.text(label, 25, yPos);
+      doc.setFont('helvetica', 'normal');
+      doc.text(value, 60, yPos);
+      yPos += 6;
+    });
+  }
+  
+  // Earnings and Deductions Table
+  yPos += 10;
+  
+  const tableData = [];
+  
+  // Add basic salary
+  tableData.push(['Basic Salary', '', formatCurrency(payslip.basic_salary)]);
+  
+  // Add allowances
+  if (payslip.allowances) {
+    const allowances = typeof payslip.allowances === 'string' 
+      ? JSON.parse(payslip.allowances) 
+      : payslip.allowances;
+    
+    Object.entries(allowances).forEach(([key, value]) => {
+      if (value && Number(value) > 0) {
+        tableData.push([formatAllowanceName(key), '', formatCurrency(Number(value))]);
+      }
+    });
+  }
+  
+  // Add gross pay
+  tableData.push(['', 'GROSS PAY', formatCurrency(payslip.gross_pay)]);
+  
+  // Add deductions
+  if (payslip.deductions) {
+    const deductions = typeof payslip.deductions === 'string' 
+      ? JSON.parse(payslip.deductions) 
+      : payslip.deductions;
+    
+    Object.entries(deductions).forEach(([key, value]) => {
+      if (value && Number(value) > 0) {
+        tableData.push(['', formatDeductionName(key), `-${formatCurrency(Number(value))}`]);
+      }
+    });
+  }
+  
+  // Add totals
+  tableData.push(['', 'TOTAL DEDUCTIONS', `-${formatCurrency(payslip.total_deductions)}`]);
+  tableData.push(['', 'NET PAY', formatCurrency(payslip.net_pay)]);
+  
+  // Create table
+  doc.autoTable({
+    startY: yPos,
+    head: [['EARNINGS', 'DEDUCTIONS', 'AMOUNT (₦)']],
+    body: tableData,
+    theme: 'grid',
+    headStyles: {
+      fillColor: primaryColor,
+      textColor: [255, 255, 255],
+      fontStyle: 'bold',
+      fontSize: 10,
+    },
+    bodyStyles: {
+      fontSize: 9,
+      textColor: textColor,
+    },
+    columnStyles: {
+      0: { cellWidth: 70 },
+      1: { cellWidth: 70 },
+      2: { cellWidth: 50, halign: 'right' },
+    },
+    didParseCell: function(data: any) {
+      // Style specific rows
+      if (data.cell.text[0] === 'GROSS PAY' || 
+          data.cell.text[0] === 'TOTAL DEDUCTIONS' || 
+          data.cell.text[0] === 'NET PAY') {
+        data.cell.styles.fontStyle = 'bold';
+        data.cell.styles.fillColor = [240, 240, 240];
+      }
+      
+      if (data.cell.text[0] === 'NET PAY') {
+        data.cell.styles.fillColor = [220, 252, 231]; // Light green
+        data.cell.styles.textColor = primaryColor;
+      }
+    },
+  });
+  
+  // Footer
+  const finalY = (doc as any).lastAutoTable.finalY || yPos + 100;
+  
+  // Generated date and time
+  doc.setFontSize(8);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(100, 116, 139); // Gray-500
+  const now = new Date();
+  const generatedText = `Generated on: ${now.toLocaleDateString()} at ${now.toLocaleTimeString()}`;
+  doc.text(generatedText, 20, finalY + 20);
+  
+  // Signature area
+  doc.setFontSize(9);
+  doc.setTextColor(...textColor);
+  doc.text('_________________________', 20, finalY + 40);
+  doc.text('Authorized Signature', 20, finalY + 47);
+  
+  doc.text('_________________________', 120, finalY + 40);
+  doc.text('HR Manager', 120, finalY + 47);
+  
+  // Page number
+  const pageCount = doc.getNumberOfPages();
+  doc.setFontSize(8);
+  doc.text(`Page 1 of ${pageCount}`, 190, 285, { align: 'right' });
 }
