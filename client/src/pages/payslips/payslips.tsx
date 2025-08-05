@@ -2,12 +2,14 @@ import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/use-auth';
 import { supabase } from '@/lib/supabase';
+import { formatDisplayCurrency, formatDetailCurrency } from '@/lib/currency-utils';
 import { generatePayslipPDF } from '@/lib/pdf-generator';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import {
   Table,
   TableBody,
@@ -100,13 +102,7 @@ export default function Payslips() {
 
   // Format currency
   const formatCurrency = (amount: string | number) => {
-    const num = typeof amount === 'string' ? parseFloat(amount) : amount;
-    return new Intl.NumberFormat('en-NG', {
-      style: 'currency',
-      currency: 'NGN',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(num);
+    return formatDisplayCurrency(amount);
   };
 
   // Format period display
@@ -166,10 +162,17 @@ export default function Payslips() {
             </p>
           </div>
           {hasRole(['super_admin', 'account_admin', 'payroll_admin']) && (
-            <Button className="bg-nigeria-green hover:bg-green-700">
-              <FileText className="mr-2 h-4 w-4" />
-              Generate Payslips
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button className="bg-nigeria-green hover:bg-green-700">
+                  <FileText className="mr-2 h-4 w-4" />
+                  Generate Payslips
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Generate payslips for current period</p>
+              </TooltipContent>
+            </Tooltip>
           )}
         </div>
       </div>
@@ -288,21 +291,35 @@ export default function Payslips() {
                     </TableCell>
                     <TableCell>
                       <div className="flex space-x-2">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleViewPayslip(payslip)}
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleDownloadPayslip(payslip)}
-                          className="text-nigeria-green hover:text-green-700"
-                        >
-                          <Download className="h-4 w-4" />
-                        </Button>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleViewPayslip(payslip)}
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>View payslip details</p>
+                          </TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDownloadPayslip(payslip)}
+                              className="text-nigeria-green hover:text-green-700"
+                            >
+                              <Download className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Download payslip as PDF</p>
+                          </TooltipContent>
+                        </Tooltip>
                       </div>
                     </TableCell>
                   </TableRow>
@@ -358,17 +375,17 @@ export default function Payslips() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
                   <Label className="text-gray-600">Basic Salary</Label>
-                  <p className="font-medium">{formatCurrency(selectedPayslip.basic_salary || 0)}</p>
+                  <p className="font-medium">{formatDetailCurrency(selectedPayslip.basic_salary || 0)}</p>
                 </div>
                 <div>
                   <Label className="text-gray-600">Total Allowances</Label>
                   <p className="font-medium text-green-600">
-                    +{formatCurrency((parseFloat(selectedPayslip.gross_pay || '0') - parseFloat(selectedPayslip.basic_salary || '0')))}
+                    +{formatDetailCurrency((parseFloat(selectedPayslip.gross_pay || '0') - parseFloat(selectedPayslip.basic_salary || '0')))}
                   </p>
                 </div>
                 <div>
                   <Label className="text-gray-600">Gross Pay</Label>
-                  <p className="font-medium">{formatCurrency(selectedPayslip.gross_pay || 0)}</p>
+                  <p className="font-medium">{formatDetailCurrency(selectedPayslip.gross_pay || 0)}</p>
                 </div>
               </div>
 
@@ -385,7 +402,7 @@ export default function Payslips() {
                       value && Number(value) > 0 && (
                         <div key={key} className="flex justify-between p-2 bg-green-50 rounded">
                           <span className="capitalize">{key.replace('_', ' ')}</span>
-                          <span className="font-medium">+{formatCurrency(Number(value))}</span>
+                          <span className="font-medium">+{formatDetailCurrency(Number(value))}</span>
                         </div>
                       )
                     ))}
@@ -406,7 +423,7 @@ export default function Payslips() {
                       value && Number(value) > 0 && (
                         <div key={key} className="flex justify-between p-2 bg-red-50 rounded">
                           <span className="capitalize">{key.replace('_', ' ')}</span>
-                          <span className="font-medium text-red-600">-{formatCurrency(Number(value))}</span>
+                          <span className="font-medium text-red-600">-{formatDetailCurrency(Number(value))}</span>
                         </div>
                       )
                     ))}
@@ -418,11 +435,11 @@ export default function Payslips() {
               <div className="grid grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg border-t-2 border-nigeria-green">
                 <div>
                   <Label className="text-gray-600">Total Deductions</Label>
-                  <p className="font-medium text-red-600">-{formatCurrency(selectedPayslip.total_deductions || 0)}</p>
+                  <p className="font-medium text-red-600">-{formatDetailCurrency(selectedPayslip.total_deductions || 0)}</p>
                 </div>
                 <div>
                   <Label className="text-gray-600">Net Pay</Label>
-                  <p className="text-xl font-bold text-green-600">{formatCurrency(selectedPayslip.net_pay || 0)}</p>
+                  <p className="text-xl font-bold text-green-600">{formatDetailCurrency(selectedPayslip.net_pay || 0)}</p>
                 </div>
               </div>
 

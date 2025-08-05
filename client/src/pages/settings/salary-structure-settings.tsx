@@ -4,11 +4,13 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { supabase } from '@/lib/supabase';
+import { formatDisplayCurrency, formatDetailCurrency } from '@/lib/currency-utils';
 import { logSystemEvent } from '@/lib/audit-logger';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import {
   Table,
   TableBody,
@@ -185,13 +187,7 @@ export function SalaryStructureSettings() {
   };
 
   const formatCurrency = (amount: string | number) => {
-    const num = typeof amount === 'string' ? parseFloat(amount) : amount;
-    return new Intl.NumberFormat('en-NG', {
-      style: 'currency',
-      currency: 'NGN',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(num);
+    return formatDetailCurrency(amount);
   };
 
   const handleClose = () => {
@@ -271,16 +267,23 @@ export function SalaryStructureSettings() {
                         <Badge variant="secondary">Step {salary.step}</Badge>
                       </TableCell>
                       <TableCell className="font-medium">
-                        {formatCurrency(salary.basic_salary)}
+                        {formatDisplayCurrency(salary.basic_salary)}
                       </TableCell>
                       <TableCell>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleEdit(salary)}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleEdit(salary)}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Edit salary amount</p>
+                          </TooltipContent>
+                        </Tooltip>
                       </TableCell>
                     </TableRow>
                   ))}

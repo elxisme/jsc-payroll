@@ -3,12 +3,14 @@ import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/use-auth';
 import { useRealtime } from '@/hooks/use-realtime';
 import { supabase } from '@/lib/supabase';
+import { formatDisplayCurrency } from '@/lib/currency-utils';
 import { AddStaffModal } from '@/pages/staff/add-staff-modal';
 import { BulkImportStaffModal } from '@/pages/staff/bulk-import-staff-modal';
 import { generateStaffReportPDF } from '@/lib/pdf-generator';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useToast } from '@/hooks/use-toast';
 import { Link } from 'wouter';
 import {
@@ -134,13 +136,7 @@ export default function Dashboard() {
 
   // Format currency
   const formatCurrency = (amount: string | number) => {
-    const num = typeof amount === 'string' ? parseFloat(amount) : amount;
-    return new Intl.NumberFormat('en-NG', {
-      style: 'currency',
-      currency: 'NGN',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(num);
+    return formatDisplayCurrency(amount);
   };
 
   // Get status badge variant
@@ -478,12 +474,26 @@ export default function Dashboard() {
                             </Badge>
                           </div>
                           <div className="flex space-x-2">
-                            <Button variant="ghost" size="sm">
-                              <Eye size={16} />
-                            </Button>
-                            <Button variant="ghost" size="sm">
-                              <Download size={16} />
-                            </Button>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button variant="ghost" size="sm">
+                                  <Eye size={16} />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>View payroll details</p>
+                              </TooltipContent>
+                            </Tooltip>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button variant="ghost" size="sm">
+                                  <Download size={16} />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Download payroll report</p>
+                              </TooltipContent>
+                            </Tooltip>
                           </div>
                         </div>
                       </div>
@@ -508,35 +518,56 @@ export default function Dashboard() {
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <Button
-                    onClick={() => setShowAddStaffModal(true)}
-                    variant="outline"
-                    className="flex flex-col items-center p-6 h-auto border-dashed hover:border-nigeria-green hover:bg-green-50"
-                  >
-                    <UserPlus className="h-8 w-8 text-gray-400 mb-2" />
-                    <span className="font-medium">Add New Staff</span>
-                    <span className="text-xs text-gray-500 mt-1">Create staff profile</span>
-                  </Button>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        onClick={() => setShowAddStaffModal(true)}
+                        variant="outline"
+                        className="flex flex-col items-center p-6 h-auto border-dashed hover:border-nigeria-green hover:bg-green-50"
+                      >
+                        <UserPlus className="h-8 w-8 text-gray-400 mb-2" />
+                        <span className="font-medium">Add New Staff</span>
+                        <span className="text-xs text-gray-500 mt-1">Create staff profile</span>
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Add a new staff member to the system</p>
+                    </TooltipContent>
+                  </Tooltip>
 
-                  <Button
-                    onClick={handleBulkImport}
-                    variant="outline"
-                    className="flex flex-col items-center p-6 h-auto border-dashed hover:border-blue-500 hover:bg-blue-50"
-                  >
-                    <Upload className="h-8 w-8 text-gray-400 mb-2" />
-                    <span className="font-medium">Bulk Import</span>
-                    <span className="text-xs text-gray-500 mt-1">Upload CSV/Excel</span>
-                  </Button>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        onClick={handleBulkImport}
+                        variant="outline"
+                        className="flex flex-col items-center p-6 h-auto border-dashed hover:border-blue-500 hover:bg-blue-50"
+                      >
+                        <Upload className="h-8 w-8 text-gray-400 mb-2" />
+                        <span className="font-medium">Bulk Import</span>
+                        <span className="text-xs text-gray-500 mt-1">Upload CSV/Excel</span>
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Import multiple staff members from Excel file</p>
+                    </TooltipContent>
+                  </Tooltip>
 
-                  <Button
-                    onClick={handleGenerateStaffReport}
-                    variant="outline"
-                    className="flex flex-col items-center p-6 h-auto border-dashed hover:border-purple-500 hover:bg-purple-50"
-                  >
-                    <BarChart3 className="h-8 w-8 text-gray-400 mb-2" />
-                    <span className="font-medium">Generate Report</span>
-                    <span className="text-xs text-gray-500 mt-1">Staff analytics</span>
-                  </Button>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        onClick={handleGenerateStaffReport}
+                        variant="outline"
+                        className="flex flex-col items-center p-6 h-auto border-dashed hover:border-purple-500 hover:bg-purple-50"
+                      >
+                        <BarChart3 className="h-8 w-8 text-gray-400 mb-2" />
+                        <span className="font-medium">Generate Report</span>
+                        <span className="text-xs text-gray-500 mt-1">Staff analytics</span>
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Generate and download staff analytics report</p>
+                    </TooltipContent>
+                  </Tooltip>
                 </div>
               </CardContent>
             </Card>

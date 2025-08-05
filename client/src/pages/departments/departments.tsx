@@ -2,11 +2,13 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRealtime } from '@/hooks/use-realtime';
 import { supabase } from '@/lib/supabase';
+import { formatDisplayCurrency } from '@/lib/currency-utils';
 import { logDepartmentEvent } from '@/lib/audit-logger';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import {
   Table,
   TableBody,
@@ -30,11 +32,22 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Edit, Users, Building, Loader2 } from 'lucide-react';
+import { Plus, Edit, Users, Building, Loader2, Trash2 } from 'lucide-react';
 import { EditDepartmentModal } from './edit-department-modal';
 
 const departmentSchema = z.object({
@@ -130,6 +143,57 @@ export default function Departments() {
     },
   });
 
+  // Delete department mutation
+  const deleteDepartmentMutation = useMutation({
+    mutationFn: async (departmentId: string) => {
+      // Get department data before deletion for audit log
+      const { data: departmentData } = await supabase
+        .from('departments')
+        .select('*')
+        .eq('id', departmentId)
+        .single();
+
+      // Check if department has staff members
+      const { data: staffInDept, error: staffError } = await supabase
+        .from('staff')
+        .select('id')
+        .eq('department_id', departmentId)
+        .limit(1);
+
+      if (staffError) throw staffError;
+
+      if (staffInDept && staffInDept.length > 0) {
+        throw new Error('Cannot delete department with assigned staff members. Please reassign staff first.');
+      }
+
+      const { error } = await supabase
+        .from('departments')
+        .delete()
+        .eq('id', departmentId);
+
+      if (error) throw error;
+      
+      // Log the deletion for audit trail
+      if (departmentData) {
+        await logDepartmentEvent('deleted', departmentId, departmentData, null);
+      }
+    },
+    onSuccess: () => {
+      toast({
+        title: 'Success',
+        description: 'Department deleted successfully',
+      });
+      queryClient.invalidateQueries({ queryKey: ['departments-with-staff'] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to delete department',
+        variant: 'destructive',
+      });
+    },
+  });
+
   const onSubmit = (data: DepartmentFormData) => {
     createDepartmentMutation.mutate(data);
   };
@@ -142,13 +206,22 @@ export default function Departments() {
             <h1 className="text-2xl font-bold text-gray-900 mb-2">Departments</h1>
             <p className="text-gray-600">Manage organizational departments and structure</p>
           </div>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Dialog open={showAddModal} onOpenChange={setShowAddModal}>
+                <DialogTrigger asChild>
+                  <Button className="bg-nigeria-green hover:bg-green-700">
+                    <Plus className="mr-2 h-4 w-4" />
+                    Add Department
+                  </Button>
+                </DialogTrigger>
+              </Dialog>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Create a new department</p>
+            </TooltipContent>
+          </Tooltip>
           <Dialog open={showAddModal} onOpenChange={setShowAddModal}>
-            <DialogTrigger asChild>
-              <Button className="bg-nigeria-green hover:bg-green-700">
-                <Plus className="mr-2 h-4 w-4" />
-                Add Department
-              </Button>
-            </DialogTrigger>
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>Add New Department</DialogTitle>
@@ -337,16 +410,73 @@ export default function Departments() {
                     </TableCell>
                     <TableCell>
                       <div className="flex space-x-2">
-                        <Button 
-                          variant="ghost" 
-                          size="sm"
-                          onClick={() => {
-                            setSelectedDepartment(dept);
-                            setShowEditModal(true);
-                          }}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={() => {
+                                setSelectedDepartment(dept);
+                                setShowEditModal(true);
+                              }}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Edit department details</p>
+                          </TooltipContent>
+                        </Tooltip>
+                        
+                        <AlertDialog>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <AlertDialogTrigger asChild>
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm"
+                                  className="text-red-600 hover:text-red-700"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </AlertDialogTrigger>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Delete department</p>
+                            </TooltipContent>
+                          </Tooltip>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Delete Department</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Are you sure you want to delete "{dept.name}"? This action cannot be undone.
+                                {dept.staffCount > 0 && (
+                                  <div className="mt-2 text-red-600 font-medium">
+                                    Warning: This department has {dept.staffCount} staff member(s). 
+                                    Please reassign staff before deleting.
+                                  </div>
+                                )}
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => deleteDepartmentMutation.mutate(dept.id)}
+                                className="bg-red-600 hover:bg-red-700"
+                                disabled={dept.staffCount > 0 || deleteDepartmentMutation.isPending}
+                              >
+                                {deleteDepartmentMutation.isPending ? (
+                                  <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    Deleting...
+                                  </>
+                                ) : (
+                                  'Delete Department'
+                                )}
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
                       </div>
                     </TableCell>
                   </TableRow>

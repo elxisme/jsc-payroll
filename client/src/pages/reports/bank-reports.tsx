@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
+import { formatDisplayCurrency } from '@/lib/currency-utils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -71,10 +72,12 @@ export default function BankReports() {
         .not('staff.account_number', 'is', null);
 
       if (selectedBank !== 'all') {
-        query = query.eq('staff.bank_name', selectedBank);
+        // Fix: Use proper foreign table filtering syntax
+        query = query.filter('staff.bank_name', 'eq', selectedBank);
       }
 
-      const { data, error } = await query.order('staff.bank_name');
+      // Fix: Use proper foreign table ordering syntax
+      const { data, error } = await query.order('bank_name', { foreignTable: 'staff', ascending: true });
       if (error) throw error;
       return data || [];
     },
@@ -101,13 +104,7 @@ export default function BankReports() {
 
   // Format currency
   const formatCurrency = (amount: string | number) => {
-    const num = typeof amount === 'string' ? parseFloat(amount) : amount;
-    return new Intl.NumberFormat('en-NG', {
-      style: 'currency',
-      currency: 'NGN',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(num);
+    return formatDisplayCurrency(amount);
   };
 
   // Format period display

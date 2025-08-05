@@ -3,10 +3,12 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/use-auth';
 import { useRealtime } from '@/hooks/use-realtime';
 import { supabase } from '@/lib/supabase';
+import { formatDisplayCurrency } from '@/lib/currency-utils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { logPayrollEvent } from '@/lib/audit-logger';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import {
   Table,
   TableBody,
@@ -241,13 +243,7 @@ export default function PayrollWorkflow() {
   };
 
   const formatCurrency = (amount: string | number) => {
-    const num = typeof amount === 'string' ? parseFloat(amount) : amount;
-    return new Intl.NumberFormat('en-NG', {
-      style: 'currency',
-      currency: 'NGN',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(num);
+    return formatDisplayCurrency(amount);
   };
 
   const formatPeriod = (period: string) => {
@@ -347,38 +343,59 @@ export default function PayrollWorkflow() {
                     </TableCell>
                     <TableCell>
                       <div className="flex space-x-2">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setSelectedRun(run)}
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setSelectedRun(run)}
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>View payroll run details</p>
+                          </TooltipContent>
+                        </Tooltip>
                         {canApprove(run) && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => {
-                              setSelectedRun(run);
-                              setShowApprovalModal(true);
-                            }}
-                            className="text-blue-600 hover:text-blue-700"
-                          >
-                            <Check className="h-4 w-4" />
-                          </Button>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  setSelectedRun(run);
+                                  setShowApprovalModal(true);
+                                }}
+                                className="text-blue-600 hover:text-blue-700"
+                              >
+                                <Check className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Review and approve payroll</p>
+                            </TooltipContent>
+                          </Tooltip>
                         )}
                         {canFinalize(run) && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => {
-                              setSelectedRun(run);
-                              finalizePayrollMutation.mutate(run.id);
-                            }}
-                            className="text-green-600 hover:text-green-700"
-                          >
-                            <CheckCircle className="h-4 w-4" />
-                          </Button>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  setSelectedRun(run);
+                                  finalizePayrollMutation.mutate(run.id);
+                                }}
+                                className="text-green-600 hover:text-green-700"
+                              >
+                                <CheckCircle className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Finalize and process payroll</p>
+                            </TooltipContent>
+                          </Tooltip>
                         )}
                       </div>
                     </TableCell>

@@ -2,9 +2,11 @@ import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/use-auth';
 import { supabase } from '@/lib/supabase';
+import { formatDisplayCurrency } from '@/lib/currency-utils';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -230,39 +232,55 @@ export function ResponsiveLayout({ children }: ResponsiveLayoutProps) {
             <div className="flex flex-1"></div>
             <div className="flex items-center gap-x-4 lg:gap-x-6">
               {/* Notifications */}
-              <Link href="/notifications">
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  className={`relative transition-all duration-300 ${
-                    hasNewNotifications ? 'animate-pulse bg-blue-50 hover:bg-blue-100' : ''
-                  }`}
-                >
-                <Bell className="h-5 w-5" />
-                  {notificationCount && notificationCount > 0 && (
-                    <span className={`absolute -top-1 -right-1 h-4 w-4 bg-red-500 text-white rounded-full text-xs flex items-center justify-center transition-all duration-300 ${
-                      hasNewNotifications ? 'animate-bounce scale-110' : ''
-                    }`}>
-                      {notificationCount > 99 ? '99+' : notificationCount}
-                    </span>
-                  )}
-                  {hasNewNotifications && (
-                    <span className="absolute -top-1 -right-1 h-4 w-4 bg-blue-500 rounded-full animate-ping"></span>
-                  )}
-                </Button>
-              </Link>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Link href="/notifications">
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className={`relative transition-all duration-300 ${
+                        hasNewNotifications ? 'animate-pulse bg-blue-50 hover:bg-blue-100' : ''
+                      }`}
+                    >
+                    <Bell className="h-5 w-5" />
+                      {notificationCount && notificationCount > 0 && (
+                        <span className={`absolute -top-1 -right-1 h-4 w-4 bg-red-500 text-white rounded-full text-xs flex items-center justify-center transition-all duration-300 ${
+                          hasNewNotifications ? 'animate-bounce scale-110' : ''
+                        }`}>
+                          {notificationCount > 99 ? '99+' : notificationCount}
+                        </span>
+                      )}
+                      {hasNewNotifications && (
+                        <span className="absolute -top-1 -right-1 h-4 w-4 bg-blue-500 rounded-full animate-ping"></span>
+                      )}
+                    </Button>
+                  </Link>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>View notifications ({notificationCount || 0} unread)</p>
+                </TooltipContent>
+              </Tooltip>
 
               {/* Profile dropdown */}
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                        <Avatar className="h-8 w-8">
+                          <AvatarFallback className="bg-nigeria-green text-white text-sm">
+                            {getUserInitials()}
+                          </AvatarFallback>
+                        </Avatar>
+                      </Button>
+                    </DropdownMenuTrigger>
+                  </DropdownMenu>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Account menu</p>
+                </TooltipContent>
+              </Tooltip>
               <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-                    <Avatar className="h-8 w-8">
-                      <AvatarFallback className="bg-nigeria-green text-white text-sm">
-                        {getUserInitials()}
-                      </AvatarFallback>
-                    </Avatar>
-                  </Button>
-                </DropdownMenuTrigger>
                 <DropdownMenuContent className="w-56" align="end" forceMount>
                   <div className="flex items-center justify-start gap-2 p-2">
                     <div className="flex flex-col space-y-1 leading-none">

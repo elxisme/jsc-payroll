@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { formatDisplayCurrency } from '@/lib/currency-utils';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -370,13 +371,13 @@ export default function PayrollProcessing() {
                     <TableCell>{run.total_staff || 0}</TableCell>
                     <TableCell>
                       {run.gross_amount 
-                        ? `₦${Number(run.gross_amount).toLocaleString()}`
+                        ? formatDisplayCurrency(run.gross_amount)
                         : '-'
                       }
                     </TableCell>
                     <TableCell>
                       {run.net_amount 
-                        ? `₦${Number(run.net_amount).toLocaleString()}`
+                        ? formatDisplayCurrency(run.net_amount)
                         : '-'
                       }
                     </TableCell>

@@ -1,12 +1,8 @@
 import jsPDF from 'jspdf';
-import 'jspdf-autotable';
+import autoTable from 'jspdf-autotable';
+import { formatDisplayCurrency, formatDetailCurrency } from './currency-utils';
 
-// Extend jsPDF type to include autoTable
-declare module 'jspdf' {
-  interface jsPDF {
-    autoTable: (options: any) => jsPDF;
-  }
-}
+// Note: Using autoTable as a function instead of method to avoid bundling issues
 
 export interface PayslipData {
   id: string;
@@ -164,7 +160,7 @@ export async function generatePayslipPDF(payslip: PayslipData, staff: StaffData)
   tableData.push(['', 'NET PAY', formatCurrency(payslip.net_pay)]);
   
   // Create table
-  doc.autoTable({
+  autoTable(doc, {
     startY: yPos,
     head: [['EARNINGS', 'DEDUCTIONS', 'AMOUNT (₦)']],
     body: tableData,
@@ -201,7 +197,7 @@ export async function generatePayslipPDF(payslip: PayslipData, staff: StaffData)
   });
   
   // Footer
-  const finalY = (doc as any).lastAutoTable.finalY || yPos + 100;
+  const finalY = (doc as any).lastAutoTable?.finalY || yPos + 100;
   
   // Generated date and time
   doc.setFontSize(8);
@@ -311,7 +307,7 @@ export async function generatePayrollSummaryPDF(
       formatCurrency(dept.netAmount || 0),
     ]);
     
-    doc.autoTable({
+    autoTable(doc, {
       startY: yPos,
       head: [['Department', 'Staff Count', 'Gross Amount', 'Net Amount']],
       body: departmentData,
@@ -408,7 +404,7 @@ export async function generateStaffReportPDF(staffData: any[]): Promise<void> {
     ];
   });
   
-  doc.autoTable({
+  autoTable(doc, {
     startY: yPos,
     head: [['Department', 'Total Staff', 'Active Staff', 'Avg Grade Level']],
     body: departmentBreakdown,
@@ -445,7 +441,7 @@ export async function generateStaffReportPDF(staffData: any[]): Promise<void> {
     formatStatus(staff.status),
   ]);
   
-  doc.autoTable({
+  autoTable(doc, {
     startY: 30,
     head: [['Staff ID', 'Name', 'Department', 'Position', 'Grade/Step', 'Status']],
     body: staffTableData,
@@ -484,11 +480,7 @@ export async function generateStaffReportPDF(staffData: any[]): Promise<void> {
 
 // Helper functions
 function formatCurrency(amount: string | number): string {
-  const num = typeof amount === 'string' ? parseFloat(amount) : amount;
-  return new Intl.NumberFormat('en-NG', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(num);
+  return formatDetailCurrency(amount);
 }
 
 function formatPeriod(period: string): string {
@@ -647,7 +639,7 @@ async function generatePayslipContent(doc: jsPDF, payslip: PayslipData, staff: S
   tableData.push(['', 'NET PAY', formatCurrency(payslip.net_pay)]);
   
   // Create table
-  doc.autoTable({
+  autoTable(doc, {
     startY: yPos,
     head: [['EARNINGS', 'DEDUCTIONS', 'AMOUNT (₦)']],
     body: tableData,
@@ -684,7 +676,7 @@ async function generatePayslipContent(doc: jsPDF, payslip: PayslipData, staff: S
   });
   
   // Footer
-  const finalY = (doc as any).lastAutoTable.finalY || yPos + 100;
+  const finalY = (doc as any).lastAutoTable?.finalY || yPos + 100;
   
   // Generated date and time
   doc.setFontSize(8);
@@ -707,4 +699,8 @@ async function generatePayslipContent(doc: jsPDF, payslip: PayslipData, staff: S
   const pageCount = doc.getNumberOfPages();
   doc.setFontSize(8);
   doc.text(`Page 1 of ${pageCount}`, 190, 285, { align: 'right' });
+}
+
+function formatStatus(status: string): string {
+  return status ? status.charAt(0).toUpperCase() + status.slice(1) : 'Unknown';
 }

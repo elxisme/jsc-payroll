@@ -2,9 +2,11 @@ import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/use-auth';
 import { supabase } from '@/lib/supabase';
+import { formatDisplayCurrency, formatDetailCurrency } from '@/lib/currency-utils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import {
   Table,
   TableBody,
@@ -89,13 +91,7 @@ export default function StaffPortal() {
 
   // Format currency
   const formatCurrency = (amount: string | number) => {
-    const num = typeof amount === 'string' ? parseFloat(amount) : amount;
-    return new Intl.NumberFormat('en-NG', {
-      style: 'currency',
-      currency: 'NGN',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(num);
+    return formatDisplayCurrency(amount);
   };
 
   // Format period display
@@ -189,30 +185,44 @@ export default function StaffPortal() {
 
           {/* Quick Actions */}
           <div className="mt-6 space-y-3">
-            <Button
-              className="w-full flex items-center justify-start px-4 py-3 bg-blue-50 hover:bg-blue-100 text-blue-900 border-blue-200"
-              onClick={() => latestPayslip && handleDownloadPayslip(latestPayslip)}
-              disabled={!latestPayslip}
-            >
-              <Download className="mr-3 h-5 w-5" />
-              <div className="text-left">
-                <p className="text-sm font-medium">Download Latest Payslip</p>
-                <p className="text-xs text-blue-600">
-                  {latestPayslip ? formatPeriod(latestPayslip.period) : 'No payslips available'}
-                </p>
-              </div>
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  className="w-full flex items-center justify-start px-4 py-3 bg-blue-50 hover:bg-blue-100 text-blue-900 border-blue-200"
+                  onClick={() => latestPayslip && handleDownloadPayslip(latestPayslip)}
+                  disabled={!latestPayslip}
+                >
+                  <Download className="mr-3 h-5 w-5" />
+                  <div className="text-left">
+                    <p className="text-sm font-medium">Download Latest Payslip</p>
+                    <p className="text-xs text-blue-600">
+                      {latestPayslip ? formatPeriod(latestPayslip.period) : 'No payslips available'}
+                    </p>
+                  </div>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Download your most recent payslip as PDF</p>
+              </TooltipContent>
+            </Tooltip>
             
-            <Button
-              variant="outline"
-              className="w-full flex items-center justify-start px-4 py-3 border-purple-200 hover:bg-purple-50"
-            >
-              <TrendingUp className="mr-3 h-5 w-5 text-purple-600" />
-              <div className="text-left">
-                <p className="text-sm font-medium text-purple-900">View Salary Trends</p>
-                <p className="text-xs text-purple-600">12-month analysis</p>
-              </div>
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="outline"
+                  className="w-full flex items-center justify-start px-4 py-3 border-purple-200 hover:bg-purple-50"
+                >
+                  <TrendingUp className="mr-3 h-5 w-5 text-purple-600" />
+                  <div className="text-left">
+                    <p className="text-sm font-medium text-purple-900">View Salary Trends</p>
+                    <p className="text-xs text-purple-600">12-month analysis</p>
+                  </div>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>View your salary trends and analytics</p>
+              </TooltipContent>
+            </Tooltip>
           </div>
         </div>
         
@@ -226,7 +236,7 @@ export default function StaffPortal() {
                   <div>
                     <p className="text-sm font-medium text-gray-600">Latest Net Pay</p>
                     <p className="text-2xl font-bold text-gray-900">
-                      {latestPayslip ? formatCurrency(latestPayslip.net_pay || 0) : '---'}
+                      {latestPayslip ? formatDisplayCurrency(latestPayslip.net_pay || 0) : '---'}
                     </p>
                   </div>
                   <div className="h-10 w-10 bg-green-100 rounded-lg flex items-center justify-center">
@@ -242,7 +252,7 @@ export default function StaffPortal() {
                   <div>
                     <p className="text-sm font-medium text-gray-600">Average Salary</p>
                     <p className="text-2xl font-bold text-gray-900">
-                      {formatCurrency(averageSalary)}
+                      {formatDisplayCurrency(averageSalary)}
                     </p>
                   </div>
                   <div className="h-10 w-10 bg-blue-100 rounded-lg flex items-center justify-center">
@@ -311,37 +321,51 @@ export default function StaffPortal() {
                           </div>
                         </TableCell>
                         <TableCell className="font-medium">
-                          {formatCurrency(payslip.gross_pay || 0)}
+                          {formatDisplayCurrency(payslip.gross_pay || 0)}
                         </TableCell>
                         <TableCell className="text-red-600">
-                          -{formatCurrency(payslip.total_deductions || 0)}
+                          -{formatDisplayCurrency(payslip.total_deductions || 0)}
                         </TableCell>
                         <TableCell className="font-bold text-green-600">
-                          {formatCurrency(payslip.net_pay || 0)}
+                          {formatDisplayCurrency(payslip.net_pay || 0)}
                         </TableCell>
                         <TableCell>
                           <div className="flex space-x-2">
-                            <Button 
-                              variant="ghost" 
-                              size="sm"
-                              onClick={() => {
-                                console.log('Viewing payslip:', payslip);
-                                toast({
-                                  title: "Payslip Details",
-                                  description: `Viewing payslip for ${formatPeriod(payslip.period)}`,
-                                });
-                              }}
-                            >
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleDownloadPayslip(payslip)}
-                              className="text-nigeria-green hover:text-green-700"
-                            >
-                              <Download className="h-4 w-4" />
-                            </Button>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm"
+                                  onClick={() => {
+                                    console.log('Viewing payslip:', payslip);
+                                    toast({
+                                      title: "Payslip Details",
+                                      description: `Viewing payslip for ${formatPeriod(payslip.period)}`,
+                                    });
+                                  }}
+                                >
+                                  <Eye className="h-4 w-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>View payslip details</p>
+                              </TooltipContent>
+                            </Tooltip>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleDownloadPayslip(payslip)}
+                                  className="text-nigeria-green hover:text-green-700"
+                                >
+                                  <Download className="h-4 w-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Download payslip as PDF</p>
+                              </TooltipContent>
+                            </Tooltip>
                           </div>
                         </TableCell>
                       </TableRow>
@@ -386,7 +410,7 @@ export default function StaffPortal() {
                         tickFormatter={(value) => `₦${(value / 1000).toFixed(0)}k`}
                       />
                       <Tooltip 
-                        formatter={(value: number) => [formatCurrency(value), 'Net Pay']}
+                        formatter={(value: number) => [formatDetailCurrency(value), 'Net Pay']}
                         labelFormatter={(label) => formatPeriod(label)}
                       />
                       <Line 
@@ -400,7 +424,7 @@ export default function StaffPortal() {
                     </LineChart>
                   </ResponsiveContainer>
                   <div className="mt-4 text-center text-sm text-gray-600">
-                    <p>Average: {formatCurrency(averageSalary)} | Data points: {salaryTrends.length}</p>
+                    <p>Average: {formatDisplayCurrency(averageSalary)} | Data points: {salaryTrends.length}</p>
                   </div>
                 </div>
               ) : (

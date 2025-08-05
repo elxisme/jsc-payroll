@@ -2,12 +2,14 @@ import React, { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRealtime } from '@/hooks/use-realtime';
 import { supabase } from '@/lib/supabase';
+import { formatDisplayCurrency } from '@/lib/currency-utils';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import {
   Table,
   TableBody,
@@ -155,8 +157,17 @@ export default function StaffManagement() {
             onClick={() => setShowAddModal(true)}
             className="bg-nigeria-green hover:bg-green-700"
           >
-            <Plus className="mr-2 h-4 w-4" />
-            Add Staff
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="flex items-center">
+                  <Plus className="mr-2 h-4 w-4" />
+                  Add Staff
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Add a new staff member</p>
+              </TooltipContent>
+            </Tooltip>
           </Button>
         </div>
       </div>
@@ -485,26 +496,40 @@ export default function StaffManagement() {
                     </TableCell>
                     <TableCell>
                       <div className="flex space-x-2">
-                        <Button 
-                          variant="ghost" 
-                          size="sm"
-                          onClick={() => {
-                            setSelectedStaff(member);
-                            setShowDetailsModal(true);
-                          }}
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        <Button 
-                          variant="ghost" 
-                          size="sm"
-                          onClick={() => {
-                            setSelectedStaff(member);
-                            setShowEditModal(true);
-                          }}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={() => {
+                                setSelectedStaff(member);
+                                setShowDetailsModal(true);
+                              }}
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>View staff details</p>
+                          </TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={() => {
+                                setSelectedStaff(member);
+                                setShowEditModal(true);
+                              }}
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Edit staff information</p>
+                          </TooltipContent>
+                        </Tooltip>
                       </div>
                     </TableCell>
                   </TableRow>

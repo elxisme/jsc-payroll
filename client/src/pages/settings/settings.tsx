@@ -2,12 +2,14 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/use-auth';
 import { supabase } from '@/lib/supabase';
+import { formatDisplayCurrency } from '@/lib/currency-utils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { logSystemEvent } from '@/lib/audit-logger';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import {
   Table,
   TableBody,
@@ -48,6 +50,7 @@ import { EditUserModal } from './edit-user-modal';
 import { EditAllowanceModal } from './edit-allowance-modal';
 import { EditDeductionModal } from './edit-deduction-modal';
 import { SalaryStructureSettings } from './salary-structure-settings';
+import { AuditReport } from './audit-report';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -459,11 +462,12 @@ export default function Settings() {
       </div>
 
       <Tabs defaultValue="users" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="users">Users</TabsTrigger>
           <TabsTrigger value="salary">Salary Structure</TabsTrigger>
           <TabsTrigger value="allowances">Allowances</TabsTrigger>
           <TabsTrigger value="deductions">Deductions</TabsTrigger>
+          <TabsTrigger value="audit">Audit Report</TabsTrigger>
           <TabsTrigger value="system">System</TabsTrigger>
         </TabsList>
 
@@ -478,10 +482,17 @@ export default function Settings() {
                 </CardTitle>
                 <Dialog open={showAddUserModal} onOpenChange={setShowAddUserModal}>
                   <DialogTrigger asChild>
-                    <Button className="bg-nigeria-green hover:bg-green-700">
-                      <Plus className="mr-2 h-4 w-4" />
-                      Add User
-                    </Button>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button className="bg-nigeria-green hover:bg-green-700">
+                          <Plus className="mr-2 h-4 w-4" />
+                          Add User
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Create a new user account</p>
+                      </TooltipContent>
+                    </Tooltip>
                   </DialogTrigger>
                   <DialogContent>
                     <DialogHeader>
@@ -585,27 +596,41 @@ export default function Settings() {
                         </TableCell>
                         <TableCell>
                           <div className="flex space-x-2">
-                            <Button 
-                              variant="ghost" 
-                              size="sm"
-                              onClick={() => {
-                                setSelectedUser(user);
-                                setShowEditUserModal(true);
-                              }}
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <AlertDialog>
-                              <AlertDialogTrigger asChild>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
                                 <Button 
                                   variant="ghost" 
-                                  size="sm" 
-                                  className="text-red-600"
-                                  disabled={user.id === user?.id} // Disable delete for current user
+                                  size="sm"
+                                  onClick={() => {
+                                    setSelectedUser(user);
+                                    setShowEditUserModal(true);
+                                  }}
                                 >
-                                  <Trash2 className="h-4 w-4" />
+                                  <Edit className="h-4 w-4" />
                                 </Button>
-                              </AlertDialogTrigger>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Edit user details</p>
+                              </TooltipContent>
+                            </Tooltip>
+                            <AlertDialog>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <AlertDialogTrigger asChild>
+                                    <Button 
+                                      variant="ghost" 
+                                      size="sm" 
+                                      className="text-red-600"
+                                      disabled={user.id === user?.id} // Disable delete for current user
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  </AlertDialogTrigger>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>Delete user account</p>
+                                </TooltipContent>
+                              </Tooltip>
                               <AlertDialogContent>
                                 <AlertDialogHeader>
                                   <AlertDialogTitle>Delete User</AlertDialogTitle>
@@ -657,10 +682,17 @@ export default function Settings() {
                 </CardTitle>
                 <Dialog open={showAddAllowanceModal} onOpenChange={setShowAddAllowanceModal}>
                   <DialogTrigger asChild>
-                    <Button className="bg-nigeria-green hover:bg-green-700">
-                      <Plus className="mr-2 h-4 w-4" />
-                      Add Allowance
-                    </Button>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button className="bg-nigeria-green hover:bg-green-700">
+                          <Plus className="mr-2 h-4 w-4" />
+                          Add Allowance
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Create a new allowance rule</p>
+                      </TooltipContent>
+                    </Tooltip>
                   </DialogTrigger>
                   <DialogContent>
                     <DialogHeader>
@@ -787,22 +819,36 @@ export default function Settings() {
                         </TableCell>
                         <TableCell>
                           <div className="flex space-x-2">
-                            <Button 
-                              variant="ghost" 
-                              size="sm"
-                              onClick={() => {
-                                setSelectedAllowance(allowance);
-                                setShowEditAllowanceModal(true);
-                              }}
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <AlertDialog>
-                              <AlertDialogTrigger asChild>
-                                <Button variant="ghost" size="sm" className="text-red-600">
-                                  <Trash2 className="h-4 w-4" />
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm"
+                                  onClick={() => {
+                                    setSelectedAllowance(allowance);
+                                    setShowEditAllowanceModal(true);
+                                  }}
+                                >
+                                  <Edit className="h-4 w-4" />
                                 </Button>
-                              </AlertDialogTrigger>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Edit allowance rule</p>
+                              </TooltipContent>
+                            </Tooltip>
+                            <AlertDialog>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <AlertDialogTrigger asChild>
+                                    <Button variant="ghost" size="sm" className="text-red-600">
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  </AlertDialogTrigger>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>Delete allowance rule</p>
+                                </TooltipContent>
+                              </Tooltip>
                               <AlertDialogContent>
                                 <AlertDialogHeader>
                                   <AlertDialogTitle>Delete Allowance</AlertDialogTitle>
@@ -843,10 +889,17 @@ export default function Settings() {
                 </CardTitle>
                 <Dialog open={showAddDeductionModal} onOpenChange={setShowAddDeductionModal}>
                   <DialogTrigger asChild>
-                    <Button className="bg-nigeria-green hover:bg-green-700">
-                      <Plus className="mr-2 h-4 w-4" />
-                      Add Deduction
-                    </Button>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button className="bg-nigeria-green hover:bg-green-700">
+                          <Plus className="mr-2 h-4 w-4" />
+                          Add Deduction
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Create a new deduction rule</p>
+                      </TooltipContent>
+                    </Tooltip>
                   </DialogTrigger>
                   <DialogContent>
                     <DialogHeader>
@@ -973,22 +1026,36 @@ export default function Settings() {
                         </TableCell>
                         <TableCell>
                           <div className="flex space-x-2">
-                            <Button 
-                              variant="ghost" 
-                              size="sm"
-                              onClick={() => {
-                                setSelectedDeduction(deduction);
-                                setShowEditDeductionModal(true);
-                              }}
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <AlertDialog>
-                              <AlertDialogTrigger asChild>
-                                <Button variant="ghost" size="sm" className="text-red-600">
-                                  <Trash2 className="h-4 w-4" />
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm"
+                                  onClick={() => {
+                                    setSelectedDeduction(deduction);
+                                    setShowEditDeductionModal(true);
+                                  }}
+                                >
+                                  <Edit className="h-4 w-4" />
                                 </Button>
-                              </AlertDialogTrigger>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Edit deduction rule</p>
+                              </TooltipContent>
+                            </Tooltip>
+                            <AlertDialog>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <AlertDialogTrigger asChild>
+                                    <Button variant="ghost" size="sm" className="text-red-600">
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  </AlertDialogTrigger>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>Delete deduction rule</p>
+                                </TooltipContent>
+                              </Tooltip>
                               <AlertDialogContent>
                                 <AlertDialogHeader>
                                   <AlertDialogTitle>Delete Deduction</AlertDialogTitle>
@@ -1018,22 +1085,14 @@ export default function Settings() {
           </Card>
         </TabsContent>
 
+        {/* Audit Report Tab */}
+        <TabsContent value="audit">
+          <AuditReport />
+        </TabsContent>
+
         {/* System Tab */}
         <TabsContent value="system">
           <div className="space-y-6">
-            {/* Audit Logs Section */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <Shield className="h-5 w-5" />
-                  <span>Audit Logs</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <AuditLogsTable />
-              </CardContent>
-            </Card>
-
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
@@ -1197,104 +1256,6 @@ export default function Settings() {
             setSelectedDeduction(null);
           }}
         />
-      )}
-    </div>
-  );
-}
-
-// Audit Logs Component
-function AuditLogsTable() {
-  const { data: auditLogs, isLoading } = useQuery({
-    queryKey: ['audit-logs'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('audit_logs')
-        .select(`
-          *,
-          users (
-            email
-          )
-        `)
-        .order('created_at', { ascending: false })
-        .limit(50);
-
-      if (error) throw error;
-      return data || [];
-    },
-  });
-
-  const getActionColor = (action: string) => {
-    if (action.includes('created')) return 'bg-green-100 text-green-800';
-    if (action.includes('updated')) return 'bg-blue-100 text-blue-800';
-    if (action.includes('deleted')) return 'bg-red-100 text-red-800';
-    if (action.includes('login')) return 'bg-purple-100 text-purple-800';
-    return 'bg-gray-100 text-gray-800';
-  };
-
-  const formatAction = (action: string) => {
-    return action.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-  };
-
-  if (isLoading) {
-    return (
-      <div className="space-y-4">
-        {[...Array(5)].map((_, i) => (
-          <div key={i} className="animate-pulse flex space-x-4">
-            <div className="rounded-full bg-gray-200 h-8 w-8"></div>
-            <div className="flex-1 space-y-2 py-1">
-              <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-              <div className="h-3 bg-gray-200 rounded w-1/2"></div>
-            </div>
-          </div>
-        ))}
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-4">
-      <div className="text-sm text-gray-600">
-        Showing the last 50 audit log entries
-      </div>
-      
-      {auditLogs && auditLogs.length > 0 ? (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>User</TableHead>
-              <TableHead>Action</TableHead>
-              <TableHead>Resource</TableHead>
-              <TableHead>Resource ID</TableHead>
-              <TableHead>Timestamp</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {auditLogs.map((log) => (
-              <TableRow key={log.id}>
-                <TableCell className="font-medium">
-                  {log.users?.email || 'System'}
-                </TableCell>
-                <TableCell>
-                  <Badge className={getActionColor(log.action)}>
-                    {formatAction(log.action)}
-                  </Badge>
-                </TableCell>
-                <TableCell className="capitalize">{log.resource}</TableCell>
-                <TableCell className="font-mono text-xs">
-                  {log.resource_id ? log.resource_id.slice(0, 8) + '...' : '-'}
-                </TableCell>
-                <TableCell className="text-sm text-gray-600">
-                  {new Date(log.created_at).toLocaleString()}
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      ) : (
-        <div className="text-center py-8 text-gray-500">
-          <Database className="mx-auto h-12 w-12 text-gray-300 mb-4" />
-          <p>No audit logs found</p>
-        </div>
       )}
     </div>
   );
