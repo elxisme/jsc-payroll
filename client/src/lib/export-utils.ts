@@ -54,8 +54,53 @@ export async function exportToBankCSV(data: BankTransferData[], filename: string
  * Export bank transfer data to Excel format
  */
 export async function exportToBankExcel(data: any[], filename: string): Promise<void> {
-  const worksheet = XLSX.utils.json_to_sheet(data);
+  // Create worksheet with custom headers
+  const headers = [
+    'Staff ID',
+    'Staff Name', 
+    'Account Number',
+    'Account Name',
+    'Bank Name',
+    'Bank Code',
+    'Amount (NGN)',
+    'Department',
+    'Pay Period'
+  ];
+  
+  // Format data for export
+  const formattedData = data.map(row => ({
+    'Staff ID': row.staffId || row['Staff ID'] || '',
+    'Staff Name': row.staffName || row['Staff Name'] || '',
+    'Account Number': row.accountNumber || row['Account Number'] || '',
+    'Account Name': row.accountName || row['Account Name'] || '',
+    'Bank Name': row.bankName || row['Bank Name'] || '',
+    'Bank Code': row.bankCode || row['Bank Code'] || '',
+    'Amount (NGN)': typeof row.amount === 'number' ? row.amount : (row['Amount (NGN)'] || 0),
+    'Department': row.department || row['Department'] || '',
+    'Pay Period': row.period || row['Pay Period'] || '',
+  }));
+
+  const worksheet = XLSX.utils.json_to_sheet(formattedData);
   const workbook = XLSX.utils.book_new();
+  
+  // Add report metadata at the top
+  const reportInfo = [
+    ['JSC PAYROLL MANAGEMENT SYSTEM'],
+    ['Bank Transfer Schedule'],
+    [`Generated on: ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}`],
+    [`Total Records: ${data.length}`],
+    [`Total Amount: ₦${data.reduce((sum, row) => sum + (typeof row.amount === 'number' ? row.amount : (row['Amount (NGN)'] || 0)), 0).toLocaleString()}`],
+    [''], // Empty row
+  ];
+  
+  // Insert report info at the beginning
+  XLSX.utils.sheet_add_aoa(worksheet, reportInfo, { origin: 'A1' });
+  
+  // Adjust the data range to start after the report info
+  const dataRange = XLSX.utils.encode_range({
+    s: { c: 0, r: reportInfo.length },
+    e: { c: headers.length - 1, r: reportInfo.length + formattedData.length }
+  });
   
   // Set column widths
   const columnWidths = [
@@ -71,6 +116,18 @@ export async function exportToBankExcel(data: any[], filename: string): Promise<
   ];
   worksheet['!cols'] = columnWidths;
   
+  // Style the header row
+  const headerRow = reportInfo.length + 1;
+  for (let col = 0; col < headers.length; col++) {
+    const cellAddress = XLSX.utils.encode_cell({ r: headerRow, c: col });
+    if (!worksheet[cellAddress]) continue;
+    worksheet[cellAddress].s = {
+      font: { bold: true, color: { rgb: "FFFFFF" } },
+      fill: { fgColor: { rgb: "008751" } }, // Nigeria green
+      alignment: { horizontal: "center" }
+    };
+  }
+  
   XLSX.utils.book_append_sheet(workbook, worksheet, 'Bank Transfers');
   XLSX.writeFile(workbook, filename);
 }
@@ -79,8 +136,52 @@ export async function exportToBankExcel(data: any[], filename: string): Promise<
  * Export payroll data to Excel format
  */
 export async function exportPayrollToExcel(data: PayrollExportData[], filename: string): Promise<void> {
-  const worksheet = XLSX.utils.json_to_sheet(data);
+  // Create worksheet with custom headers
+  const headers = [
+    'Staff ID',
+    'Staff Name',
+    'Department',
+    'Position',
+    'Grade Level',
+    'Basic Salary (NGN)',
+    'Allowances (NGN)',
+    'Gross Pay (NGN)',
+    'Deductions (NGN)',
+    'Net Pay (NGN)',
+    'Pay Period'
+  ];
+  
+  // Format data for export
+  const formattedData = data.map(row => ({
+    'Staff ID': row.staffId,
+    'Staff Name': row.staffName,
+    'Department': row.department,
+    'Position': row.position,
+    'Grade Level': row.gradeLevel,
+    'Basic Salary (NGN)': row.basicSalary,
+    'Allowances (NGN)': row.allowances,
+    'Gross Pay (NGN)': row.grossPay,
+    'Deductions (NGN)': row.deductions,
+    'Net Pay (NGN)': row.netPay,
+    'Pay Period': row.period,
+  }));
+
+  const worksheet = XLSX.utils.json_to_sheet(formattedData);
   const workbook = XLSX.utils.book_new();
+  
+  // Add report metadata
+  const reportInfo = [
+    ['JSC PAYROLL MANAGEMENT SYSTEM'],
+    ['Payroll Summary Report'],
+    [`Generated on: ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}`],
+    [`Total Staff: ${data.length}`],
+    [`Total Gross Pay: ₦${data.reduce((sum, row) => sum + row.grossPay, 0).toLocaleString()}`],
+    [`Total Net Pay: ₦${data.reduce((sum, row) => sum + row.netPay, 0).toLocaleString()}`],
+    [''], // Empty row
+  ];
+  
+  // Insert report info at the beginning
+  XLSX.utils.sheet_add_aoa(worksheet, reportInfo, { origin: 'A1' });
   
   // Set column widths
   const columnWidths = [
@@ -97,6 +198,18 @@ export async function exportPayrollToExcel(data: PayrollExportData[], filename: 
     { wch: 15 }, // Period
   ];
   worksheet['!cols'] = columnWidths;
+  
+  // Style the header row
+  const headerRow = reportInfo.length + 1;
+  for (let col = 0; col < headers.length; col++) {
+    const cellAddress = XLSX.utils.encode_cell({ r: headerRow, c: col });
+    if (!worksheet[cellAddress]) continue;
+    worksheet[cellAddress].s = {
+      font: { bold: true, color: { rgb: "FFFFFF" } },
+      fill: { fgColor: { rgb: "008751" } }, // Nigeria green
+      alignment: { horizontal: "center" }
+    };
+  }
   
   XLSX.utils.book_append_sheet(workbook, worksheet, 'Payroll Data');
   XLSX.writeFile(workbook, filename);
