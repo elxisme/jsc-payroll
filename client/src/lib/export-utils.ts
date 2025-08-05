@@ -473,3 +473,4 @@ export function validateBankTransferData(data: BankTransferData[]): { isValid: b
     isValid: errors.length === 0,
     errors,
   };
+}
