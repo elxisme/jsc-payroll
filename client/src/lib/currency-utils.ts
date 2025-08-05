@@ -32,15 +32,15 @@ export function formatCurrency(
     if (Math.abs(num) >= 1000000000) {
       // Billions
       const scaled = num / 1000000000;
-      return `${symbol}${scaled.toFixed(scaled % 1 === 0 ? 0 : 1)}B`;
+      return `${symbol}${scaled.toFixed(1)}B`;
     } else if (Math.abs(num) >= 1000000) {
       // Millions
       const scaled = num / 1000000;
-      return `${symbol}${scaled.toFixed(scaled % 1 === 0 ? 0 : 1)}M`;
+      return `${symbol}${scaled.toFixed(1)}M`;
     } else if (Math.abs(num) >= 1000) {
       // Thousands
       const scaled = num / 1000;
-      return `${symbol}${scaled.toFixed(scaled % 1 === 0 ? 0 : 1)}K`;
+      return `${symbol}${scaled.toFixed(1)}K`;
     }
   }
 
@@ -49,7 +49,7 @@ export function formatCurrency(
     style: showSymbol ? 'currency' : 'decimal',
     currency: 'NGN',
     minimumFractionDigits: 0,
-    maximumFractionDigits: precision,
+    maximumFractionDigits: Math.min(precision, 2), // Limit to 2 decimal places max
   }).format(num);
 }
 

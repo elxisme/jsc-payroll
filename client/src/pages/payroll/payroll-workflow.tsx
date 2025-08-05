@@ -329,7 +329,7 @@ export default function PayrollWorkflow() {
                         <span>{run.total_staff || 0}</span>
                       </div>
                     </TableCell>
-                    <TableCell className="font-medium">
+                    <TableCell className="font-medium text-right min-w-fit whitespace-nowrap">
                       {formatCurrency(run.net_amount || 0)}
                     </TableCell>
                     <TableCell>

@@ -406,7 +406,7 @@ export default function BankReports() {
                     </TableCell>
                     <TableCell>{transfer.staff?.account_name}</TableCell>
                     <TableCell>{transfer.staff?.departments?.name}</TableCell>
-                    <TableCell className="text-right font-bold text-green-600">
+                    <TableCell className="text-right font-bold text-green-600 min-w-fit whitespace-nowrap">
                       {formatCurrency(transfer.net_pay || 0)}
                     </TableCell>
                   </TableRow>

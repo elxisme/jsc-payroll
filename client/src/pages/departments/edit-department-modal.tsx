@@ -1,5 +1,5 @@
 import React from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -22,12 +22,20 @@ import {
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 
 const editDepartmentSchema = z.object({
   name: z.string().min(1, 'Department name is required'),
   code: z.string().min(2, 'Department code must be at least 2 characters'),
+  headOfDepartment: z.string().optional(),
   description: z.string().optional(),
 });
 
@@ -49,6 +57,7 @@ export function EditDepartmentModal({ open, onClose, department, onSuccess }: Ed
     defaultValues: {
       name: department?.name || '',
       code: department?.code || '',
+      headOfDepartment: department?.head_of_department || '',
       description: department?.description || '',
     },
   });
@@ -59,10 +68,26 @@ export function EditDepartmentModal({ open, onClose, department, onSuccess }: Ed
       form.reset({
         name: department.name || '',
         code: department.code || '',
+        headOfDepartment: department.head_of_department || '',
         description: department.description || '',
       });
     }
   }, [department, form]);
+
+  // Fetch staff for head of department selection
+  const { data: staffMembers } = useQuery({
+    queryKey: ['staff-for-hod'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('staff')
+        .select('id, staff_id, first_name, last_name, position')
+        .eq('status', 'active')
+        .order('first_name');
+
+      if (error) throw error;
+      return data || [];
+    },
+  });
 
   // Update department mutation
   const updateDepartmentMutation = useMutation({
@@ -71,6 +96,7 @@ export function EditDepartmentModal({ open, onClose, department, onSuccess }: Ed
       const oldValues = {
         name: department.name,
         code: department.code,
+        head_of_department: department.head_of_department,
         description: department.description,
       };
 
@@ -79,6 +105,7 @@ export function EditDepartmentModal({ open, onClose, department, onSuccess }: Ed
         .update({
           name: data.name,
           code: data.code.toUpperCase(),
+          head_of_department: data.headOfDepartment || null,
           description: data.description || null,
           updated_at: new Date().toISOString(),
         })
@@ -152,6 +179,32 @@ export function EditDepartmentModal({ open, onClose, department, onSuccess }: Ed
                   <FormControl>
                     <Input placeholder="e.g., LEG" {...field} />
                   </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="headOfDepartment"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Head of Department (Optional)</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value || ""}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select Head of Department" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="">No Head Assigned</SelectItem>
+                      {staffMembers?.map((staff) => (
+                        <SelectItem key={staff.id} value={staff.id}>
+                          {staff.first_name} {staff.last_name} ({staff.staff_id})
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <FormMessage />
                 </FormItem>
               )}

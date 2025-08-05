@@ -396,7 +396,9 @@ export default function Dashboard() {
                           <div className="flex space-x-2">
                             <Tooltip>
                               <TooltipTrigger asChild>
-                                <Button variant="ghost" size="sm">
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm"
                                   onClick={() => {
                                     setSelectedPayrollRun(payroll);
                                     setShowPayrollDetailsModal(true);

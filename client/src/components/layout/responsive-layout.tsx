@@ -262,9 +262,9 @@ export function ResponsiveLayout({ children }: ResponsiveLayoutProps) {
               </Tooltip>
 
               {/* Profile dropdown */}
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <DropdownMenu>
+              <DropdownMenu>
+                <Tooltip>
+                  <TooltipTrigger asChild>
                     <DropdownMenuTrigger asChild>
                       <Button variant="ghost" className="relative h-8 w-8 rounded-full">
                         <Avatar className="h-8 w-8">
@@ -274,13 +274,11 @@ export function ResponsiveLayout({ children }: ResponsiveLayoutProps) {
                         </Avatar>
                       </Button>
                     </DropdownMenuTrigger>
-                  </DropdownMenu>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Account menu</p>
-                </TooltipContent>
-              </Tooltip>
-              <DropdownMenu>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Account menu</p>
+                  </TooltipContent>
+                </Tooltip>
                 <DropdownMenuContent className="w-56" align="end" forceMount>
                   <div className="flex items-center justify-start gap-2 p-2">
                     <div className="flex flex-col space-y-1 leading-none">

@@ -95,6 +95,11 @@ export default function Departments() {
 
       // Debug logging to check what data is being returned
       console.log('Departments query result:', { data, error });
+      console.log('Departments with staff count:', data?.map(dept => ({
+        name: dept.name,
+        staffCount: dept.staff?.length || 0,
+        rawStaffData: dept.staff
+      })));
 
       if (error) throw error;
       

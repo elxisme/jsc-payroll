@@ -280,13 +280,13 @@ export default function Payslips() {
                         <span>{formatPeriod(payslip.period)}</span>
                       </div>
                     </TableCell>
-                    <TableCell className="font-medium">
+                    <TableCell className="font-medium text-right min-w-fit whitespace-nowrap">
                       {formatCurrency(payslip.gross_pay || 0)}
                     </TableCell>
-                    <TableCell className="text-red-600">
+                    <TableCell className="text-red-600 text-right min-w-fit whitespace-nowrap">
                       -{formatCurrency(payslip.total_deductions || 0)}
                     </TableCell>
-                    <TableCell className="font-bold text-green-600">
+                    <TableCell className="font-bold text-green-600 text-right min-w-fit whitespace-nowrap">
                       {formatCurrency(payslip.net_pay || 0)}
                     </TableCell>
                     <TableCell>
