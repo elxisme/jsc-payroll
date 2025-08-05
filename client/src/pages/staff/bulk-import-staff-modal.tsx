@@ -55,7 +55,11 @@ const staffRowSchema = z.object({
     /^\d{4}-\d{2}-\d{2}$/,
     'Employment Date must be in YYYY-MM-DD format'
   ),
-  'Bank Name': z.enum(['access', 'gtb', 'firstbank', 'zenith', 'uba', 'fidelity', 'union', '']).optional(),
+  'Bank Name': z.enum([
+    'access', 'zenith', 'gtb', 'firstbank', 'uba', 'fidelity', 'union',
+    'stanbic', 'polaris', 'wema', 'sterling', 'unity', 'ecobank', 'keystone',
+    'titan', 'globus', 'providus', 'suntrust', 'parallex', 'premium', 'taj', 'jaiz', ''
+  ]).optional(),
   'Account Number': z.string().optional().refine(
     (val) => !val || /^\d{10}$/.test(val),
     'Account number must be exactly 10 digits'
@@ -412,6 +416,8 @@ export function BulkImportStaffModal({ open, onClose, onSuccess }: BulkImportSta
                       <li>Grade Level: 1-17, Step: 1-15</li>
                       <li>Account numbers must be exactly 10 digits</li>
                       <li>Department codes must match existing departments</li>
+                      <li>Bank Name should match: access, zenith, gtb, firstbank, uba, fidelity, union, stanbic, polaris, wema, sterling, unity, ecobank, keystone, titan, globus, providus, suntrust, parallex, premium, taj, jaiz</li>
+                      <li>Save as .xlsx and upload through the system</li>
                     </ul>
                   </div>
                 </div>

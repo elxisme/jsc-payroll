@@ -48,6 +48,7 @@ async function initializeDatabase() {
     ];
 
     const bankNames = ['access', 'gtb', 'firstbank', 'zenith', 'uba', 'fidelity', 'union'];
+    const bankNames = ['access', 'zenith', 'gtb', 'firstbank', 'uba', 'fidelity', 'union', 'stanbic', 'polaris', 'wema', 'sterling', 'unity', 'ecobank', 'keystone', 'titan', 'globus', 'providus', 'suntrust', 'parallex', 'premium', 'taj', 'jaiz'];
     
     for (let i = 1; i <= 50; i++) {
       const deptIndex = i % departments.length;
