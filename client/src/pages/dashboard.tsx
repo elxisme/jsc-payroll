@@ -27,7 +27,8 @@ import {
   BarChart3,
   TrendingUp,
 } from 'lucide-react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+// CORRECTED LINE: 'Tooltip' from recharts is now aliased as 'RechartsTooltip'
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts';
 
 export default function Dashboard() {
   const { user, hasRole } = useAuth();
@@ -364,7 +365,8 @@ export default function Dashboard() {
                         <YAxis 
                           tickFormatter={(value) => `₦${(value / 1000000).toFixed(1)}M`}
                         />
-                        <Tooltip 
+                        {/* CORRECTED USAGE: Using the aliased name 'RechartsTooltip' */}
+                        <RechartsTooltip 
                           formatter={(value: number, name: string) => [
                             formatCurrency(value), 
                             name === 'netAmount' ? 'Net Pay' : 
