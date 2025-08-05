@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
 import { useToast } from '@/hooks/use-toast';
+import { logAuthEvent } from '@/lib/audit-logger';
 
 interface AuthUser extends User {
   role?: string;
@@ -107,6 +108,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (error) throw error;
 
+      // Log successful login
+      await logAuthEvent('login', email);
+
       toast({
         title: "Success",
         description: "Signed in successfully",
@@ -123,8 +127,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = async () => {
     try {
+      const currentEmail = user?.email;
+      
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
+
+      // Log logout
+      if (currentEmail) {
+        await logAuthEvent('logout', currentEmail);
+      }
 
       toast({
         title: "Success",
