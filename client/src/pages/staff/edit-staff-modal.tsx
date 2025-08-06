@@ -131,7 +131,6 @@ export function EditStaffModal({ open, onClose, staff, onSuccess }: EditStaffMod
 
       await logStaffEvent('updated', staff.id, oldValues, newValues);
 
-      // ... (rest of your mutation logic)
       return updatedStaff;
     },
     onSuccess: () => {
@@ -373,7 +372,7 @@ export function EditStaffModal({ open, onClose, staff, onSuccess }: EditStaffMod
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="">Select Bank</SelectItem>
+                          {/* FIX: Removed the item with value="" */}
                           <SelectItem value="access">Access Bank</SelectItem>
                           <SelectItem value="zenith">Zenith Bank</SelectItem>
                           <SelectItem value="gtb">Guaranty Trust Bank</SelectItem>
