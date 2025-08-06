@@ -172,7 +172,7 @@ export function EditIndividualAllowanceModal({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md max-h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center space-x-2">
             <DollarSign className="h-5 w-5 text-green-600" />
@@ -180,6 +180,7 @@ export function EditIndividualAllowanceModal({
           </DialogTitle>
         </DialogHeader>
 
+        <div className="flex-1 overflow-y-auto px-1">
         <div className="space-y-4">
           {/* Allowance Details */}
           <div className="p-4 bg-gray-50 rounded-lg">
@@ -229,7 +230,7 @@ export function EditIndividualAllowanceModal({
                         <SelectItem value="pending">Pending</SelectItem>
                         <SelectItem value="applied">Applied</SelectItem>
                         <SelectItem value="cancelled">Cancelled</SelectItem>
-                      </SelectContent>
+                <div className="flex justify-between space-x-2 pt-4 border-t bg-white sticky bottom-0">
                     </Select>
                     <FormMessage />
                   </FormItem>
@@ -303,6 +304,7 @@ export function EditIndividualAllowanceModal({
               </div>
             </form>
           </Form>
+        </div>
         </div>
       </DialogContent>
     </Dialog>

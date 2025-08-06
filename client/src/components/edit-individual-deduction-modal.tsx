@@ -185,7 +185,7 @@ export function EditIndividualDeductionModal({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md max-h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center space-x-2">
             <Minus className="h-5 w-5 text-red-600" />
@@ -193,6 +193,7 @@ export function EditIndividualDeductionModal({
           </DialogTitle>
         </DialogHeader>
 
+        <div className="flex-1 overflow-y-auto px-1">
         <div className="space-y-4">
           {/* Deduction Details */}
           <div className="p-4 bg-gray-50 rounded-lg">
@@ -336,7 +337,7 @@ export function EditIndividualDeductionModal({
                             Note: This deduction has been fully paid off.
                           </div>
                         )}
-                      </AlertDialogDescription>
+                <div className="flex justify-between space-x-2 pt-4 border-t bg-white sticky bottom-0">
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                       <AlertDialogCancel>No, Keep It</AlertDialogCancel>
@@ -380,6 +381,7 @@ export function EditIndividualDeductionModal({
               </div>
             </form>
           </Form>
+        </div>
         </div>
       </DialogContent>
     </Dialog>

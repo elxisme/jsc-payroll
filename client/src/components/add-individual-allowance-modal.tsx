@@ -188,7 +188,7 @@ export function AddIndividualAllowanceModal({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md max-h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center space-x-2">
             <DollarSign className="h-5 w-5 text-green-600" />
@@ -196,6 +196,7 @@ export function AddIndividualAllowanceModal({
           </DialogTitle>
         </DialogHeader>
 
+        <div className="flex-1 overflow-y-auto px-1">
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField
@@ -328,7 +329,7 @@ export function AddIndividualAllowanceModal({
               </ul>
             </div>
 
-            <div className="flex justify-end space-x-2 pt-4">
+              <div className="flex justify-end space-x-2 pt-4 border-t bg-white sticky bottom-0">
               <Button type="button" variant="outline" onClick={handleClose}>
                 Cancel
               </Button>
@@ -349,6 +350,7 @@ export function AddIndividualAllowanceModal({
             </div>
           </form>
         </Form>
+        </div>
       </DialogContent>
     </Dialog>
   );

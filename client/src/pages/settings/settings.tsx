@@ -462,7 +462,7 @@ export default function Settings() {
       </div>
 
       <Tabs defaultValue="users" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-6">
+        <TabsList className="flex flex-wrap w-full justify-center gap-1 h-auto p-1">
           <TabsTrigger value="users">Users</TabsTrigger>
           <TabsTrigger value="salary">Salary Structure</TabsTrigger>
           <TabsTrigger value="allowances">Allowances</TabsTrigger>

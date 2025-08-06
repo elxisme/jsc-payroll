@@ -220,7 +220,7 @@ export function AddIndividualDeductionModal({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-lg max-h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center space-x-2">
             <Minus className="h-5 w-5 text-red-600" />
@@ -228,6 +228,7 @@ export function AddIndividualDeductionModal({
           </DialogTitle>
         </DialogHeader>
 
+        <div className="flex-1 overflow-y-auto px-1">
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField
@@ -318,7 +319,7 @@ export function AddIndividualDeductionModal({
               {selectedDeductionType?.requiresTotal && (
                 <FormField
                   control={form.control}
-                  name="totalAmount"
+              <div className="flex justify-end space-x-2 pt-4 border-t bg-white sticky bottom-0">
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Total Amount (NGN)</FormLabel>
@@ -453,6 +454,7 @@ export function AddIndividualDeductionModal({
             </div>
           </form>
         </Form>
+        </div>
       </DialogContent>
     </Dialog>
   );

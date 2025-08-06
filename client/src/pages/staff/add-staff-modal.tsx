@@ -29,7 +29,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2 } from 'lucide-react';
+import { Loader2, AlertCircle } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const addStaffSchema = z.object({
   firstName: z.string().min(1, 'First name is required'),
@@ -112,10 +113,50 @@ export function AddStaffModal({ open, onClose, onSuccess }: AddStaffModalProps) 
   // Create staff mutation
   const createStaffMutation = useMutation({
     mutationFn: async (data: AddStaffFormData) => {
+      // Step 1: Create user account in Supabase Auth
+      const defaultPassword = 'TempPassword123!'; // Strong default password
+      
+      const { data: authUser, error: authError } = await supabase.auth.signUp({
+        email: data.email,
+        password: defaultPassword,
+        options: {
+          emailRedirectTo: undefined, // Disable email confirmation
+        }
+      });
+
+      if (authError) {
+        if (authError.message.includes('already registered')) {
+          throw new Error('A user with this email already exists in the system');
+        }
+        throw authError;
+      }
+
+      if (!authUser.user) {
+        throw new Error('Failed to create user account');
+      }
+
+      // Step 2: Create user profile in public.users table
+      const { error: userProfileError } = await supabase
+        .from('users')
+        .insert({
+          id: authUser.user.id,
+          email: data.email,
+          role: 'staff',
+        });
+
+      if (userProfileError) {
+        // If user profile creation fails, we should clean up the auth user
+        // Note: In production, you might want to handle this more gracefully
+        console.error('Failed to create user profile:', userProfileError);
+        throw new Error('Failed to create user profile');
+      }
+
+      // Step 3: Generate staff ID and create staff record
       const staffId = await generateStaffId();
       
       const staffData = {
         staff_id: staffId,
+        user_id: authUser.user.id, // Link to the created user account
         first_name: data.firstName,
         last_name: data.lastName,
         middle_name: data.middleName || null,
@@ -143,6 +184,16 @@ export function AddStaffModal({ open, onClose, onSuccess }: AddStaffModalProps) 
       // Log the creation for audit trail
       await logStaffEvent('created', staff.id, null, staffData);
       
+      // Create welcome notification for the new staff member
+      await supabase
+        .from('notifications')
+        .insert({
+          user_id: authUser.user.id,
+          title: 'Welcome to JSC Payroll System',
+          message: `Your account has been created. Please use the "Forgot Password" link on the login page to set your password and access your account.`,
+          type: 'info',
+        });
+      
       return staff;
     },
     onSuccess: (newStaff) => {
@@ -156,7 +207,7 @@ export function AddStaffModal({ open, onClose, onSuccess }: AddStaffModalProps) 
             const notifications = adminUsers.map(admin => ({
               user_id: admin.id,
               title: 'New Staff Member Added',
-              message: `A new staff member, ${newStaff.first_name} ${newStaff.last_name}, has been added.`,
+              message: `A new staff member, ${newStaff.first_name} ${newStaff.last_name}, has been added with a user account. They should use "Forgot Password" to set their password.`,
               type: 'info',
             }));
 
@@ -169,7 +220,7 @@ export function AddStaffModal({ open, onClose, onSuccess }: AddStaffModalProps) 
 
       toast({
         title: 'Success',
-        description: 'Staff member created successfully',
+        description: 'Staff member and user account created successfully. They can use "Forgot Password" to set their password.',
       });
       queryClient.invalidateQueries({ queryKey: ['staff'] });
       form.reset();
@@ -195,10 +246,18 @@ export function AddStaffModal({ open, onClose, onSuccess }: AddStaffModalProps) 
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-2xl max-h-screen overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>Add New Staff Member</DialogTitle>
         </DialogHeader>
+
+        <div className="flex-1 overflow-y-auto px-1">
+          <Alert className="mb-4">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              A user account will be automatically created for this staff member. They can use "Forgot Password" on the login page to set their own password.
+            </AlertDescription>
+          </Alert>
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
@@ -405,6 +464,7 @@ export function AddStaffModal({ open, onClose, onSuccess }: AddStaffModalProps) 
                         </FormControl>
                         <SelectContent>
                           {/* CORRECTED: Removed the item with value="" */}
+                            <SelectItem value="">Select Bank</SelectItem>
                           <SelectItem value="access">Access Bank</SelectItem>
                           <SelectItem value="zenith">Zenith Bank</SelectItem>
                           <SelectItem value="gtb">Guaranty Trust Bank</SelectItem>
@@ -465,7 +525,7 @@ export function AddStaffModal({ open, onClose, onSuccess }: AddStaffModalProps) 
             </div>
 
             {/* Action Buttons */}
-            <div className="flex justify-end space-x-3 pt-6">
+              <div className="flex justify-end space-x-3 pt-6 border-t bg-white sticky bottom-0">
               <Button type="button" variant="outline" onClick={handleClose}>
                 Cancel
               </Button>
@@ -486,6 +546,7 @@ export function AddStaffModal({ open, onClose, onSuccess }: AddStaffModalProps) 
             </div>
           </form>
         </Form>
+        </div>
       </DialogContent>
     </Dialog>
   );

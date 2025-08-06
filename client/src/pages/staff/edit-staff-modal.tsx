@@ -373,7 +373,7 @@ export function EditStaffModal({ open, onClose, staff, onSuccess }: EditStaffMod
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {/* CORRECTED: Removed the item with value="" and the duplicate bank */}
+                          <SelectItem value="">Select Bank</SelectItem>
                           <SelectItem value="access">Access Bank</SelectItem>
                           <SelectItem value="zenith">Zenith Bank</SelectItem>
                           <SelectItem value="gtb">Guaranty Trust Bank</SelectItem>
