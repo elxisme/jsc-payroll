@@ -242,4 +242,3 @@ export type InsertStaffIndividualAllowance = z.infer<typeof insertStaffIndividua
 
 export type StaffIndividualDeduction = typeof staffIndividualDeductions.$inferSelect;
 export type InsertStaffIndividualDeduction = z.infer<typeof insertStaffIndividualDeductionSchema>;
-
