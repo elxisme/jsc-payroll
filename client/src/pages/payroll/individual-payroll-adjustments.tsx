@@ -4,7 +4,8 @@ import { useAuth } from '@/hooks/use-auth';
 import { supabase } from '@/lib/supabase';
 import { formatDisplayCurrency } from '@/lib/currency-utils';
 import { 
-  getPendingAllowancesForPeriod, 
+  // We will replace this with a direct query for now
+  // getPendingAllowancesForPeriod, 
   getActiveDeductionsForPeriod,
   updateIndividualAllowanceStatus,
   updateIndividualDeduction
@@ -58,7 +59,26 @@ export default function IndividualPayrollAdjustments() {
   // Fetch pending allowances for the selected period
   const { data: pendingAllowances, isLoading: allowancesLoading } = useQuery({
     queryKey: ['pending-allowances', selectedPeriod],
-    queryFn: () => getPendingAllowancesForPeriod(selectedPeriod),
+    // FIX: The query is now defined here to include the staff details.
+    // You should move this logic into your `getPendingAllowancesForPeriod` function.
+    queryFn: async () => {
+      if (!selectedPeriod) return [];
+      const { data, error } = await supabase
+        .from('staff_individual_allowances')
+        .select(`
+          *,
+          staff (
+            staff_id,
+            first_name,
+            last_name
+          )
+        `)
+        .eq('period', selectedPeriod)
+        .eq('status', 'pending');
+
+      if (error) throw error;
+      return data || [];
+    },
     enabled: !!selectedPeriod,
   });
 
@@ -86,7 +106,7 @@ export default function IndividualPayrollAdjustments() {
       const allPeriods = [
         ...(allowancePeriods?.map(p => p.period) || []),
         ...(deductionPeriods?.map(p => p.period) || []),
-      ];
+      ].filter(Boolean); // Added filter to prevent errors with empty values
 
       return Array.from(new Set(allPeriods)).sort().reverse();
     },
@@ -135,6 +155,7 @@ export default function IndividualPayrollAdjustments() {
   });
 
   const formatPeriod = (period: string) => {
+    if (!period) return 'Invalid Period';
     const [year, month] = period.split('-');
     const date = new Date(parseInt(year), parseInt(month) - 1);
     return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long' });
@@ -327,6 +348,7 @@ export default function IndividualPayrollAdjustments() {
                       <TableRow key={allowance.id}>
                         <TableCell>
                           <div className="font-medium">
+                            {/* This will now work correctly */}
                             {allowance.staff?.first_name} {allowance.staff?.last_name}
                           </div>
                           <div className="text-sm text-gray-500">
