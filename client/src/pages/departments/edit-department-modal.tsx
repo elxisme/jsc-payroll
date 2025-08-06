@@ -35,7 +35,8 @@ import { Loader2 } from 'lucide-react';
 const editDepartmentSchema = z.object({
   name: z.string().min(1, 'Department name is required'),
   code: z.string().min(2, 'Department code must be at least 2 characters'),
-  headOfDepartment: z.string().optional(),
+  // Allow headOfDepartment to be null or undefined
+  headOfDepartment: z.string().nullable().optional(),
   description: z.string().optional(),
 });
 
@@ -57,7 +58,7 @@ export function EditDepartmentModal({ open, onClose, department, onSuccess }: Ed
     defaultValues: {
       name: department?.name || '',
       code: department?.code || '',
-      headOfDepartment: department?.head_of_department || '',
+      headOfDepartment: department?.head_of_department || null,
       description: department?.description || '',
     },
   });
@@ -68,7 +69,7 @@ export function EditDepartmentModal({ open, onClose, department, onSuccess }: Ed
       form.reset({
         name: department.name || '',
         code: department.code || '',
-        headOfDepartment: department.head_of_department || '',
+        headOfDepartment: department.head_of_department || null,
         description: department.description || '',
       });
     }
@@ -92,7 +93,6 @@ export function EditDepartmentModal({ open, onClose, department, onSuccess }: Ed
   // Update department mutation
   const updateDepartmentMutation = useMutation({
     mutationFn: async (data: EditDepartmentFormData) => {
-      // Store old values for audit logging
       const oldValues = {
         name: department.name,
         code: department.code,
@@ -114,10 +114,9 @@ export function EditDepartmentModal({ open, onClose, department, onSuccess }: Ed
       if (error) throw error;
       
       if (!updatedDepartment || updatedDepartment.length === 0) {
-        throw new Error('Department not found or no changes were made. The department may have been deleted by another user.');
+        throw new Error('Department not found or no changes were made.');
       }
       
-      // Log the update for audit trail
       await logDepartmentEvent('updated', department.id, oldValues, data);
       
       return updatedDepartment[0];
@@ -190,14 +189,15 @@ export function EditDepartmentModal({ open, onClose, department, onSuccess }: Ed
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Head of Department (Optional)</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value || ""}>
+                  {/* FIX: Use the field's value directly. It can be null. */}
+                  <Select onValueChange={field.onChange} value={field.value || undefined}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Select Head of Department" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="">No Head Assigned</SelectItem>
+                      {/* FIX: Removed the item with value="" */}
                       {staffMembers?.map((staff) => (
                         <SelectItem key={staff.id} value={staff.id}>
                           {staff.first_name} {staff.last_name} ({staff.staff_id})
@@ -219,7 +219,9 @@ export function EditDepartmentModal({ open, onClose, department, onSuccess }: Ed
                   <FormControl>
                     <Textarea 
                       placeholder="Department description" 
-                      {...field} 
+                      {...field}
+                      // Ensure null/undefined values are handled gracefully
+                      value={field.value || ''}
                       rows={3}
                     />
                   </FormControl>
