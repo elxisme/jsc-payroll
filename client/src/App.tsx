@@ -16,6 +16,7 @@ import StaffManagement from "@/pages/staff/staff-management";
 import Departments from "@/pages/departments/departments";
 import PayrollProcessing from "@/pages/payroll/payroll-processing";
 import PayrollWorkflow from "@/pages/payroll/payroll-workflow";
+import IndividualPayrollAdjustments from "@/pages/payroll/individual-payroll-adjustments";
 import Payslips from "@/pages/payslips/payslips";
 import BankReports from "@/pages/reports/bank-reports";
 import Notifications from "@/pages/notifications/notifications";
@@ -85,6 +86,12 @@ function AppContent() {
             <Route path="/payroll/workflow">
               <AuthGuard roles={['super_admin', 'account_admin', 'payroll_admin']}>
                 <PayrollWorkflow />
+              </AuthGuard>
+            </Route>
+            
+            <Route path="/payroll/adjustments">
+              <AuthGuard roles={['super_admin', 'payroll_admin']}>
+                <IndividualPayrollAdjustments />
               </AuthGuard>
             </Route>
             

@@ -1,4 +1,7 @@
 import React from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { getStaffIndividualAllowances, getStaffIndividualDeductions } from '@/lib/individual-payroll-utils';
+import { formatDisplayCurrency } from '@/lib/currency-utils';
 import {
   Dialog,
   DialogContent,
@@ -8,7 +11,13 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
+import { AddIndividualAllowanceModal } from '@/components/add-individual-allowance-modal';
+import { AddIndividualDeductionModal } from '@/components/add-individual-deduction-modal';
+import { EditIndividualAllowanceModal } from '@/components/edit-individual-allowance-modal';
+import { EditIndividualDeductionModal } from '@/components/edit-individual-deduction-modal';
 import { 
   User, 
   Mail, 
@@ -18,7 +27,11 @@ import {
   CreditCard,
   Scale,
   MapPin,
-  FileText
+  FileText,
+  Plus,
+  DollarSign,
+  Minus,
+  Edit
 } from 'lucide-react';
 
 interface StaffDetailsModalProps {
@@ -28,7 +41,28 @@ interface StaffDetailsModalProps {
 }
 
 export function StaffDetailsModal({ open, onClose, staff }: StaffDetailsModalProps) {
+  const [showAddAllowanceModal, setShowAddAllowanceModal] = React.useState(false);
+  const [showAddDeductionModal, setShowAddDeductionModal] = React.useState(false);
+  const [showEditAllowanceModal, setShowEditAllowanceModal] = React.useState(false);
+  const [showEditDeductionModal, setShowEditDeductionModal] = React.useState(false);
+  const [selectedAllowance, setSelectedAllowance] = React.useState<any>(null);
+  const [selectedDeduction, setSelectedDeduction] = React.useState<any>(null);
+
   if (!staff) return null;
+
+  // Fetch individual allowances
+  const { data: individualAllowances, isLoading: allowancesLoading } = useQuery({
+    queryKey: ['staff-individual-allowances', staff.id],
+    queryFn: () => getStaffIndividualAllowances(staff.id),
+    enabled: !!staff.id && open,
+  });
+
+  // Fetch individual deductions
+  const { data: individualDeductions, isLoading: deductionsLoading } = useQuery({
+    queryKey: ['staff-individual-deductions', staff.id],
+    queryFn: () => getStaffIndividualDeductions(staff.id),
+    enabled: !!staff.id && open,
+  });
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -65,9 +99,37 @@ export function StaffDetailsModal({ open, onClose, staff }: StaffDetailsModalPro
     return `${staff.first_name || ''} ${staff.middle_name ? staff.middle_name + ' ' : ''}${staff.last_name || ''}`.trim();
   };
 
+  const getStatusColorForIndividual = (status: string) => {
+    switch (status) {
+      case 'pending':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'applied':
+      case 'active':
+        return 'bg-green-100 text-green-800';
+      case 'paid_off':
+        return 'bg-blue-100 text-blue-800';
+      case 'cancelled':
+        return 'bg-red-100 text-red-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const formatPeriod = (period: string) => {
+    const [year, month] = period.split('-');
+    const date = new Date(parseInt(year), parseInt(month) - 1);
+    return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short' });
+  };
+
+  const calculateProgress = (deduction: any) => {
+    if (!deduction.totalAmount || deduction.totalAmount === 0) return 0;
+    const paid = deduction.totalAmount - (deduction.remainingBalance || 0);
+    return (paid / deduction.totalAmount) * 100;
+  };
+
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Staff Details</DialogTitle>
         </DialogHeader>
@@ -96,7 +158,30 @@ export function StaffDetailsModal({ open, onClose, staff }: StaffDetailsModalPro
             </CardContent>
           </Card>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <Tabs defaultValue="profile" className="w-full">
+            <TabsList className="grid w-full grid-cols-4">
+              <TabsTrigger value="profile">Profile</TabsTrigger>
+              <TabsTrigger value="employment">Employment</TabsTrigger>
+              <TabsTrigger value="allowances">
+                Individual Allowances
+                {individualAllowances && individualAllowances.length > 0 && (
+                  <Badge variant="secondary" className="ml-2">
+                    {individualAllowances.length}
+                  </Badge>
+                )}
+              </TabsTrigger>
+              <TabsTrigger value="deductions">
+                Individual Deductions
+                {individualDeductions && individualDeductions.length > 0 && (
+                  <Badge variant="secondary" className="ml-2">
+                    {individualDeductions.length}
+                  </Badge>
+                )}
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="profile" className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Personal Information */}
             <Card>
               <CardHeader>
@@ -168,77 +253,289 @@ export function StaffDetailsModal({ open, onClose, staff }: StaffDetailsModalPro
                 </div>
               </CardContent>
             </Card>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="employment" className="space-y-6">
+              {/* Employment Information */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center space-x-2">
+                    <Building className="h-5 w-5" />
+                    <span>Employment Details</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="flex items-center space-x-3">
+                      <Building className="h-4 w-4 text-gray-400" />
+                      <div>
+                        <p className="text-sm text-gray-600">Department</p>
+                        <p className="font-medium">{staff.departments?.name || 'Unassigned'}</p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center space-x-3">
+                      <Scale className="h-4 w-4 text-gray-400" />
+                      <div>
+                        <p className="text-sm text-gray-600">Position</p>
+                        <p className="font-medium">{staff.position}</p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center space-x-3">
+                      <FileText className="h-4 w-4 text-gray-400" />
+                      <div>
+                        <p className="text-sm text-gray-600">Grade & Step</p>
+                        <p className="font-medium">Grade Level {staff.grade_level}, Step {staff.step}</p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center space-x-3">
+                      <Calendar className="h-4 w-4 text-gray-400" />
+                      <div>
+                        <p className="text-sm text-gray-600">Employment Date</p>
+                        <p className="font-medium">{formatDate(staff.employment_date)}</p>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Banking Information */}
+              {(staff.bank_name || staff.account_number) && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center space-x-2">
+                      <CreditCard className="h-5 w-5" />
+                      <span>Banking Information</span>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {staff.bank_name && (
+                        <div>
+                          <p className="text-sm text-gray-600">Bank Name</p>
+                          <p className="font-medium">{staff.bank_name.toUpperCase()}</p>
+                        </div>
+                      )}
+                      
+                      {staff.account_number && (
+                        <div>
+                          <p className="text-sm text-gray-600">Account Number</p>
+                          <p className="font-medium font-mono">{staff.account_number}</p>
+                        </div>
+                      )}
+                      
+                      {staff.account_name && (
+                        <div className="md:col-span-2">
+                          <p className="text-sm text-gray-600">Account Name</p>
+                          <p className="font-medium">{staff.account_name}</p>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </TabsContent>
+
+            <TabsContent value="allowances" className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-medium">Individual Allowances</h3>
+                <Button
+                  onClick={() => setShowAddAllowanceModal(true)}
+                  size="sm"
+                  className="bg-nigeria-green hover:bg-green-700"
+                >
+                  <Plus className="mr-2 h-4 w-4" />
+                  Add Allowance
+                </Button>
+              </div>
+
+              {allowancesLoading ? (
+                <div className="space-y-3">
+                  {[...Array(3)].map((_, i) => (
+                    <div key={i} className="animate-pulse flex space-x-4 p-4 border rounded-lg">
+                      <div className="rounded-full bg-gray-200 h-8 w-8"></div>
+                      <div className="flex-1 space-y-2">
+                        <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                        <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : individualAllowances && individualAllowances.length > 0 ? (
+                <div className="space-y-3">
+                  {individualAllowances.map((allowance) => (
+                    <div key={allowance.id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50">
+                      <div className="flex items-center space-x-3">
+                        <div className="h-8 w-8 bg-green-100 rounded-full flex items-center justify-center">
+                          <DollarSign className="h-4 w-4 text-green-600" />
+                        </div>
+                        <div>
+                          <p className="font-medium capitalize">
+                            {allowance.type.replace('_', ' ')}
+                          </p>
+                          <div className="flex items-center space-x-2 text-sm text-gray-500">
+                            <span>{formatPeriod(allowance.period)}</span>
+                            <span>•</span>
+                            <Badge className={getStatusColorForIndividual(allowance.status)}>
+                              {allowance.status.toUpperCase()}
+                            </Badge>
+                          </div>
+                          {allowance.description && (
+                            <p className="text-xs text-gray-500 mt-1">{allowance.description}</p>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-3">
+                        <div className="text-right">
+                          <p className="font-bold text-green-600">
+                            +{formatDisplayCurrency(allowance.amount)}
+                          </p>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setSelectedAllowance(allowance);
+                            setShowEditAllowanceModal(true);
+                          }}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-gray-500 border-2 border-dashed border-gray-200 rounded-lg">
+                  <DollarSign className="mx-auto h-12 w-12 text-gray-300 mb-4" />
+                  <p>No individual allowances</p>
+                  <p className="text-sm">Add overtime, bonuses, or special allowances</p>
+                  <Button
+                    onClick={() => setShowAddAllowanceModal(true)}
+                    variant="outline"
+                    size="sm"
+                    className="mt-3"
+                  >
+                    <Plus className="mr-2 h-4 w-4" />
+                    Add First Allowance
+                  </Button>
+                </div>
+              )}
+            </TabsContent>
+
+            <TabsContent value="deductions" className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-medium">Individual Deductions</h3>
+                <Button
+                  onClick={() => setShowAddDeductionModal(true)}
+                  size="sm"
+                  className="bg-red-600 hover:bg-red-700"
+                >
+                  <Plus className="mr-2 h-4 w-4" />
+                  Add Deduction
+                </Button>
+              </div>
+
+              {deductionsLoading ? (
+                <div className="space-y-3">
+                  {[...Array(3)].map((_, i) => (
+                    <div key={i} className="animate-pulse flex space-x-4 p-4 border rounded-lg">
+                      <div className="rounded-full bg-gray-200 h-8 w-8"></div>
+                      <div className="flex-1 space-y-2">
+                        <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                        <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : individualDeductions && individualDeductions.length > 0 ? (
+                <div className="space-y-3">
+                  {individualDeductions.map((deduction) => (
+                    <div key={deduction.id} className="p-4 border rounded-lg hover:bg-gray-50">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-3">
+                          <div className="h-8 w-8 bg-red-100 rounded-full flex items-center justify-center">
+                            <Minus className="h-4 w-4 text-red-600" />
+                          </div>
+                          <div>
+                            <p className="font-medium capitalize">
+                              {deduction.type.replace('_', ' ')}
+                            </p>
+                            <div className="flex items-center space-x-2 text-sm text-gray-500">
+                              <span>{formatPeriod(deduction.period)}</span>
+                              <span>•</span>
+                              <Badge className={getStatusColorForIndividual(deduction.status)}>
+                                {deduction.status.replace('_', ' ').toUpperCase()}
+                              </Badge>
+                            </div>
+                            {deduction.description && (
+                              <p className="text-xs text-gray-500 mt-1">{deduction.description}</p>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-3">
+                          <div className="text-right">
+                            <p className="font-bold text-red-600">
+                              -{formatDisplayCurrency(deduction.amount)}
+                            </p>
+                            {deduction.totalAmount && (
+                              <p className="text-xs text-gray-500">
+                                of {formatDisplayCurrency(deduction.totalAmount)}
+                              </p>
+                            )}
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setSelectedDeduction(deduction);
+                              setShowEditDeductionModal(true);
+                            }}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                      
+                      {/* Loan Progress Bar */}
+                      {deduction.totalAmount && deduction.totalAmount > 0 && (
+                        <div className="mt-3">
+                          <div className="flex justify-between text-xs text-gray-500 mb-1">
+                            <span>Progress</span>
+                            <span>{calculateProgress(deduction).toFixed(1)}% paid</span>
+                          </div>
+                          <Progress value={calculateProgress(deduction)} className="h-2" />
+                          <div className="flex justify-between text-xs text-gray-500 mt-1">
+                            <span>Remaining: {formatDisplayCurrency(deduction.remainingBalance || 0)}</span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-gray-500 border-2 border-dashed border-gray-200 rounded-lg">
+                  <Minus className="mx-auto h-12 w-12 text-gray-300 mb-4" />
+                  <p>No individual deductions</p>
+                  <p className="text-sm">Add loans, advances, or other deductions</p>
+                  <Button
+                    onClick={() => setShowAddDeductionModal(true)}
+                    variant="outline"
+                    size="sm"
+                    className="mt-3"
+                  >
+                    <Plus className="mr-2 h-4 w-4" />
+                    Add First Deduction
+                  </Button>
+                </div>
+              )}
+            </TabsContent>
           </div>
 
-          {/* Banking Information */}
-          {(staff.bank_name || staff.account_number) && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <CreditCard className="h-5 w-5" />
-                  <span>Banking Information</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {staff.bank_name && (
-                    <div>
-                      <p className="text-sm text-gray-600">Bank Name</p>
-                      <p className="font-medium">{staff.bank_name.toUpperCase()}</p>
-                    </div>
-                  )}
-                  
-                  {staff.account_number && (
-                    <div>
-                      <p className="text-sm text-gray-600">Account Number</p>
-                      <p className="font-medium font-mono">{staff.account_number}</p>
-                    </div>
-                  )}
-                  
-                  {staff.account_name && (
-                    <div className="md:col-span-2">
-                      <p className="text-sm text-gray-600">Account Name</p>
-                      <p className="font-medium">{staff.account_name}</p>
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Additional Information */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Additional Information</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {staff.pension_pin && (
-                  <div>
-                    <p className="text-sm text-gray-600">Pension PIN</p>
-                    <p className="font-medium font-mono">{staff.pension_pin}</p>
-                  </div>
-                )}
-                
-                {staff.tax_pin && (
-                  <div>
-                    <p className="text-sm text-gray-600">Tax PIN</p>
-                    <p className="font-medium font-mono">{staff.tax_pin}</p>
-                  </div>
-                )}
-                
-                <div>
-                  <p className="text-sm text-gray-600">Created</p>
-                  <p className="font-medium">{formatDate(staff.created_at)}</p>
-                </div>
-                
-                <div>
-                  <p className="text-sm text-gray-600">Last Updated</p>
-                  <p className="font-medium">{formatDate(staff.updated_at)}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          </Tabs>
 
           {/* Action Buttons */}
           <div className="flex justify-end space-x-2 pt-4 border-t">
@@ -250,6 +547,55 @@ export function StaffDetailsModal({ open, onClose, staff }: StaffDetailsModalPro
             </Button>
           </div>
         </div>
+
+        {/* Individual Allowance Modals */}
+        <AddIndividualAllowanceModal
+          open={showAddAllowanceModal}
+          onClose={() => setShowAddAllowanceModal(false)}
+          onSuccess={() => {
+            setShowAddAllowanceModal(false);
+          }}
+          preselectedStaffId={staff.id}
+        />
+
+        <AddIndividualDeductionModal
+          open={showAddDeductionModal}
+          onClose={() => setShowAddDeductionModal(false)}
+          onSuccess={() => {
+            setShowAddDeductionModal(false);
+          }}
+          preselectedStaffId={staff.id}
+        />
+
+        {selectedAllowance && (
+          <EditIndividualAllowanceModal
+            open={showEditAllowanceModal}
+            onClose={() => {
+              setShowEditAllowanceModal(false);
+              setSelectedAllowance(null);
+            }}
+            allowance={selectedAllowance}
+            onSuccess={() => {
+              setShowEditAllowanceModal(false);
+              setSelectedAllowance(null);
+            }}
+          />
+        )}
+
+        {selectedDeduction && (
+          <EditIndividualDeductionModal
+            open={showEditDeductionModal}
+            onClose={() => {
+              setShowEditDeductionModal(false);
+              setSelectedDeduction(null);
+            }}
+            deduction={selectedDeduction}
+            onSuccess={() => {
+              setShowEditDeductionModal(false);
+              setSelectedDeduction(null);
+            }}
+          />
+        )}
       </DialogContent>
     </Dialog>
   );

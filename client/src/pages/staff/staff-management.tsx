@@ -28,6 +28,8 @@ import {
 import { AddStaffModal } from './add-staff-modal';
 import { StaffDetailsModal } from './staff-details-modal';
 import { EditStaffModal } from './edit-staff-modal';
+import { AddIndividualAllowanceModal } from '@/components/add-individual-allowance-modal';
+import { AddIndividualDeductionModal } from '@/components/add-individual-deduction-modal';
 import { Search, Plus, Eye, Edit, Filter } from 'lucide-react';
 
 export default function StaffManagement() {
@@ -42,6 +44,8 @@ export default function StaffManagement() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showAddAllowanceModal, setShowAddAllowanceModal] = useState(false);
+  const [showAddDeductionModal, setShowAddDeductionModal] = useState(false);
   const [selectedStaff, setSelectedStaff] = useState<any>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -153,22 +157,40 @@ export default function StaffManagement() {
             <h1 className="text-2xl font-bold text-gray-900 mb-2">Staff Management</h1>
             <p className="text-gray-600">Manage staff profiles and information</p>
           </div>
-          <Button
-            onClick={() => setShowAddModal(true)}
-            className="bg-nigeria-green hover:bg-green-700"
-          >
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div className="flex items-center">
-                  <Plus className="mr-2 h-4 w-4" />
-                  Add Staff
-                </div>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Add a new staff member</p>
-              </TooltipContent>
-            </Tooltip>
-          </Button>
+          <div className="flex space-x-2">
+            <Button
+              onClick={() => setShowAddAllowanceModal(true)}
+              variant="outline"
+              className="text-green-600 hover:text-green-700 hover:bg-green-50"
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              Add Allowance
+            </Button>
+            <Button
+              onClick={() => setShowAddDeductionModal(true)}
+              variant="outline"
+              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              Add Deduction
+            </Button>
+            <Button
+              onClick={() => setShowAddModal(true)}
+              className="bg-nigeria-green hover:bg-green-700"
+            >
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <div className="flex items-center">
+                    <Plus className="mr-2 h-4 w-4" />
+                    Add Staff
+                  </div>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Add a new staff member</p>
+                </TooltipContent>
+              </Tooltip>
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -558,6 +580,31 @@ export default function StaffManagement() {
           toast({
             title: "Success",
             description: "Staff member added successfully",
+          });
+        }}
+      />
+
+      {/* Individual Allowance and Deduction Modals */}
+      <AddIndividualAllowanceModal
+        open={showAddAllowanceModal}
+        onClose={() => setShowAddAllowanceModal(false)}
+        onSuccess={() => {
+          setShowAddAllowanceModal(false);
+          toast({
+            title: "Success",
+            description: "Individual allowance added successfully",
+          });
+        }}
+      />
+
+      <AddIndividualDeductionModal
+        open={showAddDeductionModal}
+        onClose={() => setShowAddDeductionModal(false)}
+        onSuccess={() => {
+          setShowAddDeductionModal(false);
+          toast({
+            title: "Success",
+            description: "Individual deduction added successfully",
           });
         }}
       />
