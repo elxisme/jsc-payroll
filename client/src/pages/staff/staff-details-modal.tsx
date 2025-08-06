@@ -180,83 +180,86 @@ export function StaffDetailsModal({ open, onClose, staff }: StaffDetailsModalPro
               </TabsTrigger>
             </TabsList>
 
-            <TabsContent value="profile" className="space-y-6">
+            {/* FIX: The problematic wrapping <div> has been removed. */}
+            {/* Each <TabsContent> is now a direct child of <Tabs> */}
+
+            <TabsContent value="profile" className="space-y-6 pt-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Personal Information */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <User className="h-5 w-5" />
-                  <span>Personal Information</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center space-x-3">
-                  <Mail className="h-4 w-4 text-gray-400" />
-                  <div>
-                    <p className="text-sm text-gray-600">Email</p>
-                    <p className="font-medium">{staff.email}</p>
-                  </div>
-                </div>
-                
-                {staff.phone_number && (
-                  <div className="flex items-center space-x-3">
-                    <Phone className="h-4 w-4 text-gray-400" />
-                    <div>
-                      <p className="text-sm text-gray-600">Phone Number</p>
-                      <p className="font-medium">{staff.phone_number}</p>
+                {/* Personal Information */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center space-x-2">
+                      <User className="h-5 w-5" />
+                      <span>Personal Information</span>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="flex items-center space-x-3">
+                      <Mail className="h-4 w-4 text-gray-400" />
+                      <div>
+                        <p className="text-sm text-gray-600">Email</p>
+                        <p className="font-medium">{staff.email}</p>
+                      </div>
                     </div>
-                  </div>
-                )}
+                    
+                    {staff.phone_number && (
+                      <div className="flex items-center space-x-3">
+                        <Phone className="h-4 w-4 text-gray-400" />
+                        <div>
+                          <p className="text-sm text-gray-600">Phone Number</p>
+                          <p className="font-medium">{staff.phone_number}</p>
+                        </div>
+                      </div>
+                    )}
 
-                <div className="flex items-center space-x-3">
-                  <Calendar className="h-4 w-4 text-gray-400" />
-                  <div>
-                    <p className="text-sm text-gray-600">Employment Date</p>
-                    <p className="font-medium">{formatDate(staff.employment_date)}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+                    <div className="flex items-center space-x-3">
+                      <Calendar className="h-4 w-4 text-gray-400" />
+                      <div>
+                        <p className="text-sm text-gray-600">Employment Date</p>
+                        <p className="font-medium">{formatDate(staff.employment_date)}</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
 
-            {/* Employment Information */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <Building className="h-5 w-5" />
-                  <span>Employment Details</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center space-x-3">
-                  <Building className="h-4 w-4 text-gray-400" />
-                  <div>
-                    <p className="text-sm text-gray-600">Department</p>
-                    <p className="font-medium">{staff.departments?.name || 'Unassigned'}</p>
-                  </div>
-                </div>
+                {/* Employment Information Card (duplicate from other tab, but keeping as per original code) */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center space-x-2">
+                      <Building className="h-5 w-5" />
+                      <span>Employment Details</span>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="flex items-center space-x-3">
+                      <Building className="h-4 w-4 text-gray-400" />
+                      <div>
+                        <p className="text-sm text-gray-600">Department</p>
+                        <p className="font-medium">{staff.departments?.name || 'Unassigned'}</p>
+                      </div>
+                    </div>
 
-                <div className="flex items-center space-x-3">
-                  <Scale className="h-4 w-4 text-gray-400" />
-                  <div>
-                    <p className="text-sm text-gray-600">Position</p>
-                    <p className="font-medium">{staff.position}</p>
-                  </div>
-                </div>
+                    <div className="flex items-center space-x-3">
+                      <Scale className="h-4 w-4 text-gray-400" />
+                      <div>
+                        <p className="text-sm text-gray-600">Position</p>
+                        <p className="font-medium">{staff.position}</p>
+                      </div>
+                    </div>
 
-                <div className="flex items-center space-x-3">
-                  <FileText className="h-4 w-4 text-gray-400" />
-                  <div>
-                    <p className="text-sm text-gray-600">Grade & Step</p>
-                    <p className="font-medium">Grade Level {staff.grade_level}, Step {staff.step}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+                    <div className="flex items-center space-x-3">
+                      <FileText className="h-4 w-4 text-gray-400" />
+                      <div>
+                        <p className="text-sm text-gray-600">Grade & Step</p>
+                        <p className="font-medium">Grade Level {staff.grade_level}, Step {staff.step}</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
               </div>
             </TabsContent>
 
-            <TabsContent value="employment" className="space-y-6">
+            <TabsContent value="employment" className="space-y-6 pt-4">
               {/* Employment Information */}
               <Card>
                 <CardHeader>
@@ -339,7 +342,7 @@ export function StaffDetailsModal({ open, onClose, staff }: StaffDetailsModalPro
               )}
             </TabsContent>
 
-            <TabsContent value="allowances" className="space-y-4">
+            <TabsContent value="allowances" className="space-y-4 pt-4">
               <div className="flex items-center justify-between">
                 <h3 className="text-lg font-medium">Individual Allowances</h3>
                 <Button
@@ -426,7 +429,7 @@ export function StaffDetailsModal({ open, onClose, staff }: StaffDetailsModalPro
               )}
             </TabsContent>
 
-            <TabsContent value="deductions" className="space-y-4">
+            <TabsContent value="deductions" className="space-y-4 pt-4">
               <div className="flex items-center justify-between">
                 <h3 className="text-lg font-medium">Individual Deductions</h3>
                 <Button
@@ -533,8 +536,6 @@ export function StaffDetailsModal({ open, onClose, staff }: StaffDetailsModalPro
                 </div>
               )}
             </TabsContent>
-        
-
           </Tabs>
 
           {/* Action Buttons */}
