@@ -200,12 +200,12 @@ export function SalaryStructureSettings() {
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0 w-full">
             <CardTitle className="flex items-center space-x-2">
               <Scale className="h-5 w-5" />
               <span>CONJUSS Salary Structure</span>
             </CardTitle>
-            <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 w-full sm:w-auto">
+            <div className="w-full sm:w-auto">
               <Button
                 variant="outline"
                 className="w-full sm:w-auto"

@@ -278,7 +278,7 @@ export default function PayrollWorkflow() {
     <div className="p-4 lg:p-8">
       <div className="mb-8">
         <div className="w-full">
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Payroll Workflow</h1>
+          <h1 className="text-responsive-xl font-bold text-gray-900 mb-2">Payroll Workflow</h1>
           <p className="text-gray-600">Review and approve payroll runs</p>
         </div>
       </div>

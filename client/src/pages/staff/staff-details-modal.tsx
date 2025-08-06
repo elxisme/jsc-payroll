@@ -96,7 +96,11 @@ export function StaffDetailsModal({ open, onClose, staff }: StaffDetailsModalPro
   };
 
   const getFullName = () => {
-    return `${staff.first_name || ''} ${staff.middle_name ? staff.middle_name + ' ' : ''}${staff.last_name || ''}`.trim();
+    const firstName = staff.first_name || '';
+    const lastName = staff.last_name || '';
+    const middleName = staff.middle_name ? `${staff.middle_name.charAt(0)}.` : '';
+    
+    return `${firstName} ${middleName} ${lastName}`.replace(/\s+/g, ' ').trim();
   };
 
   const getStatusColorForIndividual = (status: string) => {
@@ -159,10 +163,10 @@ export function StaffDetailsModal({ open, onClose, staff }: StaffDetailsModalPro
           </Card>
 
           <Tabs defaultValue="profile" className="w-full">
-            <TabsList className="flex flex-col sm:grid sm:grid-cols-4 w-full gap-1">
-              <TabsTrigger value="profile" className="w-full">Profile</TabsTrigger>
-              <TabsTrigger value="employment" className="w-full">Employment</TabsTrigger>
-              <TabsTrigger value="allowances" className="w-full">
+            <TabsList className="grid grid-cols-1 sm:grid-cols-4 w-full gap-1 h-auto">
+              <TabsTrigger value="profile" className="w-full justify-start">Profile</TabsTrigger>
+              <TabsTrigger value="employment" className="w-full justify-start">Employment</TabsTrigger>
+              <TabsTrigger value="allowances" className="w-full justify-start">
                 Individual Allowances
                 {individualAllowances && individualAllowances.length > 0 && (
                   <Badge variant="secondary" className="ml-2">
@@ -170,7 +174,7 @@ export function StaffDetailsModal({ open, onClose, staff }: StaffDetailsModalPro
                   </Badge>
                 )}
               </TabsTrigger>
-              <TabsTrigger value="deductions" className="w-full">
+              <TabsTrigger value="deductions" className="w-full justify-start">
                 Individual Deductions
                 {individualDeductions && individualDeductions.length > 0 && (
                   <Badge variant="secondary" className="ml-2">

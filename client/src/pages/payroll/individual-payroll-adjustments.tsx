@@ -175,7 +175,7 @@ export default function IndividualPayrollAdjustments() {
       <div className="mb-8">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
           <div className="w-full sm:w-auto">
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">Individual Payroll Adjustments</h1>
+            <h1 className="text-responsive-xl font-bold text-gray-900 mb-2">Individual Payroll Adjustments</h1>
             <p className="text-gray-600">Manage individual allowances and deductions for staff members</p>
           </div>
           <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 w-full sm:w-auto">

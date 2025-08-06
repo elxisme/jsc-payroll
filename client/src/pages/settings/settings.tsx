@@ -457,7 +457,7 @@ export default function Settings() {
   return (
     <div className="p-4 lg:p-8">
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">System Settings</h1>
+        <h1 className="text-responsive-xl font-bold text-gray-900 mb-2">System Settings</h1>
         <p className="text-gray-600">Manage system configuration and user access</p>
       </div>
 
@@ -475,16 +475,17 @@ export default function Settings() {
         <TabsContent value="users">
           <Card>
             <CardHeader>
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
                 <CardTitle className="flex items-center space-x-2">
                   <Users className="h-5 w-5" />
                   <span>User Management</span>
                 </CardTitle>
-                <Dialog open={showAddUserModal} onOpenChange={setShowAddUserModal}>
+                <div className="w-full sm:w-auto">
+                  <Dialog open={showAddUserModal} onOpenChange={setShowAddUserModal}>
                   <DialogTrigger asChild>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <Button className="bg-nigeria-green hover:bg-green-700">
+                        <Button className="w-full sm:w-auto bg-nigeria-green hover:bg-green-700">
                           <Plus className="mr-2 h-4 w-4" />
                           Add User
                         </Button>
@@ -557,6 +558,7 @@ export default function Settings() {
                     </Form>
                   </DialogContent>
                 </Dialog>
+                </div>
               </div>
             </CardHeader>
             <CardContent>
@@ -675,16 +677,17 @@ export default function Settings() {
         <TabsContent value="allowances">
           <Card>
             <CardHeader>
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
                 <CardTitle className="flex items-center space-x-2">
                   <DollarSign className="h-5 w-5" />
                   <span>Allowance Rules</span>
                 </CardTitle>
-                <Dialog open={showAddAllowanceModal} onOpenChange={setShowAddAllowanceModal}>
+                <div className="w-full sm:w-auto">
+                  <Dialog open={showAddAllowanceModal} onOpenChange={setShowAddAllowanceModal}>
                   <DialogTrigger asChild>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <Button className="bg-nigeria-green hover:bg-green-700">
+                        <Button className="w-full sm:w-auto bg-nigeria-green hover:bg-green-700">
                           <Plus className="mr-2 h-4 w-4" />
                           Add Allowance
                         </Button>
@@ -774,6 +777,7 @@ export default function Settings() {
                     </Form>
                   </DialogContent>
                 </Dialog>
+                </div>
               </div>
             </CardHeader>
             <CardContent>
@@ -882,16 +886,17 @@ export default function Settings() {
         <TabsContent value="deductions">
           <Card>
             <CardHeader>
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
                 <CardTitle className="flex items-center space-x-2">
                   <DollarSign className="h-5 w-5" />
                   <span>Deduction Rules</span>
                 </CardTitle>
-                <Dialog open={showAddDeductionModal} onOpenChange={setShowAddDeductionModal}>
+                <div className="w-full sm:w-auto">
+                  <Dialog open={showAddDeductionModal} onOpenChange={setShowAddDeductionModal}>
                   <DialogTrigger asChild>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <Button className="bg-nigeria-green hover:bg-green-700">
+                        <Button className="w-full sm:w-auto bg-nigeria-green hover:bg-green-700">
                           <Plus className="mr-2 h-4 w-4" />
                           Add Deduction
                         </Button>
@@ -981,6 +986,7 @@ export default function Settings() {
                     </Form>
                   </DialogContent>
                 </Dialog>
+                </div>
               </div>
             </CardHeader>
             <CardContent>
