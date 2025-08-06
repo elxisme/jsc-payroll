@@ -102,7 +102,6 @@ export function AddStaffModal({ open, onClose, onSuccess }: AddStaffModalProps) 
 
     if (error) {
         console.error("Error counting staff:", error);
-        // Fallback or throw error
         throw new Error("Could not generate staff ID due to a database error.");
     }
     
@@ -113,14 +112,13 @@ export function AddStaffModal({ open, onClose, onSuccess }: AddStaffModalProps) 
   // Create staff mutation
   const createStaffMutation = useMutation({
     mutationFn: async (data: AddStaffFormData) => {
-      // Step 1: Create user account in Supabase Auth
-      const defaultPassword = 'TempPassword123!'; // Strong default password
+      const defaultPassword = 'TempPassword123!';
       
       const { data: authUser, error: authError } = await supabase.auth.signUp({
         email: data.email,
         password: defaultPassword,
         options: {
-          emailRedirectTo: undefined, // Disable email confirmation
+          emailRedirectTo: undefined,
         }
       });
 
@@ -135,7 +133,6 @@ export function AddStaffModal({ open, onClose, onSuccess }: AddStaffModalProps) 
         throw new Error('Failed to create user account');
       }
 
-      // Step 2: Create user profile in public.users table
       const { error: userProfileError } = await supabase
         .from('users')
         .insert({
@@ -145,18 +142,15 @@ export function AddStaffModal({ open, onClose, onSuccess }: AddStaffModalProps) 
         });
 
       if (userProfileError) {
-        // If user profile creation fails, we should clean up the auth user
-        // Note: In production, you might want to handle this more gracefully
         console.error('Failed to create user profile:', userProfileError);
         throw new Error('Failed to create user profile');
       }
 
-      // Step 3: Generate staff ID and create staff record
       const staffId = await generateStaffId();
       
       const staffData = {
         staff_id: staffId,
-        user_id: authUser.user.id, // Link to the created user account
+        user_id: authUser.user.id,
         first_name: data.firstName,
         last_name: data.lastName,
         middle_name: data.middleName || null,
@@ -181,10 +175,8 @@ export function AddStaffModal({ open, onClose, onSuccess }: AddStaffModalProps) 
 
       if (error) throw error;
       
-      // Log the creation for audit trail
       await logStaffEvent('created', staff.id, null, staffData);
       
-      // Create welcome notification for the new staff member
       await supabase
         .from('notifications')
         .insert({
@@ -197,7 +189,6 @@ export function AddStaffModal({ open, onClose, onSuccess }: AddStaffModalProps) 
       return staff;
     },
     onSuccess: (newStaff) => {
-      // Create notification for admins about new staff
       supabase
         .from('users')
         .select('id')
@@ -214,7 +205,7 @@ export function AddStaffModal({ open, onClose, onSuccess }: AddStaffModalProps) 
             supabase
               .from('notifications')
               .insert(notifications)
-              .then(); // Fire and forget
+              .then();
           }
         });
 
@@ -463,8 +454,7 @@ export function AddStaffModal({ open, onClose, onSuccess }: AddStaffModalProps) 
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {/* CORRECTED: Removed the item with value="" */}
-                            <SelectItem value="">Select Bank</SelectItem>
+                          {/* FIX: Removed the item with value="" */}
                           <SelectItem value="access">Access Bank</SelectItem>
                           <SelectItem value="zenith">Zenith Bank</SelectItem>
                           <SelectItem value="gtb">Guaranty Trust Bank</SelectItem>
