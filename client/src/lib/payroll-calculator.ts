@@ -10,15 +10,27 @@ export interface PayrollInputs {
   bonus?: number;
   loans?: number;
   cooperatives?: number;
+  individualAllowances?: Array<{
+    type: string;
+    amount: number;
+    description?: string;
+  }>;
+  individualDeductions?: Array<{
+    type: string;
+    amount: number;
+    description?: string;
+  }>;
 }
 
 export interface PayrollResult {
   staffId: string;
   basicSalary: number;
   allowancesBreakdown: Record<string, number>;
+  individualAllowancesBreakdown: Record<string, number>;
   totalAllowances: number;
   grossPay: number;
   deductionsBreakdown: Record<string, number>;
+  individualDeductionsBreakdown: Record<string, number>;
   totalDeductions: number;
   netPay: number;
   arrears: number;
@@ -203,6 +215,60 @@ export function calculateDeductions(
 }
 
 /**
+ * Fetch individual allowances for a staff member for a specific period
+ */
+export async function fetchIndividualAllowances(staffId: string, period: string): Promise<Array<{
+  type: string;
+  amount: number;
+  description?: string;
+}>> {
+  const { data, error } = await supabase
+    .from('staff_individual_allowances')
+    .select('type, amount, description')
+    .eq('staff_id', staffId)
+    .eq('period', period)
+    .eq('status', 'pending'); // Only get pending allowances for processing
+
+  if (error) {
+    console.error('Error fetching individual allowances:', error);
+    return [];
+  }
+
+  return (data || []).map(item => ({
+    type: item.type,
+    amount: parseFloat(item.amount),
+    description: item.description || undefined,
+  }));
+}
+
+/**
+ * Fetch individual deductions for a staff member for a specific period
+ */
+export async function fetchIndividualDeductions(staffId: string, period: string): Promise<Array<{
+  type: string;
+  amount: number;
+  description?: string;
+}>> {
+  const { data, error } = await supabase
+    .from('staff_individual_deductions')
+    .select('type, amount, description')
+    .eq('staff_id', staffId)
+    .eq('period', period)
+    .eq('status', 'active'); // Only get active deductions for processing
+
+  if (error) {
+    console.error('Error fetching individual deductions:', error);
+    return [];
+  }
+
+  return (data || []).map(item => ({
+    type: item.type,
+    amount: parseFloat(item.amount),
+    description: item.description || undefined,
+  }));
+}
+
+/**
  * Calculate complete payroll for a staff member
  */
 export async function calculateStaffPayroll(inputs: PayrollInputs): Promise<PayrollResult> {
@@ -212,6 +278,11 @@ export async function calculateStaffPayroll(inputs: PayrollInputs): Promise<Payr
   // Fetch allowance and deduction rules
   const { allowances: allowanceRules, deductions: deductionRules } = await fetchPayrollRules();
   
+  // Fetch individual allowances and deductions for this staff member
+  const period = new Date().toISOString().slice(0, 7); // Current period, could be passed as parameter
+  const individualAllowances = inputs.individualAllowances || await fetchIndividualAllowances(inputs.staffId, period);
+  const individualDeductions = inputs.individualDeductions || await fetchIndividualDeductions(inputs.staffId, period);
+  
   // Calculate allowances
   const allowancesBreakdown = calculateAllowances(
     basicSalary,
@@ -220,13 +291,21 @@ export async function calculateStaffPayroll(inputs: PayrollInputs): Promise<Payr
     inputs.position
   );
   
+  // Calculate individual allowances breakdown
+  const individualAllowancesBreakdown: Record<string, number> = {};
+  individualAllowances.forEach(allowance => {
+    const key = allowance.type.toLowerCase().replace(/\s+/g, '_');
+    individualAllowancesBreakdown[key] = (individualAllowancesBreakdown[key] || 0) + allowance.amount;
+  });
+  
   const totalAllowances = Object.values(allowancesBreakdown).reduce((sum, amount) => sum + amount, 0);
+  const totalIndividualAllowances = Object.values(individualAllowancesBreakdown).reduce((sum, amount) => sum + amount, 0);
   
   // Calculate gross pay including extras
   const arrears = inputs.arrears || 0;
   const overtime = inputs.overtime || 0;
   const bonus = inputs.bonus || 0;
-  const grossPay = basicSalary + totalAllowances + arrears + overtime + bonus;
+  const grossPay = basicSalary + totalAllowances + totalIndividualAllowances + arrears + overtime + bonus;
   
   // Calculate deductions
   const deductionsBreakdown = calculateDeductions(
@@ -237,19 +316,30 @@ export async function calculateStaffPayroll(inputs: PayrollInputs): Promise<Payr
     inputs.cooperatives
   );
   
+  // Calculate individual deductions breakdown
+  const individualDeductionsBreakdown: Record<string, number> = {};
+  individualDeductions.forEach(deduction => {
+    const key = deduction.type.toLowerCase().replace(/\s+/g, '_');
+    individualDeductionsBreakdown[key] = (individualDeductionsBreakdown[key] || 0) + deduction.amount;
+  });
+  
   const totalDeductions = Object.values(deductionsBreakdown).reduce((sum, amount) => sum + amount, 0);
+  const totalIndividualDeductions = Object.values(individualDeductionsBreakdown).reduce((sum, amount) => sum + amount, 0);
+  const finalTotalDeductions = totalDeductions + totalIndividualDeductions;
   
   // Calculate net pay
-  const netPay = grossPay - totalDeductions;
+  const netPay = grossPay - finalTotalDeductions;
 
   return {
     staffId: inputs.staffId,
     basicSalary,
     allowancesBreakdown,
-    totalAllowances,
+    individualAllowancesBreakdown,
+    totalAllowances: totalAllowances + totalIndividualAllowances,
     grossPay,
     deductionsBreakdown,
-    totalDeductions,
+    individualDeductionsBreakdown,
+    totalDeductions: finalTotalDeductions,
     netPay,
     arrears,
     overtime,
@@ -270,6 +360,11 @@ export async function calculateBulkPayroll(staffInputs: PayrollInputs[]): Promis
     try {
       const basicSalary = await getBasicSalaryFromDB(inputs.gradeLevel, inputs.step);
       
+      // Fetch individual allowances and deductions for this staff member
+      const period = new Date().toISOString().slice(0, 7); // Current period
+      const individualAllowances = inputs.individualAllowances || await fetchIndividualAllowances(inputs.staffId, period);
+      const individualDeductions = inputs.individualDeductions || await fetchIndividualDeductions(inputs.staffId, period);
+      
       const allowancesBreakdown = calculateAllowances(
         basicSalary,
         allowanceRules,
@@ -277,12 +372,20 @@ export async function calculateBulkPayroll(staffInputs: PayrollInputs[]): Promis
         inputs.position
       );
       
+      // Calculate individual allowances breakdown
+      const individualAllowancesBreakdown: Record<string, number> = {};
+      individualAllowances.forEach(allowance => {
+        const key = allowance.type.toLowerCase().replace(/\s+/g, '_');
+        individualAllowancesBreakdown[key] = (individualAllowancesBreakdown[key] || 0) + allowance.amount;
+      });
+      
       const totalAllowances = Object.values(allowancesBreakdown).reduce((sum, amount) => sum + amount, 0);
+      const totalIndividualAllowances = Object.values(individualAllowancesBreakdown).reduce((sum, amount) => sum + amount, 0);
       
       const arrears = inputs.arrears || 0;
       const overtime = inputs.overtime || 0;
       const bonus = inputs.bonus || 0;
-      const grossPay = basicSalary + totalAllowances + arrears + overtime + bonus;
+      const grossPay = basicSalary + totalAllowances + totalIndividualAllowances + arrears + overtime + bonus;
       
       const deductionsBreakdown = calculateDeductions(
         basicSalary,
@@ -292,17 +395,28 @@ export async function calculateBulkPayroll(staffInputs: PayrollInputs[]): Promis
         inputs.cooperatives
       );
       
+      // Calculate individual deductions breakdown
+      const individualDeductionsBreakdown: Record<string, number> = {};
+      individualDeductions.forEach(deduction => {
+        const key = deduction.type.toLowerCase().replace(/\s+/g, '_');
+        individualDeductionsBreakdown[key] = (individualDeductionsBreakdown[key] || 0) + deduction.amount;
+      });
+      
       const totalDeductions = Object.values(deductionsBreakdown).reduce((sum, amount) => sum + amount, 0);
-      const netPay = grossPay - totalDeductions;
+      const totalIndividualDeductions = Object.values(individualDeductionsBreakdown).reduce((sum, amount) => sum + amount, 0);
+      const finalTotalDeductions = totalDeductions + totalIndividualDeductions;
+      const netPay = grossPay - finalTotalDeductions;
 
       results.push({
         staffId: inputs.staffId,
         basicSalary,
         allowancesBreakdown,
-        totalAllowances,
+        individualAllowancesBreakdown,
+        totalAllowances: totalAllowances + totalIndividualAllowances,
         grossPay,
         deductionsBreakdown,
-        totalDeductions,
+        individualDeductionsBreakdown,
+        totalDeductions: finalTotalDeductions,
         netPay,
         arrears,
         overtime,
@@ -334,8 +448,14 @@ export async function processPayrollRun(
     payroll_run_id: payrollRunId,
     period,
     basic_salary: result.basicSalary.toString(),
-    allowances: result.allowancesBreakdown,
-    deductions: result.deductionsBreakdown,
+    allowances: {
+      ...result.allowancesBreakdown,
+      ...result.individualAllowancesBreakdown,
+    },
+    deductions: {
+      ...result.deductionsBreakdown,
+      ...result.individualDeductionsBreakdown,
+    },
     gross_pay: result.grossPay.toString(),
     total_deductions: result.totalDeductions.toString(),
     net_pay: result.netPay.toString(),
@@ -347,6 +467,45 @@ export async function processPayrollRun(
     .insert(payslips);
 
   if (payslipsError) throw payslipsError;
+
+  // Mark individual allowances as applied
+  if (payrollResults.some(r => Object.keys(r.individualAllowancesBreakdown).length > 0)) {
+    const { error: allowanceUpdateError } = await supabase
+      .from('staff_individual_allowances')
+      .update({ 
+        status: 'applied',
+        payroll_run_id: payrollRunId,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('period', period)
+      .eq('status', 'pending')
+      .in('staff_id', payrollResults.map(r => r.staffId));
+
+    if (allowanceUpdateError) console.error('Error updating individual allowances status:', allowanceUpdateError);
+  }
+
+  // Update remaining balances for loan deductions
+  for (const result of payrollResults) {
+    if (Object.keys(result.individualDeductionsBreakdown).length > 0) {
+      // Update remaining balances for loan-type deductions
+      const loanDeductions = Object.entries(result.individualDeductionsBreakdown)
+        .filter(([type]) => type.includes('loan') || type.includes('advance'));
+
+      for (const [type, amount] of loanDeductions) {
+        const { error: balanceUpdateError } = await supabase
+          .rpc('update_loan_balance', {
+            p_staff_id: result.staffId,
+            p_period: period,
+            p_type: type,
+            p_payment_amount: amount,
+          });
+
+        if (balanceUpdateError) {
+          console.error('Error updating loan balance:', balanceUpdateError);
+        }
+      }
+    }
+  }
 
   // Update payroll run with totals
   const totalGross = payrollResults.reduce((sum, result) => sum + result.grossPay, 0);

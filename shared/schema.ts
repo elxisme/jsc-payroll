@@ -138,6 +138,40 @@ export const auditLogs = pgTable("audit_logs", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Staff individual allowances table (overtime, bonuses, etc.)
+export const staffIndividualAllowances = pgTable("staff_individual_allowances", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  staffId: uuid("staff_id").references(() => staff.id, { onDelete: "cascade" }).notNull(),
+  payrollRunId: uuid("payroll_run_id").references(() => payrollRuns.id, { onDelete: "set null" }),
+  type: text("type").notNull(), // 'overtime', 'bonus', 'commission', 'special_duty'
+  amount: decimal("amount", { precision: 15, scale: 2 }).notNull(),
+  period: text("period").notNull(), // '2025-01' format
+  description: text("description"),
+  status: text("status").notNull().default("pending"), // 'pending', 'applied', 'cancelled'
+  createdBy: uuid("created_by").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Staff individual deductions table (loans, advances, fines, etc.)
+export const staffIndividualDeductions = pgTable("staff_individual_deductions", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  staffId: uuid("staff_id").references(() => staff.id, { onDelete: "cascade" }).notNull(),
+  payrollRunId: uuid("payroll_run_id").references(() => payrollRuns.id, { onDelete: "set null" }),
+  type: text("type").notNull(), // 'loan_repayment', 'salary_advance', 'fine', 'cooperative'
+  amount: decimal("amount", { precision: 15, scale: 2 }).notNull(), // Amount for current period
+  totalAmount: decimal("total_amount", { precision: 15, scale: 2 }), // Total loan/advance amount
+  remainingBalance: decimal("remaining_balance", { precision: 15, scale: 2 }), // Outstanding balance
+  period: text("period").notNull(), // '2025-01' format
+  startPeriod: text("start_period"), // When deduction started
+  endPeriod: text("end_period"), // When deduction should end
+  description: text("description"),
+  status: text("status").notNull().default("active"), // 'active', 'paid_off', 'cancelled'
+  createdBy: uuid("created_by").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
@@ -168,6 +202,18 @@ export const insertNotificationSchema = createInsertSchema(notifications).omit({
   createdAt: true,
 });
 
+export const insertStaffIndividualAllowanceSchema = createInsertSchema(staffIndividualAllowances).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertStaffIndividualDeductionSchema = createInsertSchema(staffIndividualDeductions).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -190,3 +236,9 @@ export type Notification = typeof notifications.$inferSelect;
 export type InsertNotification = z.infer<typeof insertNotificationSchema>;
 
 export type AuditLog = typeof auditLogs.$inferSelect;
+
+export type StaffIndividualAllowance = typeof staffIndividualAllowances.$inferSelect;
+export type InsertStaffIndividualAllowance = z.infer<typeof insertStaffIndividualAllowanceSchema>;
+
+export type StaffIndividualDeduction = typeof staffIndividualDeductions.$inferSelect;
+export type InsertStaffIndividualDeduction = z.infer<typeof insertStaffIndividualDeductionSchema>;
