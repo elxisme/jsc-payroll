@@ -149,10 +149,12 @@ export function EditDepartmentModal({ open, onClose, department, onSuccess }: Ed
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent>
+      <DialogContent className="max-w-md max-h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>Edit Department</DialogTitle>
         </DialogHeader>
+        
+        <div className="flex-1 overflow-y-auto px-1">
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField
@@ -230,7 +232,7 @@ export function EditDepartmentModal({ open, onClose, department, onSuccess }: Ed
               )}
             />
 
-            <div className="flex justify-end space-x-2 pt-4">
+            <div className="flex justify-end space-x-2 pt-4 border-t bg-white sticky bottom-0">
               <Button
                 type="button"
                 variant="outline"
@@ -255,6 +257,7 @@ export function EditDepartmentModal({ open, onClose, department, onSuccess }: Ed
             </div>
           </form>
         </Form>
+        </div>
       </DialogContent>
     </Dialog>
   );
