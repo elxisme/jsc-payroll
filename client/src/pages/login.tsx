@@ -142,7 +142,7 @@ export default function LoginPage() {
         </Card>
         
         <footer className="text-center text-sm text-green-200">
-          &copy; {new Date().getFullYear()} Judicial Service Committee. All Rights Reserved.
+          &copy; {new Date().getFullYear()} JSC Payroll. All Rights Reserved.
         </footer>
       </div>
     </div>
