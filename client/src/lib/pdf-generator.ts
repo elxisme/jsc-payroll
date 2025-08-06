@@ -140,9 +140,7 @@ export async function generatePayslipPDF(payslip: PayslipData, staff: StaffData)
     
     Object.entries(allowances).forEach(([key, value]) => {
       if (value && Number(value) > 0) {
-        const isIndividual = ['overtime', 'bonus', 'commission', 'special_duty'].includes(key);
-        const displayName = isIndividual ? `${formatAllowanceName(key)} *` : formatAllowanceName(key);
-        tableData.push([displayName, '', formatCurrency(Number(value))]);
+        tableData.push([formatAllowanceName(key), '', formatCurrency(Number(value))]);
       }
     });
   }
@@ -527,6 +525,10 @@ function formatDeductionName(key: string): string {
     union: 'Union Dues',
     loans: 'Loan Repayment',
     cooperatives: 'Cooperative Deduction',
+    loan_repayment: 'Loan Repayment',
+    salary_advance: 'Salary Advance',
+    fine: 'Fine/Penalty',
+    cooperative: 'Cooperative Deduction',
   };
   return names[key] || key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
 }
@@ -628,9 +630,7 @@ async function generatePayslipContent(doc: jsPDF, payslip: PayslipData, staff: S
     
     Object.entries(allowances).forEach(([key, value]) => {
       if (value && Number(value) > 0) {
-        const isIndividual = ['overtime', 'bonus', 'commission', 'special_duty'].includes(key);
-        const displayName = isIndividual ? `${formatAllowanceName(key)} *` : formatAllowanceName(key);
-        tableData.push([displayName, '', formatCurrency(Number(value))]);
+        tableData.push([formatAllowanceName(key), '', formatCurrency(Number(value))]);
       }
     });
   }
