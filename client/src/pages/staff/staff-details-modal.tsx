@@ -533,7 +533,7 @@ export function StaffDetailsModal({ open, onClose, staff }: StaffDetailsModalPro
                 </div>
               )}
             </TabsContent>
-          </div>
+        
 
           </Tabs>
 
