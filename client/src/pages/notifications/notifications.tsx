@@ -187,17 +187,18 @@ export default function Notifications() {
   return (
     <div className="p-4 lg:p-8">
       <div className="mb-8">
-        <div className="flex items-center justify-between">
-          <div>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
+          <div className="w-full sm:w-auto">
             <h1 className="text-2xl font-bold text-gray-900 mb-2">Notifications</h1>
             <p className="text-gray-600">Stay updated with system alerts and announcements</p>
           </div>
-          <div className="flex items-center space-x-3">
+          <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3 w-full sm:w-auto">
             <Badge variant={unreadCount > 0 ? "destructive" : "secondary"}>
               {unreadCount} unread
             </Badge>
             <Button
               variant="outline"
+              className="w-full sm:w-auto"
               onClick={() => markAllAsReadMutation.mutate()}
               disabled={unreadCount === 0 || markAllAsReadMutation.isPending}
             >
@@ -264,9 +265,9 @@ export default function Notifications() {
                     {getNotificationIcon(notification.type)}
                   </div>
                   
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
+                  <div className="flex-1 min-w-0 space-y-3">
+                    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between space-y-3 sm:space-y-0">
+                      <div className="flex-1 w-full">
                         <h3 className={`text-sm font-medium ${
                           notification.is_read ? 'text-gray-700' : 'text-gray-900'
                         }`}>
@@ -290,25 +291,28 @@ export default function Notifications() {
                         </div>
                       </div>
                       
-                      <div className="flex items-center space-x-2 ml-4">
+                      <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 w-full sm:w-auto sm:ml-4">
                         {!notification.is_read && (
                           <Button
                             variant="ghost"
+                            className="w-full sm:w-auto"
                             size="sm"
                             onClick={() => markAsReadMutation.mutate(notification.id)}
                             disabled={markAsReadMutation.isPending}
                           >
                             <Check className="h-4 w-4" />
+                            <span className="ml-2 sm:hidden">Mark as Read</span>
                           </Button>
                         )}
                         <Button
                           variant="ghost"
+                          className="w-full sm:w-auto text-red-600 hover:text-red-700"
                           size="sm"
                           onClick={() => deleteNotificationMutation.mutate(notification.id)}
                           disabled={deleteNotificationMutation.isPending}
-                          className="text-red-600 hover:text-red-700"
                         >
                           <Trash2 className="h-4 w-4" />
+                          <span className="ml-2 sm:hidden">Delete</span>
                         </Button>
                       </div>
                     </div>

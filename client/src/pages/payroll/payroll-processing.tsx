@@ -244,7 +244,7 @@ export default function PayrollProcessing() {
 
   return (
     <div className="space-y-6">
-      <div>
+      <div className="space-y-4">
         <h1 className="text-3xl font-bold tracking-tight">Payroll Processing</h1>
         <p className="text-muted-foreground">
           Process payroll for staff members by period and department

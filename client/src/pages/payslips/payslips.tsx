@@ -152,8 +152,8 @@ export default function Payslips() {
   return (
     <div className="p-4 lg:p-8">
       <div className="mb-8">
-        <div className="flex items-center justify-between">
-          <div>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
+          <div className="w-full sm:w-auto">
             <h1 className="text-2xl font-bold text-gray-900 mb-2">Payslips</h1>
             <p className="text-gray-600">
               {user?.role === 'staff' 
@@ -162,17 +162,19 @@ export default function Payslips() {
             </p>
           </div>
           {hasRole(['super_admin', 'account_admin', 'payroll_admin']) && (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button className="bg-nigeria-green hover:bg-green-700">
-                  <FileText className="mr-2 h-4 w-4" />
-                  Generate Payslips
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Generate payslips for current period</p>
-              </TooltipContent>
-            </Tooltip>
+            <div className="w-full sm:w-auto">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button className="w-full sm:w-auto bg-nigeria-green hover:bg-green-700">
+                    <FileText className="mr-2 h-4 w-4" />
+                    Generate Payslips
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Generate payslips for current period</p>
+                </TooltipContent>
+              </Tooltip>
+            </div>
           )}
         </div>
       </div>

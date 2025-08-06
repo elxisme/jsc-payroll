@@ -457,12 +457,14 @@ export default function Settings() {
   return (
     <div className="p-4 lg:p-8">
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">System Settings</h1>
-        <p className="text-gray-600">Manage system configuration and user access</p>
+        <div className="w-full">
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">System Settings</h1>
+          <p className="text-gray-600">Manage system configuration and user access</p>
+        </div>
       </div>
 
       <Tabs defaultValue="users" className="space-y-6">
-        <TabsList className="flex flex-wrap w-full justify-center gap-1 h-auto p-1">
+        <TabsList className="flex flex-col sm:flex-row flex-wrap w-full justify-center gap-1 h-auto p-1">
           <TabsTrigger value="users">Users</TabsTrigger>
           <TabsTrigger value="salary">Salary Structure</TabsTrigger>
           <TabsTrigger value="allowances">Allowances</TabsTrigger>
@@ -475,25 +477,26 @@ export default function Settings() {
         <TabsContent value="users">
           <Card>
             <CardHeader>
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
                 <CardTitle className="flex items-center space-x-2">
                   <Users className="h-5 w-5" />
                   <span>User Management</span>
                 </CardTitle>
-                <Dialog open={showAddUserModal} onOpenChange={setShowAddUserModal}>
-                  <DialogTrigger asChild>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button className="bg-nigeria-green hover:bg-green-700">
-                          <Plus className="mr-2 h-4 w-4" />
-                          Add User
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>Create a new user account</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </DialogTrigger>
+                <div className="w-full sm:w-auto">
+                  <Dialog open={showAddUserModal} onOpenChange={setShowAddUserModal}>
+                    <DialogTrigger asChild>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button className="w-full sm:w-auto bg-nigeria-green hover:bg-green-700">
+                            <Plus className="mr-2 h-4 w-4" />
+                            Add User
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Create a new user account</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </DialogTrigger>
                   <DialogContent>
                     <DialogHeader>
                       <DialogTitle>Add New User</DialogTitle>
@@ -675,25 +678,26 @@ export default function Settings() {
         <TabsContent value="allowances">
           <Card>
             <CardHeader>
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
                 <CardTitle className="flex items-center space-x-2">
                   <DollarSign className="h-5 w-5" />
                   <span>Allowance Rules</span>
                 </CardTitle>
-                <Dialog open={showAddAllowanceModal} onOpenChange={setShowAddAllowanceModal}>
-                  <DialogTrigger asChild>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button className="bg-nigeria-green hover:bg-green-700">
-                          <Plus className="mr-2 h-4 w-4" />
-                          Add Allowance
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>Create a new allowance rule</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </DialogTrigger>
+                <div className="w-full sm:w-auto">
+                  <Dialog open={showAddAllowanceModal} onOpenChange={setShowAddAllowanceModal}>
+                    <DialogTrigger asChild>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button className="w-full sm:w-auto bg-nigeria-green hover:bg-green-700">
+                            <Plus className="mr-2 h-4 w-4" />
+                            Add Allowance
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Create a new allowance rule</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </DialogTrigger>
                   <DialogContent>
                     <DialogHeader>
                       <DialogTitle>Add New Allowance</DialogTitle>
@@ -882,25 +886,26 @@ export default function Settings() {
         <TabsContent value="deductions">
           <Card>
             <CardHeader>
-              <div className="flex items-center justify-between">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
                 <CardTitle className="flex items-center space-x-2">
                   <DollarSign className="h-5 w-5" />
                   <span>Deduction Rules</span>
                 </CardTitle>
-                <Dialog open={showAddDeductionModal} onOpenChange={setShowAddDeductionModal}>
-                  <DialogTrigger asChild>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button className="bg-nigeria-green hover:bg-green-700">
-                          <Plus className="mr-2 h-4 w-4" />
-                          Add Deduction
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>Create a new deduction rule</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </DialogTrigger>
+                <div className="w-full sm:w-auto">
+                  <Dialog open={showAddDeductionModal} onOpenChange={setShowAddDeductionModal}>
+                    <DialogTrigger asChild>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button className="w-full sm:w-auto bg-nigeria-green hover:bg-green-700">
+                            <Plus className="mr-2 h-4 w-4" />
+                            Add Deduction
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Create a new deduction rule</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </DialogTrigger>
                   <DialogContent>
                     <DialogHeader>
                       <DialogTitle>Add New Deduction</DialogTitle>

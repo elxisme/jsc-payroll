@@ -1,9 +1,15 @@
 import React from 'react';
+import { useState } from 'react';
+import { useMutation } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/use-auth';
+import { supabase } from '@/lib/supabase';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { useToast } from '@/hooks/use-toast';
 import { Link } from 'wouter';
 import {
   User,
@@ -14,10 +20,98 @@ import {
   Calendar,
   ExternalLink,
   Settings,
+  Lock,
+  Loader2,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 
 export default function ProfileSettings() {
   const { user } = useAuth();
+  const { toast } = useToast();
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmNewPassword, setConfirmNewPassword] = useState('');
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  // Password change mutation
+  const changePasswordMutation = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast({
+        title: 'Success',
+        description: 'Password updated successfully',
+      });
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmNewPassword('');
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to update password',
+        variant: 'destructive',
+      });
+    },
+  });
+
+  const validatePassword = (pwd: string) => {
+    const minLength = pwd.length >= 8;
+    const hasUpper = /[A-Z]/.test(pwd);
+    const hasLower = /[a-z]/.test(pwd);
+    const hasNumber = /\d/.test(pwd);
+    
+    return {
+      isValid: minLength && hasUpper && hasLower && hasNumber,
+      minLength,
+      hasUpper,
+      hasLower,
+      hasNumber,
+    };
+  };
+
+  const passwordValidation = validatePassword(newPassword);
+  const passwordsMatch = newPassword === confirmNewPassword;
+
+  const handlePasswordChangeSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!currentPassword || !newPassword || !confirmNewPassword) {
+      toast({
+        title: 'Error',
+        description: 'Please fill in all password fields',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (!passwordValidation.isValid) {
+      toast({
+        title: 'Error',
+        description: 'New password does not meet security requirements',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (!passwordsMatch) {
+      toast({
+        title: 'Error',
+        description: 'New passwords do not match',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    changePasswordMutation.mutate();
+  };
 
   const getRoleDisplayName = (role: string) => {
     switch (role) {
@@ -74,8 +168,10 @@ export default function ProfileSettings() {
   return (
     <div className="p-4 lg:p-8">
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">Profile Settings</h1>
-        <p className="text-gray-600">View and manage your account information</p>
+        <div className="w-full">
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Profile Settings</h1>
+          <p className="text-gray-600">View and manage your account information</p>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -361,7 +457,7 @@ export default function ProfileSettings() {
               <CardTitle>Quick Actions</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {user?.role === 'staff' && (
                   <Link href="/staff-portal">
                     <Button variant="outline" className="w-full justify-start">
@@ -412,6 +508,140 @@ export default function ProfileSettings() {
                   </Button>
                 </Link>
               </div>
+            </CardContent>
+          </Card>
+
+          {/* Password Change Section */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center space-x-2">
+                <Lock className="h-5 w-5" />
+                <span>Change Password</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handlePasswordChangeSubmit} className="space-y-4">
+                <div>
+                  <Label htmlFor="currentPassword">Current Password</Label>
+                  <div className="relative mt-1">
+                    <Input
+                      id="currentPassword"
+                      type={showCurrentPassword ? "text" : "password"}
+                      value={currentPassword}
+                      onChange={(e) => setCurrentPassword(e.target.value)}
+                      placeholder="Enter current password"
+                      className="pr-10"
+                    />
+                    <button
+                      type="button"
+                      className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                      onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                    >
+                      {showCurrentPassword ? (
+                        <EyeOff className="h-4 w-4 text-gray-400" />
+                      ) : (
+                        <Eye className="h-4 w-4 text-gray-400" />
+                      )}
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <Label htmlFor="newPassword">New Password</Label>
+                  <div className="relative mt-1">
+                    <Input
+                      id="newPassword"
+                      type={showNewPassword ? "text" : "password"}
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      placeholder="Enter new password"
+                      className="pr-10"
+                    />
+                    <button
+                      type="button"
+                      className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                      onClick={() => setShowNewPassword(!showNewPassword)}
+                    >
+                      {showNewPassword ? (
+                        <EyeOff className="h-4 w-4 text-gray-400" />
+                      ) : (
+                        <Eye className="h-4 w-4 text-gray-400" />
+                      )}
+                    </button>
+                  </div>
+                  
+                  {/* Password Requirements */}
+                  {newPassword && (
+                    <div className="mt-2 space-y-1">
+                      <div className={`text-xs flex items-center space-x-2 ${passwordValidation.minLength ? 'text-green-600' : 'text-gray-500'}`}>
+                        <div className={`w-2 h-2 rounded-full ${passwordValidation.minLength ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+                        <span>At least 8 characters</span>
+                      </div>
+                      <div className={`text-xs flex items-center space-x-2 ${passwordValidation.hasUpper ? 'text-green-600' : 'text-gray-500'}`}>
+                        <div className={`w-2 h-2 rounded-full ${passwordValidation.hasUpper ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+                        <span>One uppercase letter</span>
+                      </div>
+                      <div className={`text-xs flex items-center space-x-2 ${passwordValidation.hasLower ? 'text-green-600' : 'text-gray-500'}`}>
+                        <div className={`w-2 h-2 rounded-full ${passwordValidation.hasLower ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+                        <span>One lowercase letter</span>
+                      </div>
+                      <div className={`text-xs flex items-center space-x-2 ${passwordValidation.hasNumber ? 'text-green-600' : 'text-gray-500'}`}>
+                        <div className={`w-2 h-2 rounded-full ${passwordValidation.hasNumber ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+                        <span>One number</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <Label htmlFor="confirmNewPassword">Confirm New Password</Label>
+                  <div className="relative mt-1">
+                    <Input
+                      id="confirmNewPassword"
+                      type={showConfirmPassword ? "text" : "password"}
+                      value={confirmNewPassword}
+                      onChange={(e) => setConfirmNewPassword(e.target.value)}
+                      placeholder="Confirm new password"
+                      className="pr-10"
+                    />
+                    <button
+                      type="button"
+                      className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    >
+                      {showConfirmPassword ? (
+                        <EyeOff className="h-4 w-4 text-gray-400" />
+                      ) : (
+                        <Eye className="h-4 w-4 text-gray-400" />
+                      )}
+                    </button>
+                  </div>
+                  {confirmNewPassword && (
+                    <div className={`mt-1 text-xs flex items-center space-x-2 ${passwordsMatch ? 'text-green-600' : 'text-red-600'}`}>
+                      <div className={`w-2 h-2 rounded-full ${passwordsMatch ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                      <span>{passwordsMatch ? 'Passwords match' : 'Passwords do not match'}</span>
+                    </div>
+                  )}
+                </div>
+
+                <Button
+                  type="submit"
+                  disabled={changePasswordMutation.isPending || !passwordValidation.isValid || !passwordsMatch || !currentPassword}
+                  className="w-full bg-nigeria-green hover:bg-green-700"
+                >
+                  {changePasswordMutation.isPending ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Updating Password...
+                    </>
+                  ) : (
+                    <>
+                      <Lock className="mr-2 h-4 w-4" />
+                      Update Password
+                    </>
+                  )}
+                </Button>
+              </form>
             </CardContent>
           </Card>
         </div>

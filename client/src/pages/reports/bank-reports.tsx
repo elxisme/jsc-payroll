@@ -217,14 +217,15 @@ export default function BankReports() {
   return (
     <div className="p-4 lg:p-8">
       <div className="mb-8">
-        <div className="flex items-center justify-between">
-          <div>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
+          <div className="w-full sm:w-auto">
             <h1 className="text-2xl font-bold text-gray-900 mb-2">Bank Reports</h1>
             <p className="text-gray-600">Generate bank transfer schedules and reconciliation reports</p>
           </div>
-          <div className="flex space-x-3">
+          <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3 w-full sm:w-auto">
             <Button
               variant="outline"
+              className="w-full sm:w-auto"
               onClick={handleExportCSV}
               disabled={!bankTransfers?.length}
             >
@@ -234,7 +235,7 @@ export default function BankReports() {
             <Button
               onClick={handleExportExcel}
               disabled={!bankTransfers?.length}
-              className="bg-nigeria-green hover:bg-green-700"
+              className="w-full sm:w-auto bg-nigeria-green hover:bg-green-700"
             >
               <FileSpreadsheet className="mr-2 h-4 w-4" />
               Export Excel

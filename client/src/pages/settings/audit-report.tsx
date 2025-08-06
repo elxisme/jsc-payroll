@@ -203,26 +203,28 @@ export function AuditReport() {
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
             <CardTitle className="flex items-center space-x-2">
               <Shield className="h-5 w-5" />
               <span>Audit Trail Report</span>
             </CardTitle>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  onClick={handleExportAuditLog}
-                  disabled={!auditLogs?.length}
-                  className="bg-nigeria-green hover:bg-green-700"
-                >
-                  <Download className="mr-2 h-4 w-4" />
-                  Export Report
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Export audit logs to Excel</p>
-              </TooltipContent>
-            </Tooltip>
+            <div className="w-full sm:w-auto">
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    onClick={handleExportAuditLog}
+                    disabled={!auditLogs?.length}
+                    className="w-full sm:w-auto bg-nigeria-green hover:bg-green-700"
+                  >
+                    <Download className="mr-2 h-4 w-4" />
+                    Export Report
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Export audit logs to Excel</p>
+                </TooltipContent>
+              </Tooltip>
+            </div>
           </div>
         </CardHeader>
         <CardContent>

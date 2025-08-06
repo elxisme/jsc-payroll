@@ -194,4 +194,34 @@
   .btn-mobile {
     @apply px-4 py-2 text-sm sm:px-6 sm:py-3 sm:text-base;
   }
+
+  /* Mobile-optimized form layouts */
+  .form-mobile {
+    @apply space-y-4 sm:space-y-6;
+  }
+
+  /* Mobile-friendly modal content */
+  .modal-mobile {
+    @apply max-h-[85vh] overflow-y-auto;
+  }
+
+  /* Mobile tab navigation */
+  .tabs-mobile {
+    @apply flex flex-col sm:flex-row w-full;
+  }
+
+  /* Mobile notification layout */
+  .notification-mobile {
+    @apply flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-4;
+  }
+
+  /* Mobile action button groups */
+  .action-group-mobile {
+    @apply flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2 w-full sm:w-auto;
+  }
+
+  /* Mobile header layout */
+  .header-mobile {
+    @apply flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0;
+  }
 }

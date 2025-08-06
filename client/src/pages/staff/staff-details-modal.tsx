@@ -159,10 +159,10 @@ export function StaffDetailsModal({ open, onClose, staff }: StaffDetailsModalPro
           </Card>
 
           <Tabs defaultValue="profile" className="w-full">
-            <TabsList className="grid w-full grid-cols-4">
-              <TabsTrigger value="profile">Profile</TabsTrigger>
-              <TabsTrigger value="employment">Employment</TabsTrigger>
-              <TabsTrigger value="allowances">
+            <TabsList className="flex flex-col sm:grid sm:grid-cols-4 w-full gap-1">
+              <TabsTrigger value="profile" className="w-full">Profile</TabsTrigger>
+              <TabsTrigger value="employment" className="w-full">Employment</TabsTrigger>
+              <TabsTrigger value="allowances" className="w-full">
                 Individual Allowances
                 {individualAllowances && individualAllowances.length > 0 && (
                   <Badge variant="secondary" className="ml-2">
@@ -170,7 +170,7 @@ export function StaffDetailsModal({ open, onClose, staff }: StaffDetailsModalPro
                   </Badge>
                 )}
               </TabsTrigger>
-              <TabsTrigger value="deductions">
+              <TabsTrigger value="deductions" className="w-full">
                 Individual Deductions
                 {individualDeductions && individualDeductions.length > 0 && (
                   <Badge variant="secondary" className="ml-2">

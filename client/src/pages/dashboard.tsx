@@ -245,10 +245,12 @@ export default function Dashboard() {
     <div className="space-y-6">
       {/* Dashboard Header */}
       <div className="pb-4 border-b border-gray-200">
-        <h1 className="text-responsive-xl font-bold text-gray-900 mb-2">Dashboard Overview</h1>
-        <p className="text-responsive-sm text-gray-600">
-          Welcome back! Here's what's happening with your payroll system.
-        </p>
+        <div className="w-full">
+          <h1 className="text-responsive-xl font-bold text-gray-900 mb-2">Dashboard Overview</h1>
+          <p className="text-responsive-sm text-gray-600">
+            Welcome back! Here's what's happening with your payroll system.
+          </p>
+        </div>
       </div>
 
       {/* Stats Cards - Mobile First Responsive Grid */}
