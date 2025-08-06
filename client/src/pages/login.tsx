@@ -129,14 +129,7 @@ export default function LoginPage() {
             </form>
             
             {/* Test Users Info */}
-            <div className="mt-6 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-              <h3 className="text-sm font-semibold text-blue-800 mb-2">Test Users:</h3>
-              <div className="text-xs text-blue-700 space-y-1.5">
-                <p><strong>Super Admin:</strong> superadmin@jsc.gov.ng / admin123</p>
-                <p><strong>Account Manager:</strong> accounts@jsc.gov.ng / acc123</p>
-                <p><strong>Payroll Manager:</strong> payroll@jsc.gov.ng / pay123</p>
-                <p><strong>Staff:</strong> staff@jsc.gov.ng / staff123</p>
-              </div>
+            
             </div>
           </CardContent>
         </Card>
