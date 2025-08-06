@@ -140,7 +140,9 @@ export async function generatePayslipPDF(payslip: PayslipData, staff: StaffData)
     
     Object.entries(allowances).forEach(([key, value]) => {
       if (value && Number(value) > 0) {
-        tableData.push([formatAllowanceName(key), '', formatCurrency(Number(value))]);
+        const isIndividual = ['overtime', 'bonus', 'commission', 'special_duty'].includes(key);
+        const displayName = isIndividual ? `${formatAllowanceName(key)} *` : formatAllowanceName(key);
+        tableData.push([displayName, '', formatCurrency(Number(value))]);
       }
     });
   }
@@ -626,7 +628,9 @@ async function generatePayslipContent(doc: jsPDF, payslip: PayslipData, staff: S
     
     Object.entries(allowances).forEach(([key, value]) => {
       if (value && Number(value) > 0) {
-        tableData.push([formatAllowanceName(key), '', formatCurrency(Number(value))]);
+        const isIndividual = ['overtime', 'bonus', 'commission', 'special_duty'].includes(key);
+        const displayName = isIndividual ? `${formatAllowanceName(key)} *` : formatAllowanceName(key);
+        tableData.push([displayName, '', formatCurrency(Number(value))]);
       }
     });
   }
