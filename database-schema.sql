@@ -8,7 +8,6 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE TABLE users (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   email TEXT NOT NULL UNIQUE,
-  password TEXT NOT NULL,
   role TEXT NOT NULL DEFAULT 'staff', -- super_admin, account_admin, payroll_admin, staff
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
@@ -269,11 +268,11 @@ INSERT INTO departments (name, code, description) VALUES
 ('Registry', 'REG', 'Court Registry');
 
 -- Insert test users (passwords should be hashed in production)
-INSERT INTO users (email, password, role) VALUES
-('superadmin@jsc.gov.ng', '$2b$10$example_hashed_password', 'super_admin'),
-('admin@jsc.gov.ng', '$2b$10$example_hashed_password', 'account_admin'),
-('payroll@jsc.gov.ng', '$2b$10$example_hashed_password', 'payroll_admin'),
-('staff@jsc.gov.ng', '$2b$10$example_hashed_password', 'staff');
+INSERT INTO users (email, role) VALUES
+('superadmin@jsc.gov.ng', 'super_admin'),
+('admin@jsc.gov.ng', 'account_admin'),
+('payroll@jsc.gov.ng', 'payroll_admin'),
+('staff@jsc.gov.ng', 'staff');
 
 -- Create indexes for better performance
 CREATE INDEX idx_staff_staff_id ON staff(staff_id);
