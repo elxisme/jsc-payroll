@@ -51,11 +51,11 @@ export default function LoginPage() {
             <Scale className="text-nigeria-green h-8 w-8" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold tracking-tight text-white">
-              Judicial Service Committee
+            <h1 className="text-2xl font-bold tracking-tight text-white">
+              JSC Payroll System
             </h1>
-            <p className="mt-1 text-lg text-green-100">
-              Payroll Management System
+            <p className="mt-1 text-base text-green-100">
+              Login to your account
             </p>
           </div>
         </div>
@@ -69,7 +69,6 @@ export default function LoginPage() {
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="space-y-2">
-                <Label htmlFor="email">Email Address</Label>
                 <Input
                   id="email"
                   name="email"
@@ -78,12 +77,11 @@ export default function LoginPage() {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="you@example.com"
+                  placeholder="Enter your email"
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
                 <Input
                   id="password"
                   name="password"
@@ -92,7 +90,7 @@ export default function LoginPage() {
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
+                  placeholder="Enter your password"
                 />
               </div>
 

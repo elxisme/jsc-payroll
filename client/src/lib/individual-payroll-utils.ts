@@ -24,6 +24,14 @@ export interface IndividualDeduction {
   status?: 'active' | 'paid_off' | 'cancelled';
 }
 
+export interface IndividualAllowanceUpdate {
+  type?: string;
+  amount?: number;
+  period?: string;
+  description?: string;
+  status?: 'pending' | 'applied' | 'cancelled';
+}
+
 /**
  * Add individual allowance for a staff member
  */
@@ -149,6 +157,31 @@ export async function updateIndividualAllowanceStatus(
       status,
       updated_at: new Date().toISOString(),
     })
+    .eq('id', allowanceId);
+
+  if (error) throw error;
+}
+
+/**
+ * Update individual allowance
+ */
+export async function updateIndividualAllowance(
+  allowanceId: string,
+  updates: IndividualAllowanceUpdate
+): Promise<void> {
+  const updateData: any = {
+    updated_at: new Date().toISOString(),
+  };
+
+  if (updates.type) updateData.type = updates.type;
+  if (updates.amount !== undefined) updateData.amount = updates.amount.toString();
+  if (updates.period) updateData.period = updates.period;
+  if (updates.description !== undefined) updateData.description = updates.description;
+  if (updates.status) updateData.status = updates.status;
+
+  const { error } = await supabase
+    .from('staff_individual_allowances')
+    .update(updateData)
     .eq('id', allowanceId);
 
   if (error) throw error;
