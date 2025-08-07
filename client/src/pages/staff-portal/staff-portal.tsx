@@ -169,25 +169,16 @@ export default function StaffPortal() {
                 </div>
               ) : staffProfile ? (
                 <div className="bg-gradient-to-br from-nigeria-green to-green-600 rounded-xl p-6 text-white">
-                  <div className="flex items-center space-x-4">
-                    <div className="h-16 w-16 bg-white bg-opacity-20 rounded-full flex items-center justify-center">
+                  <div className="flex flex-col items-center text-center space-y-4">
+                    <div className="h-20 w-20 bg-white bg-opacity-20 rounded-full flex items-center justify-center">
                       <span className="text-2xl font-bold">{getInitials()}</span>
                     </div>
                     <div>
                       <h4 className="text-xl font-bold">{getFullName()}</h4>
                       <p className="text-green-100">{staffProfile.staff_id}</p>
                       <p className="text-green-100">{staffProfile.position}</p>
-                    </div>
-                  </div>
-                  
-                  <div className="mt-6 grid grid-cols-2 gap-4">
-                    <div>
-                      <p className="text-green-100 text-sm">Department</p>
-                      <p className="font-medium">{staffProfile.departments?.name || 'Unassigned'}</p>
-                    </div>
-                    <div>
-                      <p className="text-green-100 text-sm">Grade Level</p>
-                      <p className="font-medium">GL {staffProfile.grade_level} Step {staffProfile.step}</p>
+                      <p className="text-green-100 mt-1">{staffProfile.departments?.name || 'Unassigned'}</p>
+                      <p className="text-green-100 text-sm">GL {staffProfile.grade_level} Step {staffProfile.step}</p>
                     </div>
                   </div>
                 </div>
