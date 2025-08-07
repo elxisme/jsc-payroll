@@ -22,7 +22,6 @@ import {
   Home,
   Users,
   Building2,
-  CreditCard,
   FileText,
   BarChart3,
   Settings,
