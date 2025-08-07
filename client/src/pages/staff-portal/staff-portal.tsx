@@ -78,8 +78,6 @@ const PayslipDetailsModal = ({ payslip, staffProfile, onClose }: { payslip: any,
                     </div>
                   )
                 ))}
-                  </div>
-                ))}
                 <div className="flex justify-between font-bold border-t pt-1 mt-1">
                   <span>Gross Pay</span>
                   <span>{formatDetailCurrency(payslip.gross_pay)}</span>
@@ -103,15 +101,12 @@ const PayslipDetailsModal = ({ payslip, staffProfile, onClose }: { payslip: any,
                     </div>
                   )
                 ))}
-                  </div>
-                ))}
                 <div className="flex justify-between font-bold border-t pt-1 mt-1">
                   <span>Total Deductions</span>
                   <span>({formatDetailCurrency(payslip.total_deductions)})</span>
                 </div>
               </div>
             </div>
-              </Card> 
           </div>
 
           {/* Summary */}
@@ -395,163 +390,142 @@ export default function StaffPortal() {
               {/* Payslip History */}
               <Card>
                 <CardHeader>
-                  <CardTitle className="flex items-center space-x-2">
+                  <CardTitle className="flex items-center gap-2">
                     <FileText className="h-5 w-5" />
                     <span>Payslip History</span>
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   {payslipsLoading ? (
-                    <div className="space-y-4">
-                      {[...Array(5)].map((_, i) => (
-                        <div key={i} className="animate-pulse flex space-x-4">
-                          <div className="rounded-full bg-gray-200 h-10 w-10"></div>
-                          <div className="flex-1 space-y-2 py-1">
-                            <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-                            <div className="h-4 bg-gray-200 rounded w-1/2"></div>
-                          </div>
-                        </div>
+                    <div className="animate-pulse space-y-4">
+                      {[...Array(3)].map((_, i) => (
+                        <div key={i} className="h-16 bg-gray-200 rounded"></div>
                       ))}
                     </div>
                   ) : payslips && payslips.length > 0 ? (
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Period</TableHead>
-                          <TableHead className="text-right">Gross</TableHead>
-                          <TableHead className="text-right">Deductions</TableHead>
-                          <TableHead className="text-right">Net</TableHead>
-                          <TableHead className="text-center">Actions</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {payslips.map((payslip) => (
-                          <TableRow key={payslip.id}>
-                            <TableCell>
-                              <div className="flex items-center space-x-2">
-                                <Calendar className="h-4 w-4 text-gray-400" />
-                                <span>{formatPeriod(payslip.period)}</span>
-                              </div>
-                            </TableCell>
-                            {/* SOLUTION: Added scaling class */}
-                            <TableCell className="font-medium text-right min-w-fit whitespace-nowrap transform scale-95 origin-right">
-                              {formatDisplayCurrency(payslip.gross_pay || 0)}
-                            </TableCell>
-                            {/* SOLUTION: Added scaling class */}
-                            <TableCell className="text-red-600 text-right min-w-fit whitespace-nowrap transform scale-95 origin-right">
-                              -{formatDisplayCurrency(payslip.total_deductions || 0)}
-                            </TableCell>
-                            {/* SOLUTION: Added scaling class */}
-                            <TableCell className="font-bold text-green-600 text-right min-w-fit whitespace-nowrap transform scale-95 origin-right">
-                              {formatDisplayCurrency(payslip.net_pay || 0)}
-                            </TableCell>
-                            <TableCell>
-                              <div className="flex space-x-2 justify-center">
-                                <UiTooltip>
-                                  <TooltipTrigger asChild>
-                                    {/* SOLUTION: onClick now opens the modal */}
-                                    <Button 
-                                      variant="ghost" 
-                                      size="icon"
-                                      className="h-8 w-8"
-                                      onClick={() => setSelectedPayslip(payslip)}
-                                    >
-                                      <Eye className="h-4 w-4" />
-                                    </Button>
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <p>View payslip details</p>
-                                  </TooltipContent>
-                                </UiTooltip>
-                                <UiTooltip>
-                                  <TooltipTrigger asChild>
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      className="h-8 w-8 text-nigeria-green hover:text-green-700"
-                                      onClick={() => handleDownloadPayslip(payslip)}
-                                    >
-                                      <Download className="h-4 w-4" />
-                                    </Button>
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <p>Download payslip as PDF</p>
-                                  </TooltipContent>
-                                </UiTooltip>
-                              </div>
-                            </TableCell>
+                    <div className="space-y-4">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Period</TableHead>
+                            <TableHead>Gross Pay</TableHead>
+                            <TableHead>Deductions</TableHead>
+                            <TableHead>Net Pay</TableHead>
+                            <TableHead>Actions</TableHead>
                           </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
+                        </TableHeader>
+                        <TableBody>
+                          {payslips.map((payslip) => (
+                            <TableRow key={payslip.id}>
+                              <TableCell className="font-medium">
+                                {formatPeriod(payslip.period)}
+                              </TableCell>
+                              <TableCell>
+                                {formatDisplayCurrency(payslip.gross_pay || 0)}
+                              </TableCell>
+                              <TableCell className="text-red-600">
+                                -{formatDisplayCurrency(payslip.total_deductions || 0)}
+                              </TableCell>
+                              <TableCell className="font-bold text-green-600">
+                                {formatDisplayCurrency(payslip.net_pay || 0)}
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex gap-2">
+                                  <UiTooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => setSelectedPayslip(payslip)}
+                                      >
+                                        <Eye className="h-4 w-4" />
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p>View details</p>
+                                    </TooltipContent>
+                                  </UiTooltip>
+                                  
+                                  <UiTooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => handleDownloadPayslip(payslip)}
+                                      >
+                                        <Download className="h-4 w-4" />
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent>
+                                      <p>Download PDF</p>
+                                    </TooltipContent>
+                                  </UiTooltip>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
                   ) : (
                     <div className="text-center py-8 text-gray-500">
-                      <div className="h-16 w-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <FileText className="h-8 w-8 text-gray-400" />
-                      </div>
+                      <FileText className="mx-auto h-12 w-12 text-gray-300 mb-4" />
                       <p>No payslips available</p>
-                      <p className="text-sm">Your payslips will appear here once generated</p>
                     </div>
                   )}
                 </CardContent>
               </Card>
 
-              {/* Salary Trends Chart Placeholder */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center space-x-2">
-                    <TrendingUp className="h-5 w-5" />
-                    <span>12-Month Salary Trend</span>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {salaryTrends.length > 0 ? (
-                    <div className="h-64">
+              {/* Salary Trends Chart */}
+              {salaryTrends.length > 0 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <TrendingUp className="h-5 w-5" />
+                      <span>Salary Trends</span>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="h-80">
                       <ResponsiveContainer width="100%" height="100%">
                         <LineChart data={salaryTrends}>
                           <CartesianGrid strokeDasharray="3 3" />
-                          <XAxis 
-                            dataKey="period" 
-                            tickFormatter={(value) => {
-                              const [year, month] = value.split('-');
-                              const date = new Date(parseInt(year), parseInt(month) - 1);
-                              return date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
-                            }}
-                          />
-                          <YAxis 
-                            tickFormatter={(value) => `₦${(value / 1000).toFixed(0)}k`}
-                          />
+                          <XAxis dataKey="period" />
+                          <YAxis />
                           <Tooltip 
-                            formatter={(value: number) => [formatDetailCurrency(value), 'Net Pay']}
-                            labelFormatter={(label) => formatPeriod(label)}
+                            formatter={(value, name) => [
+                              formatDisplayCurrency(value as number), 
+                              name === 'netPay' ? 'Net Pay' : 
+                              name === 'grossPay' ? 'Gross Pay' : 'Deductions'
+                            ]}
                           />
                           <Line 
                             type="monotone" 
                             dataKey="netPay" 
-                            stroke="var(--nigeria-green)" 
+                            stroke="#16a34a" 
                             strokeWidth={2}
-                            dot={{ fill: 'var(--nigeria-green)', strokeWidth: 2, r: 4 }}
-                            activeDot={{ r: 6, stroke: 'var(--nigeria-green)', strokeWidth: 2 }}
+                            name="netPay"
+                          />
+                          <Line 
+                            type="monotone" 
+                            dataKey="grossPay" 
+                            stroke="#3b82f6" 
+                            strokeWidth={2}
+                            name="grossPay"
+                          />
+                          <Line 
+                            type="monotone" 
+                            dataKey="deductions" 
+                            stroke="#dc2626" 
+                            strokeWidth={2}
+                            name="deductions"
                           />
                         </LineChart>
                       </ResponsiveContainer>
-                      <div className="mt-4 text-center text-sm text-gray-600">
-                        <p>Average: {formatDisplayCurrency(averageSalary)} | Data points: {salaryTrends.length}</p>
-                      </div>
                     </div>
-                  ) : (
-                    <div className="h-48 bg-gradient-to-br from-blue-50 to-purple-50 rounded-lg flex items-center justify-center border-2 border-dashed border-gray-300">
-                      <div className="text-center">
-                        <TrendingUp className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-                        <p className="text-gray-500 font-medium">No Salary Data Available</p>
-                        <p className="text-xs text-gray-400 mt-1">
-                          Salary trends will appear here once payslips are generated
-                        </p>
-                      </div>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
+                  </CardContent>
+                </Card>
+              )}
             </div>
           </div>
         </TabsContent>
@@ -561,7 +535,7 @@ export default function StaffPortal() {
         </TabsContent>
       </Tabs>
 
-      {/* SOLUTION: Render the modal when a payslip is selected */}
+      {/* Payslip Details Modal */}
       {selectedPayslip && (
         <PayslipDetailsModal
           payslip={selectedPayslip}
@@ -572,3 +546,4 @@ export default function StaffPortal() {
     </div>
   );
 }
+
