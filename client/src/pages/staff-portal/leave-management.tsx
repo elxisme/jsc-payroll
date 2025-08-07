@@ -122,29 +122,40 @@ export function LeaveManagement() {
     mutationFn: async (data: LeaveRequestFormData) => {
       if (!user?.staff_profile?.id) throw new Error('Staff profile not found');
 
-      // Calculate working days
-      const workingDays = calculateWorkingDays(data.startDate, data.endDate);
-      
-      // Check leave balance
-      const balanceCheck = await checkLeaveBalance(
-        user.staff_profile.id,
-        data.leaveTypeId,
-        workingDays,
-        new Date(data.startDate).getFullYear()
-      );
+      try {
+        // Calculate working days
+        const workingDays = calculateWorkingDays(data.startDate, data.endDate);
+        
+        // Check leave balance
+        const balanceCheck = await checkLeaveBalance(
+          user.staff_profile.id,
+          data.leaveTypeId,
+          workingDays,
+          new Date(data.startDate).getFullYear()
+        );
 
-      if (!balanceCheck.hasBalance) {
-        throw new Error(balanceCheck.message || 'Insufficient leave balance');
+        if (!balanceCheck.hasBalance) {
+          throw new Error(balanceCheck.message || 'Insufficient leave balance');
+        }
+
+        // If balance check is successful, submit the request
+        await submitLeaveRequest({
+          staffId: user.staff_profile.id,
+          leaveTypeId: data.leaveTypeId,
+          startDate: data.startDate,
+          endDate: data.endDate,
+          totalDays: workingDays,
+          reason: data.reason,
+        });
+      } catch (error: any) {
+        // **FIX**: Catch the specific PGRST116 error for uninitialized balances
+        if (error?.code === 'PGRST116') {
+          // Throw a user-friendly error instead of trying to initialize the balance
+          throw new Error('Your leave balance is not set up. Please contact an administrator.');
+        }
+        // Re-throw any other errors to be handled by onError
+        throw error;
       }
-
-      await submitLeaveRequest({
-        staffId: user.staff_profile.id,
-        leaveTypeId: data.leaveTypeId,
-        startDate: data.startDate,
-        endDate: data.endDate,
-        totalDays: workingDays,
-        reason: data.reason,
-      });
     },
     onSuccess: () => {
       toast({
@@ -310,7 +321,8 @@ export function LeaveManagement() {
                     <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
                       <p className="text-sm text-blue-800">
                         <strong>Working Days:</strong> {previewDays} days
-                        <br />
+                          
+
                         <span className="text-xs">
                           (Excludes weekends)
                         </span>
