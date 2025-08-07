@@ -126,15 +126,22 @@ export function LeaveManagement() {
       const workingDays = calculateWorkingDays(data.startDate, data.endDate);
       
       // Check leave balance
-      const balanceCheck = await checkLeaveBalance(
-        user.staff_profile.id,
-        data.leaveTypeId,
-        workingDays,
-        new Date(data.startDate).getFullYear()
-      );
+      try {
+        const balanceCheck = await checkLeaveBalance(
+          user.staff_profile.id,
+          data.leaveTypeId,
+          workingDays,
+          new Date(data.startDate).getFullYear()
+        );
 
-      if (!balanceCheck.hasBalance) {
-        throw new Error(balanceCheck.message || 'Insufficient leave balance');
+        if (!balanceCheck.hasBalance) {
+          throw new Error(balanceCheck.message || 'Insufficient leave balance');
+        }
+      } catch (error: any) {
+        if (error.message === 'LEAVE_BALANCE_NOT_FOUND') {
+          throw new Error('Your leave balance has not been initialized. Please contact your administrator to set up your leave entitlements before submitting a leave request.');
+        }
+        throw error;
       }
 
       await submitLeaveRequest({
@@ -341,8 +348,9 @@ export function LeaveManagement() {
                     <ul className="text-sm text-yellow-800 space-y-1 list-disc list-inside">
                       <li>Submit requests at least 2 weeks in advance when possible</li>
                       <li>Emergency leave may be submitted with shorter notice</li>
-                      <li>Check your leave balance before submitting</li>
+                      <li>Ensure your leave balance is set up before submitting</li>
                       <li>You will receive a notification once your request is reviewed</li>
+                      <li>Contact your administrator if you encounter balance initialization issues</li>
                     </ul>
                   </div>
 
@@ -462,7 +470,141 @@ export function LeaveManagement() {
                   </Card>
                 ))
               ) : (
-                <div className="col-span-full text-center py-8 text-gray-500">
+                <div className="col-span-full text-center py-8">
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
+                    <div className="flex items-center justify-center mb-4">
+                      <AlertCircle className="h-12 w-12 text-yellow-600" />
+                    </div>
+                    <h3 className="text-lg font-medium text-yellow-900 mb-2">
+                      Leave Balances Not Initialized
+                    </h3>
+                    <p className="text-yellow-800 mb-4">
+                      Your leave balances have not been set up yet. This is required before you can submit leave requests.
+                    </p>
+                    <div className="bg-yellow-100 p-3 rounded border border-yellow-300">
+                      <p className="text-sm text-yellow-800">
+                        <strong>What to do:</strong> Please contact your HR administrator or system administrator 
+                        to initialize your leave entitlements for {selectedYear}.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </TabsContent>
+
+        {/* Leave Requests Tab */}
+        <TabsContent value="requests">
+          <Card>
+            <CardHeader>
+              <CardTitle>My Leave Requests</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {requestsLoading ? (
+                <div className="space-y-4">
+                  {[...Array(3)].map((_, i) => (
+                    <div key={i} className="animate-pulse flex space-x-4">
+                      <div className="rounded-full bg-gray-200 h-10 w-10"></div>
+                      <div className="flex-1 space-y-2 py-1">
+                        <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                        <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : leaveRequests && leaveRequests.length > 0 ? (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Leave Type</TableHead>
+                      <TableHead>Dates</TableHead>
+                      <TableHead>Days</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Submitted</TableHead>
+                      <TableHead>Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {leaveRequests.map((request) => (
+                      <TableRow key={request.id}>
+                        <TableCell>
+                          <div className="flex items-center space-x-2">
+                            <span className="font-medium">{request.leave_types?.name}</span>
+                            <Badge variant="outline" className="text-xs">
+                              {request.leave_types?.code}
+                            </Badge>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          {formatDateRange(request.start_date, request.end_date)}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center space-x-1">
+                            <Calendar className="h-4 w-4 text-gray-400" />
+                            <span>{request.total_days}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge className={getStatusColor(request.status)}>
+                            {request.status.toUpperCase()}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-sm text-gray-500">
+                          {formatDate(request.created_at)}
+                        </TableCell>
+                        <TableCell>
+                          {request.status === 'pending' && (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => cancelRequestMutation.mutate(request.id)}
+                                  disabled={cancelRequestMutation.isPending}
+                                  className="text-red-600 hover:text-red-700"
+                                >
+                                  <X className="h-4 w-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Cancel request</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          )}
+                          {request.approval_comments && (
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button variant="ghost" size="sm">
+                                  <FileText className="h-4 w-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>{request.approval_comments}</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              ) : (
+                <div className="text-center py-8 text-gray-500">
+                  <div className="h-16 w-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <FileText className="h-8 w-8 text-gray-400" />
+                  </div>
+                  <p>No leave requests found</p>
+                  <p className="text-sm">Your leave requests will appear here</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+}
                   <Calendar className="mx-auto h-12 w-12 text-gray-300 mb-4" />
                   <p>No leave balances found for {selectedYear}</p>
                   <p className="text-sm">Leave balances will be initialized automatically</p>
