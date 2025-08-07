@@ -67,13 +67,16 @@ export default function BankReports() {
           )
         `)
         .eq('period', selectedPeriod)
+        // FIX: Use dot notation to specify the related table for filters
         .not('staff.bank_name', 'is', null)
         .not('staff.account_number', 'is', null);
 
       if (selectedBank !== 'all') {
+        // FIX: Use dot notation here as well
         query = query.eq('staff.bank_name', selectedBank);
       }
 
+      // This part was already correct from the previous fix, but is kept for completeness
       const { data, error } = await query.order('bank_name', { referencedTable: 'staff', ascending: true });
       
       if (error) {
@@ -85,21 +88,14 @@ export default function BankReports() {
     enabled: !!selectedPeriod,
   });
 
-  // Get unique banks - FIXED: Only show banks from filtered data
-const uniqueBanks = React.useMemo(() => {
-  if (!bankTransfers) return [];
-  
-  // Get all unique banks from the database when 'all' is selected
-  if (selectedBank === 'all') {
+  // Get unique banks
+  const uniqueBanks = React.useMemo(() => {
+    if (!bankTransfers) return [];
     const banks = Array.from(new Set(bankTransfers.map(t => t.staff?.bank_name).filter(Boolean)));
     return banks.sort();
-  }
-  
-  // When a specific bank is selected, only show that bank
-  return [selectedBank];
-}, [bankTransfers, selectedBank]);
+  }, [bankTransfers]);
 
-  // Calculate totals - FIXED: Only calculate for filtered data
+  // Calculate totals
   const totals = React.useMemo(() => {
     if (!bankTransfers) return { totalAmount: 0, totalStaff: 0 };
     
