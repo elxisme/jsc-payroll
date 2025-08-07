@@ -62,10 +62,22 @@ const PayslipDetailsModal = ({ payslip, staffProfile, onClose }: { payslip: any,
             <div>
               <h4 className="font-bold mb-2 border-b pb-1 text-green-700">Earnings</h4>
               <div className="space-y-1 text-sm">
-                {payslip.earnings?.map((item: any, index: number) => (
-                  <div key={index} className="flex justify-between">
-                    <span>{item.name}</span>
-                    <span>{formatDetailCurrency(item.amount)}</span>
+                <div className="flex justify-between">
+                  <span>Basic Salary</span>
+                  <span>{formatDetailCurrency(payslip.basic_salary || 0)}</span>
+                </div>
+                {payslip.allowances && Object.entries(
+                  typeof payslip.allowances === 'string' 
+                    ? JSON.parse(payslip.allowances) 
+                    : payslip.allowances
+                ).map(([key, value]) => (
+                  value && Number(value) > 0 && (
+                    <div key={key} className="flex justify-between">
+                      <span className="capitalize">{key.replace('_', ' ')}</span>
+                      <span>{formatDetailCurrency(Number(value))}</span>
+                    </div>
+                  )
+                ))}
                   </div>
                 ))}
                 <div className="flex justify-between font-bold border-t pt-1 mt-1">
@@ -79,10 +91,18 @@ const PayslipDetailsModal = ({ payslip, staffProfile, onClose }: { payslip: any,
             <div>
               <h4 className="font-bold mb-2 border-b pb-1 text-red-700">Deductions</h4>
               <div className="space-y-1 text-sm">
-                {payslip.deductions?.map((item: any, index: number) => (
-                  <div key={index} className="flex justify-between">
-                    <span>{item.name}</span>
-                    <span>({formatDetailCurrency(item.amount)})</span>
+                {payslip.deductions && Object.entries(
+                  typeof payslip.deductions === 'string' 
+                    ? JSON.parse(payslip.deductions) 
+                    : payslip.deductions
+                ).map(([key, value]) => (
+                  value && Number(value) > 0 && (
+                    <div key={key} className="flex justify-between">
+                      <span className="capitalize">{key.replace('_', ' ')}</span>
+                      <span>({formatDetailCurrency(Number(value))})</span>
+                    </div>
+                  )
+                ))}
                   </div>
                 ))}
                 <div className="flex justify-between font-bold border-t pt-1 mt-1">

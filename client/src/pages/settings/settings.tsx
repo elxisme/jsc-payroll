@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useAuth } from '@/hooks/use-auth';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 import { supabase } from '@/lib/supabase';
-import { formatDisplayCurrency } from '@/lib/currency-utils';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { logSystemEvent } from '@/lib/audit-logger';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import {
@@ -40,18 +41,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Switch } from '@/components/ui/switch';
-import { Badge } from '@/components/ui/badge';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import { useToast } from '@/hooks/use-toast';
-import { EditUserModal } from './edit-user-modal';
-import { EditAllowanceModal } from './edit-allowance-modal';
-import { EditDeductionModal } from './edit-deduction-modal';
-import { SalaryStructureSettings } from './salary-structure-settings';
-import { LeaveTypesSettings } from './leave-types-settings';
-import { AuditReport } from './audit-report';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -63,94 +52,95 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import { Switch } from '@/components/ui/switch';
+import { EditAllowanceModal } from './edit-allowance-modal';
+import { EditDeductionModal } from './edit-deduction-modal';
+import { EditUserModal } from './edit-user-modal';
+import { SalaryStructureSettings } from './salary-structure-settings';
+import { LeaveTypesSettings } from './leave-types-settings';
+import { AuditReport } from './audit-report';
+import { useToast } from '@/hooks/use-toast';
 import { 
   Settings as SettingsIcon, 
-  Users, 
-  DollarSign, 
   Plus, 
   Edit, 
-  Trash2,
-  Loader2,
+  Trash2, 
+  Users, 
+  DollarSign,
+  Minus,
+  Scale,
   Shield,
-  Database
+  Calendar,
+  Loader2
 } from 'lucide-react';
 
-const userSchema = z.object({
+// Schema definitions
+const addAllowanceSchema = z.object({
+  name: z.string().min(1, 'Name is required'),
+  type: z.enum(['percentage', 'fixed']),
+  value: z.number().min(0, 'Value must be positive'),
+  isActive: z.boolean(),
+});
+
+const addDeductionSchema = z.object({
+  name: z.string().min(1, 'Name is required'),
+  type: z.enum(['percentage', 'fixed']),
+  value: z.number().min(0, 'Value must be positive'),
+  isActive: z.boolean(),
+});
+
+const addUserSchema = z.object({
   email: z.string().email('Invalid email address'),
   role: z.enum(['super_admin', 'account_admin', 'payroll_admin', 'staff']),
 });
 
-const allowanceSchema = z.object({
-  name: z.string().min(1, 'Name is required'),
-  type: z.enum(['percentage', 'fixed']),
-  value: z.number().min(0, 'Value must be positive'),
-});
-
-const deductionSchema = z.object({
-  name: z.string().min(1, 'Name is required'),
-  type: z.enum(['percentage', 'fixed']),
-  value: z.number().min(0, 'Value must be positive'),
-});
-
-type UserFormData = z.infer<typeof userSchema>;
-type AllowanceFormData = z.infer<typeof allowanceSchema>;
-type DeductionFormData = z.infer<typeof deductionSchema>;
+type AddAllowanceFormData = z.infer<typeof addAllowanceSchema>;
+type AddDeductionFormData = z.infer<typeof addDeductionSchema>;
+type AddUserFormData = z.infer<typeof addUserSchema>;
 
 export default function Settings() {
-  const { user } = useAuth();
-  const [showAddUserModal, setShowAddUserModal] = useState(false);
   const [showAddAllowanceModal, setShowAddAllowanceModal] = useState(false);
   const [showAddDeductionModal, setShowAddDeductionModal] = useState(false);
-  const [showEditUserModal, setShowEditUserModal] = useState(false);
+  const [showAddUserModal, setShowAddUserModal] = useState(false);
   const [showEditAllowanceModal, setShowEditAllowanceModal] = useState(false);
   const [showEditDeductionModal, setShowEditDeductionModal] = useState(false);
-  const [selectedUser, setSelectedUser] = useState<any>(null);
+  const [showEditUserModal, setShowEditUserModal] = useState(false);
   const [selectedAllowance, setSelectedAllowance] = useState<any>(null);
   const [selectedDeduction, setSelectedDeduction] = useState<any>(null);
+  const [selectedUser, setSelectedUser] = useState<any>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const userForm = useForm<UserFormData>({
-    resolver: zodResolver(userSchema),
+  // Form instances
+  const allowanceForm = useForm<AddAllowanceFormData>({
+    resolver: zodResolver(addAllowanceSchema),
+    defaultValues: {
+      name: '',
+      type: 'percentage',
+      value: 0,
+      isActive: true,
+    },
+  });
+
+  const deductionForm = useForm<AddDeductionFormData>({
+    resolver: zodResolver(addDeductionSchema),
+    defaultValues: {
+      name: '',
+      type: 'percentage',
+      value: 0,
+      isActive: true,
+    },
+  });
+
+  const userForm = useForm<AddUserFormData>({
+    resolver: zodResolver(addUserSchema),
     defaultValues: {
       email: '',
       role: 'staff',
     },
   });
 
-  const allowanceForm = useForm<AllowanceFormData>({
-    resolver: zodResolver(allowanceSchema),
-    defaultValues: {
-      name: '',
-      type: 'percentage',
-      value: 0,
-    },
-  });
-
-  const deductionForm = useForm<DeductionFormData>({
-    resolver: zodResolver(deductionSchema),
-    defaultValues: {
-      name: '',
-      type: 'percentage',
-      value: 0,
-    },
-  });
-
-  // Fetch users
-  const { data: users, isLoading: usersLoading } = useQuery({
-    queryKey: ['system-users'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('users')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      return data || [];
-    },
-  });
-
-  // Fetch allowances
+  // Fetch system allowances
   const { data: allowances, isLoading: allowancesLoading } = useQuery({
     queryKey: ['system-allowances'],
     queryFn: async () => {
@@ -164,7 +154,7 @@ export default function Settings() {
     },
   });
 
-  // Fetch deductions
+  // Fetch system deductions
   const { data: deductions, isLoading: deductionsLoading } = useQuery({
     queryKey: ['system-deductions'],
     queryFn: async () => {
@@ -178,80 +168,39 @@ export default function Settings() {
     },
   });
 
-  // Create user mutation
-  const createUserMutation = useMutation({
-    mutationFn: async (data: UserFormData) => {
-      // Check if email already exists
-      const { data: existingUser } = await supabase
+  // Fetch system users
+  const { data: users, isLoading: usersLoading } = useQuery({
+    queryKey: ['system-users'],
+    queryFn: async () => {
+      const { data, error } = await supabase
         .from('users')
-        .select('id')
-        .eq('email', data.email)
-        .single();
+        .select('*')
+        .order('email');
 
-      if (existingUser) {
-        throw new Error('A user with this email already exists');
-      }
+      if (error) throw error;
+      return data || [];
+    },
+  });
 
-      const { data: newUser, error } = await supabase
-        .from('users')
+  // Create allowance mutation
+  const createAllowanceMutation = useMutation({
+    mutationFn: async (data: AddAllowanceFormData) => {
+      const { data: allowance, error } = await supabase
+        .from('allowances')
         .insert({
-          email: data.email,
-          role: data.role,
+          name: data.name,
+          type: data.type,
+          value: data.value.toString(),
+          is_active: data.isActive,
         })
         .select()
         .single();
 
       if (error) throw error;
       
-      // Log user creation
-      await logSystemEvent('user_created', 'users', newUser.id, null, data);
-
-      // Create notification for the new user
-      await supabase
-        .from('notifications')
-        .insert({
-          user_id: newUser.id,
-          title: 'Welcome to JSC Payroll System',
-          message: `Your account has been created with ${data.role.replace('_', ' ')} privileges. Please contact your administrator for login credentials.`,
-          type: 'info',
-        });
+      await logSystemEvent('allowance_created', 'allowances', allowance.id, null, data);
       
-      return newUser;
-    },
-    onSuccess: () => {
-      toast({
-        title: 'Success',
-        description: 'User created successfully',
-      });
-      queryClient.invalidateQueries({ queryKey: ['system-users'] });
-      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
-      userForm.reset();
-      setShowAddUserModal(false);
-    },
-    onError: (error: any) => {
-      toast({
-        title: 'Error',
-        description: error.message || 'Failed to create user',
-        variant: 'destructive',
-      });
-    },
-  });
-
-  // Create allowance mutation
-  const createAllowanceMutation = useMutation({
-    mutationFn: async (data: AllowanceFormData) => {
-      const { data: newAllowance, error } = await supabase
-        .from('allowances')
-        .insert(data)
-        .select()
-        .single();
-
-      if (error) throw error;
-      
-      // Log allowance creation
-      await logSystemEvent('allowance_created', 'allowances', newAllowance.id, null, data);
-      
-      return newAllowance;
+      return allowance;
     },
     onSuccess: () => {
       toast({
@@ -273,19 +222,23 @@ export default function Settings() {
 
   // Create deduction mutation
   const createDeductionMutation = useMutation({
-    mutationFn: async (data: DeductionFormData) => {
-      const { data: newDeduction, error } = await supabase
+    mutationFn: async (data: AddDeductionFormData) => {
+      const { data: deduction, error } = await supabase
         .from('deductions')
-        .insert(data)
+        .insert({
+          name: data.name,
+          type: data.type,
+          value: data.value.toString(),
+          is_active: data.isActive,
+        })
         .select()
         .single();
 
       if (error) throw error;
       
-      // Log deduction creation
-      await logSystemEvent('deduction_created', 'deductions', newDeduction.id, null, data);
+      await logSystemEvent('deduction_created', 'deductions', deduction.id, null, data);
       
-      return newDeduction;
+      return deduction;
     },
     onSuccess: () => {
       toast({
@@ -305,56 +258,37 @@ export default function Settings() {
     },
   });
 
-  // Delete user mutation
-  const deleteUserMutation = useMutation({
-    mutationFn: async (userId: string) => {
-      // Prevent deletion of current user
-      if (userId === user?.id) {
-        throw new Error('You cannot delete your own account');
-      }
-
-      // Get user data before deletion for audit log
-      const { data: userData } = await supabase
+  // Create user mutation
+  const createUserMutation = useMutation({
+    mutationFn: async (data: AddUserFormData) => {
+      const { data: user, error } = await supabase
         .from('users')
-        .select('*')
-        .eq('id', userId)
+        .insert({
+          email: data.email,
+          role: data.role,
+        })
+        .select()
         .single();
-
-      // Check if user has associated staff record
-      const { data: staffRecord } = await supabase
-        .from('staff')
-        .select('id')
-        .eq('user_id', userId)
-        .single();
-
-      if (staffRecord) {
-        throw new Error('Cannot delete user with associated staff record. Please remove staff association first.');
-      }
-
-      const { error } = await supabase
-        .from('users')
-        .delete()
-        .eq('id', userId);
 
       if (error) throw error;
       
-      // Log user deletion
-      if (userData) {
-        await logSystemEvent('user_deleted', 'users', userId, userData, null);
-      }
+      await logSystemEvent('user_created', 'users', user.id, null, data);
+      
+      return user;
     },
     onSuccess: () => {
       toast({
         title: 'Success',
-        description: 'User deleted successfully',
+        description: 'User created successfully',
       });
       queryClient.invalidateQueries({ queryKey: ['system-users'] });
-      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
+      userForm.reset();
+      setShowAddUserModal(false);
     },
     onError: (error: any) => {
       toast({
         title: 'Error',
-        description: error.message || 'Failed to delete user',
+        description: error.message || 'Failed to create user',
         variant: 'destructive',
       });
     },
@@ -363,7 +297,6 @@ export default function Settings() {
   // Delete allowance mutation
   const deleteAllowanceMutation = useMutation({
     mutationFn: async (allowanceId: string) => {
-      // Get allowance data before deletion for audit log
       const { data: allowanceData } = await supabase
         .from('allowances')
         .select('*')
@@ -377,7 +310,6 @@ export default function Settings() {
 
       if (error) throw error;
       
-      // Log allowance deletion
       if (allowanceData) {
         await logSystemEvent('allowance_deleted', 'allowances', allowanceId, allowanceData, null);
       }
@@ -401,7 +333,6 @@ export default function Settings() {
   // Delete deduction mutation
   const deleteDeductionMutation = useMutation({
     mutationFn: async (deductionId: string) => {
-      // Get deduction data before deletion for audit log
       const { data: deductionData } = await supabase
         .from('deductions')
         .select('*')
@@ -415,7 +346,6 @@ export default function Settings() {
 
       if (error) throw error;
       
-      // Log deduction deletion
       if (deductionData) {
         await logSystemEvent('deduction_deleted', 'deductions', deductionId, deductionData, null);
       }
@@ -435,6 +365,18 @@ export default function Settings() {
       });
     },
   });
+
+  const onSubmitAllowance = (data: AddAllowanceFormData) => {
+    createAllowanceMutation.mutate(data);
+  };
+
+  const onSubmitDeduction = (data: AddDeductionFormData) => {
+    createDeductionMutation.mutate(data);
+  };
+
+  const onSubmitUser = (data: AddUserFormData) => {
+    createUserMutation.mutate(data);
+  };
 
   const getRoleColor = (role: string) => {
     switch (role) {
@@ -458,20 +400,496 @@ export default function Settings() {
   return (
     <div className="p-4 lg:p-8">
       <div className="mb-8">
-        <h1 className="text-responsive-xl font-bold text-gray-900 mb-2">System Settings</h1>
-        <p className="text-gray-600">Manage system configuration and user access</p>
+        <div className="w-full">
+          <h1 className="text-responsive-xl font-bold text-gray-900 mb-2">System Settings</h1>
+          <p className="text-gray-600">Configure system-wide settings and manage payroll rules</p>
+        </div>
       </div>
 
-      <Tabs defaultValue="users" className="space-y-6">
-        <TabsList className="flex flex-wrap w-full justify-center gap-1 h-auto p-1">
-          <TabsTrigger value="users">Users</TabsTrigger>
-          <TabsTrigger value="salary">Salary Structure</TabsTrigger>
+      <Tabs defaultValue="allowances" className="space-y-6">
+        <TabsList className="grid w-full grid-cols-2 lg:grid-cols-5">
           <TabsTrigger value="allowances">Allowances</TabsTrigger>
           <TabsTrigger value="deductions">Deductions</TabsTrigger>
+          <TabsTrigger value="users">Users</TabsTrigger>
+          <TabsTrigger value="salary">Salary Structure</TabsTrigger>
           <TabsTrigger value="leave">Leave Types</TabsTrigger>
-          <TabsTrigger value="audit">Audit Report</TabsTrigger>
-          <TabsTrigger value="system">System</TabsTrigger>
         </TabsList>
+
+        {/* Allowances Tab */}
+        <TabsContent value="allowances">
+          <Card>
+            <CardHeader>
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
+                <CardTitle className="flex items-center space-x-2">
+                  <DollarSign className="h-5 w-5" />
+                  <span>System Allowances</span>
+                </CardTitle>
+                <Dialog open={showAddAllowanceModal} onOpenChange={setShowAddAllowanceModal}>
+                  <DialogTrigger asChild>
+                    <Button className="bg-nigeria-green hover:bg-green-700">
+                      <Plus className="mr-2 h-4 w-4" />
+                      Add Allowance
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Add New Allowance</DialogTitle>
+                    </DialogHeader>
+                    <Form {...allowanceForm}>
+                      <form onSubmit={allowanceForm.handleSubmit(onSubmitAllowance)} className="space-y-4">
+                        <FormField
+                          control={allowanceForm.control}
+                          name="name"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Allowance Name</FormLabel>
+                              <FormControl>
+                                <Input {...field} placeholder="e.g., Housing Allowance" />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={allowanceForm.control}
+                          name="type"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Type</FormLabel>
+                              <Select onValueChange={field.onChange} value={field.value}>
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  <SelectItem value="percentage">Percentage</SelectItem>
+                                  <SelectItem value="fixed">Fixed Amount</SelectItem>
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={allowanceForm.control}
+                          name="value"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Value</FormLabel>
+                              <FormControl>
+                                <Input 
+                                  type="number" 
+                                  step="0.01"
+                                  {...field}
+                                  onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={allowanceForm.control}
+                          name="isActive"
+                          render={({ field }) => (
+                            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                              <div className="space-y-0.5">
+                                <FormLabel className="text-base">Active Status</FormLabel>
+                                <div className="text-sm text-muted-foreground">
+                                  Enable or disable this allowance
+                                </div>
+                              </div>
+                              <FormControl>
+                                <Switch
+                                  checked={field.value}
+                                  onCheckedChange={field.onChange}
+                                />
+                              </FormControl>
+                            </FormItem>
+                          )}
+                        />
+
+                        <div className="flex justify-end space-x-2 pt-4">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => setShowAddAllowanceModal(false)}
+                          >
+                            Cancel
+                          </Button>
+                          <Button
+                            type="submit"
+                            disabled={createAllowanceMutation.isPending}
+                            className="bg-nigeria-green hover:bg-green-700"
+                          >
+                            {createAllowanceMutation.isPending ? (
+                              <>
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                Creating...
+                              </>
+                            ) : (
+                              'Create Allowance'
+                            )}
+                          </Button>
+                        </div>
+                      </form>
+                    </Form>
+                  </DialogContent>
+                </Dialog>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {allowancesLoading ? (
+                <div className="space-y-4">
+                  {[...Array(5)].map((_, i) => (
+                    <div key={i} className="animate-pulse flex space-x-4">
+                      <div className="rounded bg-gray-200 h-8 w-32"></div>
+                      <div className="flex-1 space-y-2 py-1">
+                        <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                        <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : allowances && allowances.length > 0 ? (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Type</TableHead>
+                      <TableHead>Value</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {allowances.map((allowance) => (
+                      <TableRow key={allowance.id}>
+                        <TableCell className="font-medium">{allowance.name}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="capitalize">
+                            {allowance.type}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          {allowance.type === 'percentage' ? `${allowance.value}%` : `₦${parseFloat(allowance.value).toLocaleString()}`}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={allowance.is_active ? 'default' : 'secondary'}>
+                            {allowance.is_active ? 'Active' : 'Inactive'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex space-x-2">
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => {
+                                    setSelectedAllowance(allowance);
+                                    setShowEditAllowanceModal(true);
+                                  }}
+                                >
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Edit allowance</p>
+                              </TooltipContent>
+                            </Tooltip>
+                            <AlertDialog>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <AlertDialogTrigger asChild>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="text-red-600 hover:text-red-700"
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  </AlertDialogTrigger>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>Delete allowance</p>
+                                </TooltipContent>
+                              </Tooltip>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Delete Allowance</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Are you sure you want to delete "{allowance.name}"? This action cannot be undone.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={() => deleteAllowanceMutation.mutate(allowance.id)}
+                                    className="bg-red-600 hover:bg-red-700"
+                                  >
+                                    Delete
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              ) : (
+                <div className="text-center py-8 text-gray-500">
+                  <DollarSign className="mx-auto h-12 w-12 text-gray-300 mb-4" />
+                  <p>No allowances configured</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Deductions Tab */}
+        <TabsContent value="deductions">
+          <Card>
+            <CardHeader>
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
+                <CardTitle className="flex items-center space-x-2">
+                  <Minus className="h-5 w-5" />
+                  <span>System Deductions</span>
+                </CardTitle>
+                <Dialog open={showAddDeductionModal} onOpenChange={setShowAddDeductionModal}>
+                  <DialogTrigger asChild>
+                    <Button className="bg-nigeria-green hover:bg-green-700">
+                      <Plus className="mr-2 h-4 w-4" />
+                      Add Deduction
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Add New Deduction</DialogTitle>
+                    </DialogHeader>
+                    <Form {...deductionForm}>
+                      <form onSubmit={deductionForm.handleSubmit(onSubmitDeduction)} className="space-y-4">
+                        <FormField
+                          control={deductionForm.control}
+                          name="name"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Deduction Name</FormLabel>
+                              <FormControl>
+                                <Input {...field} placeholder="e.g., PAYE Tax" />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={deductionForm.control}
+                          name="type"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Type</FormLabel>
+                              <Select onValueChange={field.onChange} value={field.value}>
+                                <FormControl>
+                                  <SelectTrigger>
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                  <SelectItem value="percentage">Percentage</SelectItem>
+                                  <SelectItem value="fixed">Fixed Amount</SelectItem>
+                                </SelectContent>
+                              </Select>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={deductionForm.control}
+                          name="value"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Value</FormLabel>
+                              <FormControl>
+                                <Input 
+                                  type="number" 
+                                  step="0.01"
+                                  {...field}
+                                  onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={deductionForm.control}
+                          name="isActive"
+                          render={({ field }) => (
+                            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                              <div className="space-y-0.5">
+                                <FormLabel className="text-base">Active Status</FormLabel>
+                                <div className="text-sm text-muted-foreground">
+                                  Enable or disable this deduction
+                                </div>
+                              </div>
+                              <FormControl>
+                                <Switch
+                                  checked={field.value}
+                                  onCheckedChange={field.onChange}
+                                />
+                              </FormControl>
+                            </FormItem>
+                          )}
+                        />
+
+                        <div className="flex justify-end space-x-2 pt-4">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => setShowAddDeductionModal(false)}
+                          >
+                            Cancel
+                          </Button>
+                          <Button
+                            type="submit"
+                            disabled={createDeductionMutation.isPending}
+                            className="bg-nigeria-green hover:bg-green-700"
+                          >
+                            {createDeductionMutation.isPending ? (
+                              <>
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                Creating...
+                              </>
+                            ) : (
+                              'Create Deduction'
+                            )}
+                          </Button>
+                        </div>
+                      </form>
+                    </Form>
+                  </DialogContent>
+                </Dialog>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {deductionsLoading ? (
+                <div className="space-y-4">
+                  {[...Array(5)].map((_, i) => (
+                    <div key={i} className="animate-pulse flex space-x-4">
+                      <div className="rounded bg-gray-200 h-8 w-32"></div>
+                      <div className="flex-1 space-y-2 py-1">
+                        <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                        <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : deductions && deductions.length > 0 ? (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Type</TableHead>
+                      <TableHead>Value</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {deductions.map((deduction) => (
+                      <TableRow key={deduction.id}>
+                        <TableCell className="font-medium">{deduction.name}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="capitalize">
+                            {deduction.type}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          {deduction.type === 'percentage' ? `${deduction.value}%` : `₦${parseFloat(deduction.value).toLocaleString()}`}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={deduction.is_active ? 'default' : 'secondary'}>
+                            {deduction.is_active ? 'Active' : 'Inactive'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex space-x-2">
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => {
+                                    setSelectedDeduction(deduction);
+                                    setShowEditDeductionModal(true);
+                                  }}
+                                >
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Edit deduction</p>
+                              </TooltipContent>
+                            </Tooltip>
+                            <AlertDialog>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <AlertDialogTrigger asChild>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="text-red-600 hover:text-red-700"
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  </AlertDialogTrigger>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>Delete deduction</p>
+                                </TooltipContent>
+                              </Tooltip>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Delete Deduction</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Are you sure you want to delete "{deduction.name}"? This action cannot be undone.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={() => deleteDeductionMutation.mutate(deduction.id)}
+                                    className="bg-red-600 hover:bg-red-700"
+                                  >
+                                    Delete
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              ) : (
+                <div className="text-center py-8 text-gray-500">
+                  <Minus className="mx-auto h-12 w-12 text-gray-300 mb-4" />
+                  <p>No deductions configured</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
 
         {/* Users Tab */}
         <TabsContent value="users">
@@ -480,29 +898,21 @@ export default function Settings() {
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
                 <CardTitle className="flex items-center space-x-2">
                   <Users className="h-5 w-5" />
-                  <span>User Management</span>
+                  <span>System Users</span>
                 </CardTitle>
-                <div className="w-full sm:w-auto">
-                  <Dialog open={showAddUserModal} onOpenChange={setShowAddUserModal}>
+                <Dialog open={showAddUserModal} onOpenChange={setShowAddUserModal}>
                   <DialogTrigger asChild>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button className="w-full sm:w-auto bg-nigeria-green hover:bg-green-700">
-                          <Plus className="mr-2 h-4 w-4" />
-                          Add User
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>Create a new user account</p>
-                      </TooltipContent>
-                    </Tooltip>
+                    <Button className="bg-nigeria-green hover:bg-green-700">
+                      <Plus className="mr-2 h-4 w-4" />
+                      Add User
+                    </Button>
                   </DialogTrigger>
                   <DialogContent>
                     <DialogHeader>
                       <DialogTitle>Add New User</DialogTitle>
                     </DialogHeader>
                     <Form {...userForm}>
-                      <form onSubmit={userForm.handleSubmit((data) => createUserMutation.mutate(data))} className="space-y-4">
+                      <form onSubmit={userForm.handleSubmit(onSubmitUser)} className="space-y-4">
                         <FormField
                           control={userForm.control}
                           name="email"
@@ -510,7 +920,7 @@ export default function Settings() {
                             <FormItem>
                               <FormLabel>Email</FormLabel>
                               <FormControl>
-                                <Input type="email" {...field} />
+                                <Input type="email" {...field} placeholder="user@jsc.gov.ng" />
                               </FormControl>
                               <FormMessage />
                             </FormItem>
@@ -542,10 +952,18 @@ export default function Settings() {
                         />
 
                         <div className="flex justify-end space-x-2 pt-4">
-                          <Button type="button" variant="outline" onClick={() => setShowAddUserModal(false)}>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => setShowAddUserModal(false)}
+                          >
                             Cancel
                           </Button>
-                          <Button type="submit" disabled={createUserMutation.isPending}>
+                          <Button
+                            type="submit"
+                            disabled={createUserMutation.isPending}
+                            className="bg-nigeria-green hover:bg-green-700"
+                          >
                             {createUserMutation.isPending ? (
                               <>
                                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -560,23 +978,22 @@ export default function Settings() {
                     </Form>
                   </DialogContent>
                 </Dialog>
-                </div>
               </div>
             </CardHeader>
             <CardContent>
               {usersLoading ? (
                 <div className="space-y-4">
-                  {[...Array(3)].map((_, i) => (
+                  {[...Array(5)].map((_, i) => (
                     <div key={i} className="animate-pulse flex space-x-4">
-                      <div className="rounded-full bg-gray-200 h-10 w-10"></div>
+                      <div className="rounded bg-gray-200 h-8 w-48"></div>
                       <div className="flex-1 space-y-2 py-1">
                         <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-                        <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+                        <div className="h-3 bg-gray-200 rounded w-1/2"></div>
                       </div>
                     </div>
                   ))}
                 </div>
-              ) : (
+              ) : users && users.length > 0 ? (
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -587,7 +1004,7 @@ export default function Settings() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {users?.map((user) => (
+                    {users.map((user) => (
                       <TableRow key={user.id}>
                         <TableCell className="font-medium">{user.email}</TableCell>
                         <TableCell>
@@ -595,76 +1012,37 @@ export default function Settings() {
                             {formatRole(user.role)}
                           </Badge>
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="text-sm text-gray-500">
                           {new Date(user.created_at).toLocaleDateString()}
                         </TableCell>
                         <TableCell>
-                          <div className="flex space-x-2">
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button 
-                                  variant="ghost" 
-                                  size="sm"
-                                  onClick={() => {
-                                    setSelectedUser(user);
-                                    setShowEditUserModal(true);
-                                  }}
-                                >
-                                  <Edit className="h-4 w-4" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>Edit user details</p>
-                              </TooltipContent>
-                            </Tooltip>
-                            <AlertDialog>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <AlertDialogTrigger asChild>
-                                    <Button 
-                                      variant="ghost" 
-                                      size="sm" 
-                                      className="text-red-600"
-                                      disabled={user.id === user?.id} // Disable delete for current user
-                                    >
-                                      <Trash2 className="h-4 w-4" />
-                                    </Button>
-                                  </AlertDialogTrigger>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>Delete user account</p>
-                                </TooltipContent>
-                              </Tooltip>
-                              <AlertDialogContent>
-                                <AlertDialogHeader>
-                                  <AlertDialogTitle>Delete User</AlertDialogTitle>
-                                  <AlertDialogDescription>
-                                    Are you sure you want to delete this user? This action cannot be undone.
-                                    {user.id === user?.id && (
-                                      <div className="mt-2 text-red-600 font-medium">
-                                        Note: You cannot delete your own account.
-                                      </div>
-                                    )}
-                                  </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                  <AlertDialogAction
-                                    onClick={() => deleteUserMutation.mutate(user.id)}
-                                    className="bg-red-600 hover:bg-red-700"
-                                    disabled={user.id === user?.id}
-                                  >
-                                    Delete
-                                  </AlertDialogAction>
-                                </AlertDialogFooter>
-                              </AlertDialogContent>
-                            </AlertDialog>
-                          </div>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  setSelectedUser(user);
+                                  setShowEditUserModal(true);
+                                }}
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Edit user</p>
+                            </TooltipContent>
+                          </Tooltip>
                         </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
                 </Table>
+              ) : (
+                <div className="text-center py-8 text-gray-500">
+                  <Users className="mx-auto h-12 w-12 text-gray-300 mb-4" />
+                  <p>No users found</p>
+                </div>
               )}
             </CardContent>
           </Card>
@@ -679,567 +1057,9 @@ export default function Settings() {
         <TabsContent value="leave">
           <LeaveTypesSettings />
         </TabsContent>
-
-        {/* Allowances Tab */}
-        <TabsContent value="allowances">
-          <Card>
-            <CardHeader>
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
-                <CardTitle className="flex items-center space-x-2">
-                  <DollarSign className="h-5 w-5" />
-                  <span>Allowance Rules</span>
-                </CardTitle>
-                <div className="w-full sm:w-auto">
-                  <Dialog open={showAddAllowanceModal} onOpenChange={setShowAddAllowanceModal}>
-                  <DialogTrigger asChild>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button className="w-full sm:w-auto bg-nigeria-green hover:bg-green-700">
-                          <Plus className="mr-2 h-4 w-4" />
-                          Add Allowance
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>Create a new allowance rule</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>Add New Allowance</DialogTitle>
-                    </DialogHeader>
-                    <Form {...allowanceForm}>
-                      <form onSubmit={allowanceForm.handleSubmit((data) => createAllowanceMutation.mutate(data))} className="space-y-4">
-                        <FormField
-                          control={allowanceForm.control}
-                          name="name"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Allowance Name</FormLabel>
-                              <FormControl>
-                                <Input {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-
-                        <FormField
-                          control={allowanceForm.control}
-                          name="type"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Type</FormLabel>
-                              <Select onValueChange={field.onChange} value={field.value}>
-                                <FormControl>
-                                  <SelectTrigger>
-                                    <SelectValue />
-                                  </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                  <SelectItem value="percentage">Percentage</SelectItem>
-                                  <SelectItem value="fixed">Fixed Amount</SelectItem>
-                                </SelectContent>
-                              </Select>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-
-                        <FormField
-                          control={allowanceForm.control}
-                          name="value"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Value</FormLabel>
-                              <FormControl>
-                                <Input 
-                                  type="number" 
-                                  step="0.01"
-                                  {...field}
-                                  onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-
-                        <div className="flex justify-end space-x-2 pt-4">
-                          <Button type="button" variant="outline" onClick={() => setShowAddAllowanceModal(false)}>
-                            Cancel
-                          </Button>
-                          <Button type="submit" disabled={createAllowanceMutation.isPending}>
-                            {createAllowanceMutation.isPending ? (
-                              <>
-                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                Creating...
-                              </>
-                            ) : (
-                              'Create Allowance'
-                            )}
-                          </Button>
-                        </div>
-                      </form>
-                    </Form>
-                  </DialogContent>
-                </Dialog>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {allowancesLoading ? (
-                <div className="space-y-4">
-                  {[...Array(3)].map((_, i) => (
-                    <div key={i} className="animate-pulse flex space-x-4">
-                      <div className="rounded-full bg-gray-200 h-10 w-10"></div>
-                      <div className="flex-1 space-y-2 py-1">
-                        <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-                        <div className="h-4 bg-gray-200 rounded w-1/2"></div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Name</TableHead>
-                      <TableHead>Type</TableHead>
-                      <TableHead>Value</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {allowances?.map((allowance) => (
-                      <TableRow key={allowance.id}>
-                        <TableCell className="font-medium">{allowance.name}</TableCell>
-                        <TableCell>
-                          <Badge variant="outline">
-                            {allowance.type === 'percentage' ? 'Percentage' : 'Fixed Amount'}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          {allowance.type === 'percentage' ? `${allowance.value}%` : `₦${Number(allowance.value).toLocaleString()}`}
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant={allowance.is_active ? 'default' : 'secondary'}>
-                            {allowance.is_active ? 'Active' : 'Inactive'}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex space-x-2">
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button 
-                                  variant="ghost" 
-                                  size="sm"
-                                  onClick={() => {
-                                    setSelectedAllowance(allowance);
-                                    setShowEditAllowanceModal(true);
-                                  }}
-                                >
-                                  <Edit className="h-4 w-4" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>Edit allowance rule</p>
-                              </TooltipContent>
-                            </Tooltip>
-                            <AlertDialog>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <AlertDialogTrigger asChild>
-                                    <Button variant="ghost" size="sm" className="text-red-600">
-                                      <Trash2 className="h-4 w-4" />
-                                    </Button>
-                                  </AlertDialogTrigger>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>Delete allowance rule</p>
-                                </TooltipContent>
-                              </Tooltip>
-                              <AlertDialogContent>
-                                <AlertDialogHeader>
-                                  <AlertDialogTitle>Delete Allowance</AlertDialogTitle>
-                                  <AlertDialogDescription>
-                                    Are you sure you want to delete this allowance? This action cannot be undone.
-                                  </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                  <AlertDialogAction
-                                    onClick={() => deleteAllowanceMutation.mutate(allowance.id)}
-                                    className="bg-red-600 hover:bg-red-700"
-                                  >
-                                    Delete
-                                  </AlertDialogAction>
-                                </AlertDialogFooter>
-                              </AlertDialogContent>
-                            </AlertDialog>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Deductions Tab */}
-        <TabsContent value="deductions">
-          <Card>
-            <CardHeader>
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
-                <CardTitle className="flex items-center space-x-2">
-                  <DollarSign className="h-5 w-5" />
-                  <span>Deduction Rules</span>
-                </CardTitle>
-                <div className="w-full sm:w-auto">
-                  <Dialog open={showAddDeductionModal} onOpenChange={setShowAddDeductionModal}>
-                  <DialogTrigger asChild>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button className="w-full sm:w-auto bg-nigeria-green hover:bg-green-700">
-                          <Plus className="mr-2 h-4 w-4" />
-                          Add Deduction
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>Create a new deduction rule</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>Add New Deduction</DialogTitle>
-                    </DialogHeader>
-                    <Form {...deductionForm}>
-                      <form onSubmit={deductionForm.handleSubmit((data) => createDeductionMutation.mutate(data))} className="space-y-4">
-                        <FormField
-                          control={deductionForm.control}
-                          name="name"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Deduction Name</FormLabel>
-                              <FormControl>
-                                <Input {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-
-                        <FormField
-                          control={deductionForm.control}
-                          name="type"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Type</FormLabel>
-                              <Select onValueChange={field.onChange} value={field.value}>
-                                <FormControl>
-                                  <SelectTrigger>
-                                    <SelectValue />
-                                  </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                  <SelectItem value="percentage">Percentage</SelectItem>
-                                  <SelectItem value="fixed">Fixed Amount</SelectItem>
-                                </SelectContent>
-                              </Select>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-
-                        <FormField
-                          control={deductionForm.control}
-                          name="value"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Value</FormLabel>
-                              <FormControl>
-                                <Input 
-                                  type="number" 
-                                  step="0.01"
-                                  {...field}
-                                  onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-
-                        <div className="flex justify-end space-x-2 pt-4">
-                          <Button type="button" variant="outline" onClick={() => setShowAddDeductionModal(false)}>
-                            Cancel
-                          </Button>
-                          <Button type="submit" disabled={createDeductionMutation.isPending}>
-                            {createDeductionMutation.isPending ? (
-                              <>
-                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                Creating...
-                              </>
-                            ) : (
-                              'Create Deduction'
-                            )}
-                          </Button>
-                        </div>
-                      </form>
-                    </Form>
-                  </DialogContent>
-                </Dialog>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {deductionsLoading ? (
-                <div className="space-y-4">
-                  {[...Array(3)].map((_, i) => (
-                    <div key={i} className="animate-pulse flex space-x-4">
-                      <div className="rounded-full bg-gray-200 h-10 w-10"></div>
-                      <div className="flex-1 space-y-2 py-1">
-                        <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-                        <div className="h-4 bg-gray-200 rounded w-1/2"></div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Name</TableHead>
-                      <TableHead>Type</TableHead>
-                      <TableHead>Value</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {deductions?.map((deduction) => (
-                      <TableRow key={deduction.id}>
-                        <TableCell className="font-medium">{deduction.name}</TableCell>
-                        <TableCell>
-                          <Badge variant="outline">
-                            {deduction.type === 'percentage' ? 'Percentage' : 'Fixed Amount'}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          {deduction.type === 'percentage' ? `${deduction.value}%` : `₦${Number(deduction.value).toLocaleString()}`}
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant={deduction.is_active ? 'default' : 'secondary'}>
-                            {deduction.is_active ? 'Active' : 'Inactive'}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex space-x-2">
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button 
-                                  variant="ghost" 
-                                  size="sm"
-                                  onClick={() => {
-                                    setSelectedDeduction(deduction);
-                                    setShowEditDeductionModal(true);
-                                  }}
-                                >
-                                  <Edit className="h-4 w-4" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>Edit deduction rule</p>
-                              </TooltipContent>
-                            </Tooltip>
-                            <AlertDialog>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <AlertDialogTrigger asChild>
-                                    <Button variant="ghost" size="sm" className="text-red-600">
-                                      <Trash2 className="h-4 w-4" />
-                                    </Button>
-                                  </AlertDialogTrigger>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>Delete deduction rule</p>
-                                </TooltipContent>
-                              </Tooltip>
-                              <AlertDialogContent>
-                                <AlertDialogHeader>
-                                  <AlertDialogTitle>Delete Deduction</AlertDialogTitle>
-                                  <AlertDialogDescription>
-                                    Are you sure you want to delete this deduction? This action cannot be undone.
-                                  </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                  <AlertDialogAction
-                                    onClick={() => deleteDeductionMutation.mutate(deduction.id)}
-                                    className="bg-red-600 hover:bg-red-700"
-                                  >
-                                    Delete
-                                  </AlertDialogAction>
-                                </AlertDialogFooter>
-                              </AlertDialogContent>
-                            </AlertDialog>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* Audit Report Tab */}
-        <TabsContent value="audit">
-          <AuditReport />
-        </TabsContent>
-
-        {/* System Tab */}
-        <TabsContent value="system">
-          <div className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <SettingsIcon className="h-5 w-5" />
-                  <span>System Configuration</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <Label>Organization Name</Label>
-                    <Input defaultValue="Judicial Service Committee" />
-                  </div>
-                  <div>
-                    <Label>System Email</Label>
-                    <Input defaultValue="system@jsc.gov.ng" />
-                  </div>
-                  <div>
-                    <Label>Default Currency</Label>
-                    <Select defaultValue="NGN">
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="NGN">Nigerian Naira (₦)</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label>Payroll Frequency</Label>
-                    <Select defaultValue="monthly">
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="monthly">Monthly</SelectItem>
-                        <SelectItem value="bi-weekly">Bi-weekly</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <Shield className="h-5 w-5" />
-                  <span>Security Settings</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label>Require Two-Factor Authentication</Label>
-                    <p className="text-sm text-gray-600">Enforce 2FA for all admin users</p>
-                  </div>
-                  <Switch />
-                </div>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label>Session Timeout</Label>
-                    <p className="text-sm text-gray-600">Auto-logout after inactivity</p>
-                  </div>
-                  <Select defaultValue="8">
-                    <SelectTrigger className="w-32">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="1">1 hour</SelectItem>
-                      <SelectItem value="4">4 hours</SelectItem>
-                      <SelectItem value="8">8 hours</SelectItem>
-                      <SelectItem value="24">24 hours</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label>Audit Logging</Label>
-                    <p className="text-sm text-gray-600">Log all system activities</p>
-                  </div>
-                  <Switch defaultChecked />
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center space-x-2">
-                  <Database className="h-5 w-5" />
-                  <span>Database Maintenance</span>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label>Last Backup</Label>
-                    <p className="text-sm text-gray-600">Database backup status</p>
-                  </div>
-                  <Badge variant="default">Today, 2:00 AM</Badge>
-                </div>
-                <div className="flex space-x-2">
-                  <Button variant="outline">
-                    <Database className="mr-2 h-4 w-4" />
-                    Backup Now
-                  </Button>
-                  <Button variant="outline">
-                    <Database className="mr-2 h-4 w-4" />
-                    View Logs
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </TabsContent>
       </Tabs>
 
-      {/* Edit User Modal */}
-      {selectedUser && (
-        <EditUserModal
-          open={showEditUserModal}
-          onClose={() => {
-            setShowEditUserModal(false);
-            setSelectedUser(null);
-          }}
-          user={selectedUser}
-          onSuccess={() => {
-            setShowEditUserModal(false);
-            setSelectedUser(null);
-          }}
-        />
-      )}
-
-      {/* Edit Allowance Modal */}
+      {/* Edit Modals */}
       {selectedAllowance && (
         <EditAllowanceModal
           open={showEditAllowanceModal}
@@ -1255,7 +1075,6 @@ export default function Settings() {
         />
       )}
 
-      {/* Edit Deduction Modal */}
       {selectedDeduction && (
         <EditDeductionModal
           open={showEditDeductionModal}
@@ -1267,6 +1086,21 @@ export default function Settings() {
           onSuccess={() => {
             setShowEditDeductionModal(false);
             setSelectedDeduction(null);
+          }}
+        />
+      )}
+
+      {selectedUser && (
+        <EditUserModal
+          open={showEditUserModal}
+          onClose={() => {
+            setShowEditUserModal(false);
+            setSelectedUser(null);
+          }}
+          user={selectedUser}
+          onSuccess={() => {
+            setShowEditUserModal(false);
+            setSelectedUser(null);
           }}
         />
       )}

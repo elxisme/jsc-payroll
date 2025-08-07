@@ -94,6 +94,11 @@ export default function ResetPasswordPage() {
         title: "Success",
         description: "Password updated successfully",
       });
+      
+      // Redirect to login after a short delay
+      setTimeout(() => {
+        setLocation('/');
+      }, 2000);
     } catch (error: any) {
       toast({
         title: "Error",

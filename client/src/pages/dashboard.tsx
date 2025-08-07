@@ -8,6 +8,7 @@ import { formatDisplayCurrency } from '@/lib/currency-utils';
 import { AddStaffModal } from '@/pages/staff/add-staff-modal';
 import { BulkImportStaffModal } from '@/pages/staff/bulk-import-staff-modal';
 import { generateStaffReportPDF } from '@/lib/pdf-generator';
+import { generatePayrollSummaryPDF } from '@/lib/pdf-generator';
 import { PayrollDetailsModal } from '@/components/payroll-details-modal';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -246,6 +247,74 @@ export default function Dashboard() {
     }
   };
 
+  // Handle payroll report download
+  const handleDownloadPayrollReport = async (payrollRun: any) => {
+    try {
+      // Fetch detailed payroll data for the report
+      const { data: payslips, error: payslipsError } = await supabase
+        .from('payslips')
+        .select(`
+          *,
+          staff (
+            staff_id,
+            first_name,
+            last_name,
+            departments!staff_department_id_fkey (
+              name
+            )
+          )
+        `)
+        .eq('payroll_run_id', payrollRun.id);
+
+      if (payslipsError) throw payslipsError;
+
+      // Calculate summary statistics
+      const totalStaff = payslips?.length || 0;
+      const grossAmount = payslips?.reduce((sum, p) => sum + parseFloat(p.gross_pay || '0'), 0) || 0;
+      const totalDeductions = payslips?.reduce((sum, p) => sum + parseFloat(p.total_deductions || '0'), 0) || 0;
+      const netAmount = payslips?.reduce((sum, p) => sum + parseFloat(p.net_pay || '0'), 0) || 0;
+
+      // Department breakdown
+      const departmentBreakdown = payslips?.reduce((acc, payslip) => {
+        const deptName = payslip.staff?.departments?.name || 'Unassigned';
+        if (!acc[deptName]) {
+          acc[deptName] = {
+            name: deptName,
+            staffCount: 0,
+            grossAmount: 0,
+            netAmount: 0,
+          };
+        }
+        acc[deptName].staffCount += 1;
+        acc[deptName].grossAmount += parseFloat(payslip.gross_pay || '0');
+        acc[deptName].netAmount += parseFloat(payslip.net_pay || '0');
+        return acc;
+      }, {} as Record<string, any>) || {};
+
+      const summaryData = {
+        totalStaff,
+        grossAmount,
+        totalDeductions,
+        netAmount,
+        departments: Object.values(departmentBreakdown),
+      };
+
+      await generatePayrollSummaryPDF(summaryData, payrollRun.period);
+      
+      toast({
+        title: "Success",
+        description: "Payroll summary report downloaded successfully",
+      });
+    } catch (error) {
+      console.error('Error generating payroll report:', error);
+      toast({
+        title: "Error",
+        description: "Failed to generate payroll report",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Dashboard Header */}
@@ -426,7 +495,12 @@ export default function Dashboard() {
                             </Tooltip>
                             <Tooltip>
                               <TooltipTrigger asChild>
-                                <Button variant="ghost" size="sm">
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm"
+                                  onClick={() => handleDownloadPayrollReport(payroll)}
+                                  className="text-nigeria-green hover:text-green-700"
+                                >
                                   <Download size={16} />
                                 </Button>
                               </TooltipTrigger>

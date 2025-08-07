@@ -35,7 +35,7 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
-import { Calendar, Plus, Edit, Loader2 } from 'lucide-react';
+import { Calendar, Plus, Edit, Loader2, Users } from 'lucide-react';
 
 const leaveTypeSchema = z.object({
   name: z.string().min(1, 'Name is required'),
