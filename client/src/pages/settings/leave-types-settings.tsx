@@ -92,6 +92,7 @@ function EditLeaveTypeModal({ open, onClose, leaveType, onSuccess }: EditLeaveTy
 
   const updateLeaveTypeMutation = useMutation({
     mutationFn: async (data: LeaveTypeFormData) => {
+      if (!leaveType?.id) throw new Error("Leave type ID is missing");
       await updateLeaveType(leaveType.id, data);
     },
     onSuccess: () => {
@@ -121,7 +122,7 @@ function EditLeaveTypeModal({ open, onClose, leaveType, onSuccess }: EditLeaveTy
   };
 
   return (
-    <Dialog open={open} onOpenChange={handleClose}>
+    <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-md max-h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>Edit Leave Type</DialogTitle>
@@ -183,7 +184,7 @@ function EditLeaveTypeModal({ open, onClose, leaveType, onSuccess }: EditLeaveTy
                         <Input
                           type="number"
                           {...field}
-                          onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                          onChange={(e) => field.onChange(parseInt(e.target.value, 10) || 0)}
                         />
                       </FormControl>
                       <FormMessage />
@@ -322,25 +323,20 @@ export function LeaveTypesSettings() {
     },
   });
 
-  // Fetch leave types
   const { data: leaveTypes, isLoading } = useQuery({
     queryKey: ['leave-types'],
     queryFn: getActiveLeaveTypes,
   });
 
-  // Create leave type mutation
   const createLeaveTypeMutation = useMutation({
-    mutationFn: async (data: LeaveTypeFormData) => {
-      await createLeaveType(data);
-    },
+    mutationFn: createLeaveType,
     onSuccess: () => {
       toast({
         title: 'Success',
         description: 'Leave type created successfully',
       });
       queryClient.invalidateQueries({ queryKey: ['leave-types'] });
-      form.reset();
-      setShowAddModal(false);
+      setShowAddModal(false); // Close modal on success
     },
     onError: (error: any) => {
       toast({
@@ -353,6 +349,17 @@ export function LeaveTypesSettings() {
 
   const onSubmit = (data: LeaveTypeFormData) => {
     createLeaveTypeMutation.mutate(data);
+  };
+
+  // **FIXED**: Define handleClose for the "Add" dialog
+  const handleCloseAddModal = () => {
+    form.reset();
+    setShowAddModal(false);
+  };
+
+  const handleOpenAddModal = () => {
+    form.reset();
+    setShowAddModal(true);
   };
 
   return (
@@ -369,7 +376,7 @@ export function LeaveTypesSettings() {
                 <DialogTrigger asChild>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <Button className="w-full sm:w-auto bg-nigeria-green hover:bg-green-700">
+                      <Button onClick={handleOpenAddModal} className="w-full sm:w-auto bg-nigeria-green hover:bg-green-700">
                         <Plus className="mr-2 h-4 w-4" />
                         Add Leave Type
                       </Button>
@@ -440,7 +447,7 @@ export function LeaveTypesSettings() {
                                   <Input
                                     type="number"
                                     {...field}
-                                    onChange={(e) => field.onChange(parseInt(e.target.value) || 0)}
+                                    onChange={(e) => field.onChange(parseInt(e.target.value, 10) || 0)}
                                   />
                                 </FormControl>
                                 <FormMessage />
@@ -532,7 +539,7 @@ export function LeaveTypesSettings() {
                         />
 
                         <div className="flex justify-end space-x-2 pt-4 border-t bg-white sticky bottom-0">
-                          <Button type="button" variant="outline" onClick={handleClose}>
+                          <Button type="button" variant="outline" onClick={handleCloseAddModal}>
                             Cancel
                           </Button>
                           <Button
@@ -642,7 +649,6 @@ export function LeaveTypesSettings() {
         </CardContent>
       </Card>
 
-      {/* Edit Leave Type Modal */}
       {selectedLeaveType && (
         <EditLeaveTypeModal
           open={showEditModal}
