@@ -40,36 +40,6 @@ import {
 const PayslipDetailsModal = ({ payslip, staffProfile, onClose }: { payslip: any, staffProfile: any, onClose: () => void }) => {
   if (!payslip) return null;
 
-  // --- FIX STARTS HERE ---
-  // Safely parse earnings and deductions from JSON strings to arrays.
-  // This prevents the ".map is not a function" error if the data is a string.
-  let earnings = [];
-  try {
-    // Check if it's a string before parsing. If it's already an array, use it directly.
-    if (typeof payslip.earnings === 'string') {
-      earnings = JSON.parse(payslip.earnings);
-    } else if (Array.isArray(payslip.earnings)) {
-      earnings = payslip.earnings;
-    }
-  } catch (error) {
-    console.error("Could not parse earnings:", error);
-    // earnings remains an empty array if parsing fails
-  }
-
-  let deductions = [];
-  try {
-    // Check if it's a string before parsing.
-    if (typeof payslip.deductions === 'string') {
-      deductions = JSON.parse(payslip.deductions);
-    } else if (Array.isArray(payslip.deductions)) {
-      deductions = payslip.deductions;
-    }
-  } catch (error) {
-    console.error("Could not parse deductions:", error);
-    // deductions remains an empty array if parsing fails
-  }
-  // --- FIX ENDS HERE ---
-
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
       <Card className="w-full max-w-2xl bg-white relative max-h-[90vh] overflow-y-auto">
@@ -92,8 +62,7 @@ const PayslipDetailsModal = ({ payslip, staffProfile, onClose }: { payslip: any,
             <div>
               <h4 className="font-bold mb-2 border-b pb-1 text-green-700">Earnings</h4>
               <div className="space-y-1 text-sm">
-                {/* Use the safely parsed 'earnings' array */}
-                {earnings.map((item: any, index: number) => (
+                {payslip.earnings?.map((item: any, index: number) => (
                   <div key={index} className="flex justify-between">
                     <span>{item.name}</span>
                     <span>{formatDetailCurrency(item.amount)}</span>
@@ -110,8 +79,7 @@ const PayslipDetailsModal = ({ payslip, staffProfile, onClose }: { payslip: any,
             <div>
               <h4 className="font-bold mb-2 border-b pb-1 text-red-700">Deductions</h4>
               <div className="space-y-1 text-sm">
-                {/* Use the safely parsed 'deductions' array */}
-                {deductions.map((item: any, index: number) => (
+                {payslip.deductions?.map((item: any, index: number) => (
                   <div key={index} className="flex justify-between">
                     <span>{item.name}</span>
                     <span>({formatDetailCurrency(item.amount)})</span>
@@ -149,6 +117,7 @@ const formatPeriod = (period: string) => {
 export default function StaffPortal() {
   const { user } = useAuth();
   const { toast } = useToast();
+  // SOLUTION: State for managing the payslip modal
   const [selectedPayslip, setSelectedPayslip] = React.useState<any>(null);
 
   // Fetch staff profile
@@ -250,6 +219,7 @@ export default function StaffPortal() {
       </div>
 
       <Tabs defaultValue="overview" className="space-y-6">
+        {/* SOLUTION: Added color depth and hover effects to tabs */}
         <TabsList className="grid w-full grid-cols-2 bg-gray-200 p-1 rounded-lg">
           <TabsTrigger 
             value="overview" 
@@ -278,12 +248,14 @@ export default function StaffPortal() {
                       <div className="h-4 bg-gray-200 rounded w-1/2 mx-auto"></div>
                     </div>
                   ) : staffProfile ? (
+                    // SOLUTION: Adjusted padding and text sizes for responsiveness
                     <div className="bg-gradient-to-br from-nigeria-green to-green-600 rounded-xl p-4 md:p-6 text-white">
                       <div className="flex flex-col items-center text-center space-y-3">
                         <div className="h-16 w-16 md:h-20 md:w-20 bg-white bg-opacity-20 rounded-full flex items-center justify-center">
                           <span className="text-xl md:text-2xl font-bold">{getInitials()}</span>
                         </div>
                         <div className="min-w-0">
+                          {/* SOLUTION: Responsive font size for name */}
                           <h4 className="text-lg md:text-xl font-bold truncate" title={getFullName()}>{getFullName()}</h4>
                           <p className="text-green-100 text-sm">{staffProfile.staff_id}</p>
                           <p className="text-green-100 text-sm">{staffProfile.position}</p>
@@ -353,6 +325,7 @@ export default function StaffPortal() {
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="text-sm font-medium text-gray-600">Latest Net Pay</p>
+                        {/* SOLUTION: Added scaling class */}
                         <p className="text-2xl font-bold text-gray-900 transform scale-95 origin-left">
                           {latestPayslip ? formatDisplayCurrency(latestPayslip.net_pay || 0) : '---'}
                         </p>
@@ -369,6 +342,7 @@ export default function StaffPortal() {
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="text-sm font-medium text-gray-600">Average Salary</p>
+                        {/* SOLUTION: Added scaling class */}
                         <p className="text-2xl font-bold text-gray-900 transform scale-95 origin-left">
                           {formatDisplayCurrency(averageSalary)}
                         </p>
@@ -438,12 +412,15 @@ export default function StaffPortal() {
                                 <span>{formatPeriod(payslip.period)}</span>
                               </div>
                             </TableCell>
+                            {/* SOLUTION: Added scaling class */}
                             <TableCell className="font-medium text-right min-w-fit whitespace-nowrap transform scale-95 origin-right">
                               {formatDisplayCurrency(payslip.gross_pay || 0)}
                             </TableCell>
+                            {/* SOLUTION: Added scaling class */}
                             <TableCell className="text-red-600 text-right min-w-fit whitespace-nowrap transform scale-95 origin-right">
                               -{formatDisplayCurrency(payslip.total_deductions || 0)}
                             </TableCell>
+                            {/* SOLUTION: Added scaling class */}
                             <TableCell className="font-bold text-green-600 text-right min-w-fit whitespace-nowrap transform scale-95 origin-right">
                               {formatDisplayCurrency(payslip.net_pay || 0)}
                             </TableCell>
@@ -451,6 +428,7 @@ export default function StaffPortal() {
                               <div className="flex space-x-2 justify-center">
                                 <UiTooltip>
                                   <TooltipTrigger asChild>
+                                    {/* SOLUTION: onClick now opens the modal */}
                                     <Button 
                                       variant="ghost" 
                                       size="icon"
@@ -562,6 +540,7 @@ export default function StaffPortal() {
         </TabsContent>
       </Tabs>
 
+      {/* SOLUTION: Render the modal when a payslip is selected */}
       {selectedPayslip && (
         <PayslipDetailsModal
           payslip={selectedPayslip}
