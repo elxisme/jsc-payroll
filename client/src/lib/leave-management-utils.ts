@@ -411,9 +411,10 @@ export async function checkLeaveBalance(
     .single();
 
   if (error) {
-    // If no balance record exists, throw the error to be handled by the calling code
+    // If no balance record exists, initialize it
     if (error.code === 'PGRST116') {
-      throw new Error('LEAVE_BALANCE_NOT_FOUND');
+      await initializeStaffLeaveBalances(staffId);
+      return { hasBalance: false, availableDays: 0, message: 'Leave balance initialized. Please try again.' };
     }
     throw error;
   }
