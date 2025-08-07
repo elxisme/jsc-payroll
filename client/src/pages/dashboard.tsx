@@ -54,11 +54,11 @@ export default function Dashboard() {
     queryKey: ['dashboard-stats'],
     queryFn: async () => {
       console.log('Fetching dashboard stats...');
-      const [staffCount, payrollData, pendingApprovals, departmentCount, leaveStats] = await Promise.all([
+      // REMOVED departmentCount from Promise.all
+      const [staffCount, payrollData, pendingApprovals, leaveStats] = await Promise.all([
         supabase.from('staff').select('id', { count: 'exact' }).eq('status', 'active'),
         supabase.from('payroll_runs').select('gross_amount, net_amount').eq('status', 'processed').order('created_at', { ascending: false }).limit(1),
         supabase.from('payroll_runs').select('id', { count: 'exact' }).eq('status', 'pending_review'),
-        supabase.from('departments').select('id', { count: 'exact' }),
         getLeaveStatistics(),
       ]);
 
@@ -66,14 +66,13 @@ export default function Dashboard() {
         totalStaff: staffCount.count,
         monthlyPayroll: payrollData.data?.[0]?.gross_amount,
         pendingApprovals: pendingApprovals.count,
-        departments: departmentCount.count,
         leaveStats,
       });
       return {
         totalStaff: staffCount.count || 0,
         monthlyPayroll: payrollData.data?.[0]?.gross_amount || '0',
         pendingApprovals: pendingApprovals.count || 0,
-        departments: departmentCount.count || 0,
+        // REMOVED departments from returned object
         pendingLeaveRequests: leaveStats.totalPendingRequests || 0,
         staffOnLeave: leaveStats.totalStaffOnLeave || 0,
       };
@@ -260,7 +259,8 @@ export default function Dashboard() {
       </div>
 
       {/* Stats Cards - Mobile First Responsive Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 sm:gap-6">
+      {/* UPDATED: Changed grid to be mobile-first and have 3 columns on large screens */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
         {/* Total Staff */}
         <Card>
           <CardContent className="p-4 sm:p-6">
@@ -346,25 +346,7 @@ export default function Dashboard() {
           </Card>
         )}
 
-        {/* Departments */}
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Active Departments</p>
-                <p className="text-3xl font-bold text-gray-900">
-                  {statsLoading ? '...' : stats?.departments}
-                </p>
-                <p className="text-sm text-gray-500 mt-1">
-                  System wide
-                </p>
-              </div>
-              <div className="h-12 w-12 bg-purple-100 rounded-lg flex items-center justify-center">
-                <Building className="text-purple-600" size={24} />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        {/* REMOVED: Departments Card */}
       </div>
 
       {/*
