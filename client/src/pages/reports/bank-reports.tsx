@@ -86,18 +86,18 @@ export default function BankReports() {
   });
 
   // Get unique banks - FIXED: Only show banks from filtered data
-  const uniqueBanks = React.useMemo(() => {
-    if (!bankTransfers) return [];
-    
-    // Get all unique banks from the database when 'all' is selected
-    if (selectedBank === 'all') {
-      const banks = Array.from(new Set(bankTransfers.map(t => t.staff?.bank_name).filter(Boolean));
-      return banks.sort();
-    }
-    
-    // When a specific bank is selected, only show that bank
-    return [selectedBank];
-  }, [bankTransfers, selectedBank]);
+const uniqueBanks = React.useMemo(() => {
+  if (!bankTransfers) return [];
+  
+  // Get all unique banks from the database when 'all' is selected
+  if (selectedBank === 'all') {
+    const banks = Array.from(new Set(bankTransfers.map(t => t.staff?.bank_name).filter(Boolean)));
+    return banks.sort();
+  }
+  
+  // When a specific bank is selected, only show that bank
+  return [selectedBank];
+}, [bankTransfers, selectedBank]);
 
   // Calculate totals - FIXED: Only calculate for filtered data
   const totals = React.useMemo(() => {
