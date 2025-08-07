@@ -22,7 +22,6 @@ import {
   Home,
   Users,
   Building2,
-  FileText,
   LogOut,
   Bell,
   User,
