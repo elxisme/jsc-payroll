@@ -23,8 +23,6 @@ import {
   Users,
   Building2,
   FileText,
-  BarChart3,
-  Settings,
   LogOut,
   Bell,
   User,
