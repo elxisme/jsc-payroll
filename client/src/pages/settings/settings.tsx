@@ -50,6 +50,7 @@ import { EditUserModal } from './edit-user-modal';
 import { EditAllowanceModal } from './edit-allowance-modal';
 import { EditDeductionModal } from './edit-deduction-modal';
 import { SalaryStructureSettings } from './salary-structure-settings';
+import { LeaveTypesSettings } from './leave-types-settings';
 import { AuditReport } from './audit-report';
 import {
   AlertDialog,
@@ -467,6 +468,7 @@ export default function Settings() {
           <TabsTrigger value="salary">Salary Structure</TabsTrigger>
           <TabsTrigger value="allowances">Allowances</TabsTrigger>
           <TabsTrigger value="deductions">Deductions</TabsTrigger>
+          <TabsTrigger value="leave">Leave Types</TabsTrigger>
           <TabsTrigger value="audit">Audit Report</TabsTrigger>
           <TabsTrigger value="system">System</TabsTrigger>
         </TabsList>
@@ -671,6 +673,11 @@ export default function Settings() {
         {/* Salary Structure Tab */}
         <TabsContent value="salary">
           <SalaryStructureSettings />
+        </TabsContent>
+
+        {/* Leave Types Tab */}
+        <TabsContent value="leave">
+          <LeaveTypesSettings />
         </TabsContent>
 
         {/* Allowances Tab */}

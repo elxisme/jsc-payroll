@@ -20,6 +20,7 @@ import { generatePayslipPDF } from '@/lib/pdf-generator';
 import { useToast } from '@/hooks/use-toast';
 // The Tooltip from recharts can now be imported without conflict
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { LeaveManagement } from './leave-management';
 import { 
   Download, 
   Eye, 
@@ -141,7 +142,14 @@ export default function StaffPortal() {
         <p className="text-gray-600">Your personal dashboard and salary information</p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <Tabs defaultValue="overview" className="space-y-6">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="leave">Leave Management</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="overview">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Profile Overview */}
         <div className="lg:col-span-1">
           <Card>
@@ -448,7 +456,13 @@ export default function StaffPortal() {
             </CardContent>
           </Card>
         </div>
-      </div>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="leave">
+          <LeaveManagement />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

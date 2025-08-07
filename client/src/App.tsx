@@ -22,6 +22,7 @@ import BankReports from "@/pages/reports/bank-reports";
 import Notifications from "@/pages/notifications/notifications";
 import Settings from "@/pages/settings/settings";
 import ProfileSettings from "@/pages/settings/profile-settings";
+import LeaveApprovalWorkflow from "@/pages/leave/leave-approval-workflow";
 import StaffPortal from "@/pages/staff-portal/staff-portal";
 import NotFound from "@/pages/not-found";
 
@@ -128,6 +129,18 @@ function AppContent() {
           <ResponsiveLayout>
             <AuthGuard roles={['super_admin', 'account_admin', 'payroll_admin', 'staff']}>
               <Payslips />
+            </AuthGuard>
+          </ResponsiveLayout>
+        ) : (
+          <Redirect to="/" />
+        )}
+      </Route>
+      
+      <Route path="/leave/approval">
+        {user ? (
+          <ResponsiveLayout>
+            <AuthGuard roles={['super_admin', 'account_admin', 'payroll_admin']}>
+              <LeaveApprovalWorkflow />
             </AuthGuard>
           </ResponsiveLayout>
         ) : (

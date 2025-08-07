@@ -242,3 +242,79 @@ export type InsertStaffIndividualAllowance = z.infer<typeof insertStaffIndividua
 
 export type StaffIndividualDeduction = typeof staffIndividualDeductions.$inferSelect;
 export type InsertStaffIndividualDeduction = z.infer<typeof insertStaffIndividualDeductionSchema>;
+
+// Leave Types table
+export const leaveTypes = pgTable("leave_types", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  code: text("code").notNull().unique(),
+  description: text("description"),
+  isPaid: boolean("is_paid").notNull().default(true),
+  maxDaysPerYear: integer("max_days_per_year").notNull().default(30),
+  accrualRate: decimal("accrual_rate", { precision: 5, scale: 2 }).notNull().default("2.5"),
+  requiresApproval: boolean("requires_approval").notNull().default(true),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Leave Requests table
+export const leaveRequests = pgTable("leave_requests", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  staffId: uuid("staff_id").notNull().references(() => staff.id, { onDelete: "cascade" }),
+  leaveTypeId: uuid("leave_type_id").notNull().references(() => leaveTypes.id),
+  startDate: timestamp("start_date").notNull(),
+  endDate: timestamp("end_date").notNull(),
+  totalDays: integer("total_days").notNull(),
+  reason: text("reason").notNull(),
+  status: text("status").notNull().default("pending"), // pending, approved, rejected, cancelled
+  requestedBy: uuid("requested_by").references(() => users.id),
+  approvedBy: uuid("approved_by").references(() => users.id),
+  approvalComments: text("approval_comments"),
+  approvedAt: timestamp("approved_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Staff Leave Balances table
+export const staffLeaveBalances = pgTable("staff_leave_balances", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  staffId: uuid("staff_id").notNull().references(() => staff.id, { onDelete: "cascade" }),
+  leaveTypeId: uuid("leave_type_id").notNull().references(() => leaveTypes.id),
+  year: integer("year").notNull(),
+  accruedDays: decimal("accrued_days", { precision: 5, scale: 2 }).notNull().default("0"),
+  usedDays: decimal("used_days", { precision: 5, scale: 2 }).notNull().default("0"),
+  remainingDays: decimal("remaining_days", { precision: 5, scale: 2 }).notNull().default("0"),
+  carriedForward: decimal("carried_forward", { precision: 5, scale: 2 }).notNull().default("0"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Insert schemas for leave management
+export const insertLeaveTypeSchema = createInsertSchema(leaveTypes).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertLeaveRequestSchema = createInsertSchema(leaveRequests).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertStaffLeaveBalanceSchema = createInsertSchema(staffLeaveBalances).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+// Types for leave management
+export type LeaveType = typeof leaveTypes.$inferSelect;
+export type InsertLeaveType = z.infer<typeof insertLeaveTypeSchema>;
+
+export type LeaveRequest = typeof leaveRequests.$inferSelect;
+export type InsertLeaveRequest = z.infer<typeof insertLeaveRequestSchema>;
+
+export type StaffLeaveBalance = typeof staffLeaveBalances.$inferSelect;
+export type InsertStaffLeaveBalance = z.infer<typeof insertStaffLeaveBalanceSchema>;

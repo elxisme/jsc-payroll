@@ -5,6 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { supabase } from '@/lib/supabase';
 import { logStaffEvent } from '@/lib/audit-logger';
+import { initializeStaffLeaveBalances } from '@/lib/leave-management-utils';
 import {
   Dialog,
   DialogContent,
@@ -176,6 +177,9 @@ export function AddStaffModal({ open, onClose, onSuccess }: AddStaffModalProps) 
       if (error) throw error;
       
       await logStaffEvent('created', staff.id, null, staffData);
+      
+      // Initialize leave balances for the new staff member
+      await initializeStaffLeaveBalances(staff.id);
       
       await supabase
         .from('notifications')

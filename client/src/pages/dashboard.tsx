@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/use-auth';
 import { useRealtime } from '@/hooks/use-realtime';
 import { supabase } from '@/lib/supabase';
+import { getLeaveStatistics } from '@/lib/leave-management-utils';
 import { formatDisplayCurrency } from '@/lib/currency-utils';
 import { AddStaffModal } from '@/pages/staff/add-staff-modal';
 import { BulkImportStaffModal } from '@/pages/staff/bulk-import-staff-modal';
@@ -19,6 +20,7 @@ import {
   DollarSign,
   Clock,
   Building,
+  Calendar,
   ArrowUp,
   ArrowDown,
   Eye,
@@ -52,11 +54,12 @@ export default function Dashboard() {
     queryKey: ['dashboard-stats'],
     queryFn: async () => {
       console.log('Fetching dashboard stats...');
-      const [staffCount, payrollData, pendingApprovals, departmentCount] = await Promise.all([
+      const [staffCount, payrollData, pendingApprovals, departmentCount, leaveStats] = await Promise.all([
         supabase.from('staff').select('id', { count: 'exact' }).eq('status', 'active'),
         supabase.from('payroll_runs').select('gross_amount, net_amount').eq('status', 'processed').order('created_at', { ascending: false }).limit(1),
         supabase.from('payroll_runs').select('id', { count: 'exact' }).eq('status', 'pending_review'),
         supabase.from('departments').select('id', { count: 'exact' }),
+        getLeaveStatistics(),
       ]);
 
       console.log('Dashboard stats result:', {
@@ -64,12 +67,15 @@ export default function Dashboard() {
         monthlyPayroll: payrollData.data?.[0]?.gross_amount,
         pendingApprovals: pendingApprovals.count,
         departments: departmentCount.count,
+        leaveStats,
       });
       return {
         totalStaff: staffCount.count || 0,
         monthlyPayroll: payrollData.data?.[0]?.gross_amount || '0',
         pendingApprovals: pendingApprovals.count || 0,
         departments: departmentCount.count || 0,
+        pendingLeaveRequests: leaveStats.totalPendingRequests || 0,
+        staffOnLeave: leaveStats.totalStaffOnLeave || 0,
       };
     },
     enabled: !!user,
@@ -254,7 +260,7 @@ export default function Dashboard() {
       </div>
 
       {/* Stats Cards - Mobile First Responsive Grid */}
-      <div className="grid grid-responsive-4 gap-4 sm:gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 sm:gap-6">
         {/* Total Staff */}
         <Card>
           <CardContent className="p-4 sm:p-6">
@@ -316,6 +322,29 @@ export default function Dashboard() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Pending Leave Requests */}
+        {hasRole(['super_admin', 'account_admin', 'payroll_admin']) && (
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Leave Requests</p>
+                  <p className="text-3xl font-bold text-gray-900">
+                    {statsLoading ? '...' : stats?.pendingLeaveRequests}
+                  </p>
+                  <p className="text-sm text-blue-600 mt-1 flex items-center">
+                    <Calendar className="h-3 w-3 mr-1" />
+                    Pending approval
+                  </p>
+                </div>
+                <div className="h-12 w-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                  <Calendar className="text-blue-600" size={24} />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Departments */}
         <Card>

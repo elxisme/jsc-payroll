@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { getLeaveRequestsForPayrollPeriod } from './leave-management-utils';
 
 export interface PayrollInputs {
   staffId: string;
@@ -10,6 +11,7 @@ export interface PayrollInputs {
   bonus?: number;
   loans?: number;
   cooperatives?: number;
+  unpaidLeaveDays?: number;
   individualAllowances?: Array<{
     type: string;
     amount: number;
@@ -36,6 +38,8 @@ export interface PayrollResult {
   arrears: number;
   overtime: number;
   bonus: number;
+  unpaidLeaveDays: number;
+  unpaidLeaveDeduction: number;
 }
 
 export interface AllowanceRule {
@@ -305,6 +309,12 @@ export async function calculateStaffPayroll(inputs: PayrollInputs): Promise<Payr
   const arrears = inputs.arrears || 0;
   const overtime = inputs.overtime || 0;
   const bonus = inputs.bonus || 0;
+  const unpaidLeaveDays = inputs.unpaidLeaveDays || 0;
+  
+  // Calculate unpaid leave deduction (pro-rated daily salary)
+  const dailySalary = basicSalary / 30; // Assuming 30 working days per month
+  const unpaidLeaveDeduction = unpaidLeaveDays * dailySalary;
+  
   const grossPay = basicSalary + totalAllowances + totalIndividualAllowances + arrears + overtime + bonus;
   
   // Calculate deductions
@@ -315,6 +325,11 @@ export async function calculateStaffPayroll(inputs: PayrollInputs): Promise<Payr
     inputs.loans,
     inputs.cooperatives
   );
+  
+  // Add unpaid leave deduction
+  if (unpaidLeaveDeduction > 0) {
+    deductionsBreakdown['unpaid_leave'] = unpaidLeaveDeduction;
+  }
   
   // Calculate individual deductions breakdown
   const individualDeductionsBreakdown: Record<string, number> = {};
@@ -344,6 +359,8 @@ export async function calculateStaffPayroll(inputs: PayrollInputs): Promise<Payr
     arrears,
     overtime,
     bonus,
+    unpaidLeaveDays,
+    unpaidLeaveDeduction,
   };
 }
 
@@ -439,8 +456,25 @@ export async function processPayrollRun(
   period: string,
   staffInputs: PayrollInputs[]
 ): Promise<void> {
+  // Get leave requests that affect this payroll period
+  const leaveRequests = await getLeaveRequestsForPayrollPeriod(period);
+  
+  // Create a map of staff ID to unpaid leave days
+  const unpaidLeaveDaysMap: Record<string, number> = {};
+  leaveRequests.forEach(request => {
+    if (!request.isPaid && request.staff?.id) {
+      unpaidLeaveDaysMap[request.staff.id] = (unpaidLeaveDaysMap[request.staff.id] || 0) + request.daysInPeriod;
+    }
+  });
+  
+  // Add unpaid leave days to staff inputs
+  const enhancedStaffInputs = staffInputs.map(input => ({
+    ...input,
+    unpaidLeaveDays: unpaidLeaveDaysMap[input.staffId] || 0,
+  }));
+  
   // Calculate payroll for all staff
-  const payrollResults = await calculateBulkPayroll(staffInputs);
+  const payrollResults = await calculateBulkPayroll(enhancedStaffInputs);
   
   // Create payslip records
   const payslips = payrollResults.map(result => ({

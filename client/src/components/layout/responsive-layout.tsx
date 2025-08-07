@@ -42,6 +42,7 @@ const navigation = [
   { name: 'Payroll Workflow', href: '/payroll/workflow', icon: CreditCard, roles: ['super_admin', 'account_admin', 'payroll_admin'] },
   { name: 'Individual Adjustments', href: '/payroll/adjustments', icon: CreditCard, roles: ['super_admin', 'payroll_admin'] },
   { name: 'Payslips', href: '/payslips', icon: FileText, roles: ['super_admin', 'account_admin', 'payroll_admin', 'staff'] },
+  { name: 'Leave Approval', href: '/leave/approval', icon: Calendar, roles: ['super_admin', 'account_admin', 'payroll_admin'] },
   { name: 'Reports', href: '/reports', icon: BarChart3, roles: ['super_admin', 'account_admin'] },
   { name: 'Settings', href: '/settings', icon: Settings, roles: ['super_admin'] },
 ];
