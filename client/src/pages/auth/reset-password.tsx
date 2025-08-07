@@ -20,15 +20,27 @@ export default function ResetPasswordPage() {
 
   // Check if we have the necessary tokens in the URL
   useEffect(() => {
+    // Supabase puts auth tokens in the URL hash, not query params
+    const hashParams = new URLSearchParams(window.location.hash.substring(1));
     const urlParams = new URLSearchParams(window.location.search);
+    
+    // Check both hash and query params for tokens
     const accessToken = urlParams.get('access_token');
     const refreshToken = urlParams.get('refresh_token');
+    const hashAccessToken = hashParams.get('access_token');
+    const hashRefreshToken = hashParams.get('refresh_token');
     
-    if (!accessToken || !refreshToken) {
+    if ((!accessToken || !refreshToken) && (!hashAccessToken || !hashRefreshToken)) {
       toast({
         title: "Invalid Reset Link",
         description: "This password reset link is invalid or has expired",
         variant: "destructive",
+      });
+    } else if (hashAccessToken && hashRefreshToken) {
+      // If tokens are in hash, set the session
+      supabase.auth.setSession({
+        access_token: hashAccessToken,
+        refresh_token: hashRefreshToken,
       });
     }
   }, [toast]);

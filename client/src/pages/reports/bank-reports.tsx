@@ -53,7 +53,7 @@ export default function BankReports() {
         .from('payslips')
         .select(`
           *,
-          staff (
+          staff!inner (
             staff_id,
             first_name,
             last_name,
@@ -67,17 +67,14 @@ export default function BankReports() {
           )
         `)
         .eq('period', selectedPeriod)
-        // FIX: Use dot notation to specify the related table for filters
         .not('staff.bank_name', 'is', null)
         .not('staff.account_number', 'is', null);
 
       if (selectedBank !== 'all') {
-        // FIX: Use dot notation here as well
         query = query.eq('staff.bank_name', selectedBank);
       }
 
-      // This part was already correct from the previous fix, but is kept for completeness
-      const { data, error } = await query.order('bank_name', { referencedTable: 'staff', ascending: true });
+      const { data, error } = await query.order('staff(bank_name)', { ascending: true });
       
       if (error) {
         console.error("Supabase request failed", error);
