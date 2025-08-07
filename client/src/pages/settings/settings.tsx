@@ -407,13 +407,18 @@ export default function Settings() {
       </div>
 
       <Tabs defaultValue="allowances" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-2 lg:grid-cols-5">
-          <TabsTrigger value="allowances">Allowances</TabsTrigger>
-          <TabsTrigger value="deductions">Deductions</TabsTrigger>
-          <TabsTrigger value="users">Users</TabsTrigger>
-          <TabsTrigger value="salary">Salary Structure</TabsTrigger>
-          <TabsTrigger value="leave">Leave Types</TabsTrigger>
-        </TabsList>
+        {/* === OPTIMIZATION START === */}
+        {/* Replaced grid with a flex container that allows horizontal scrolling on small screens */}
+        <div className="w-full overflow-x-auto">
+          <TabsList className="inline-flex h-auto min-w-full sm:min-w-fit sm:w-full sm:grid sm:grid-cols-5">
+            <TabsTrigger value="allowances">Allowances</TabsTrigger>
+            <TabsTrigger value="deductions">Deductions</TabsTrigger>
+            <TabsTrigger value="users">Users</TabsTrigger>
+            <TabsTrigger value="salary">Salary Structure</TabsTrigger>
+            <TabsTrigger value="leave">Leave Types</TabsTrigger>
+          </TabsList>
+        </div>
+        {/* === OPTIMIZATION END === */}
 
         {/* Allowances Tab */}
         <TabsContent value="allowances">
@@ -938,7 +943,7 @@ export default function Settings() {
                                   <SelectTrigger>
                                     <SelectValue />
                                   </SelectTrigger>
-                                </FormControl>
+                                                                </FormControl>
                                 <SelectContent>
                                   <SelectItem value="staff">Staff</SelectItem>
                                   <SelectItem value="payroll_admin">Payroll Admin</SelectItem>
