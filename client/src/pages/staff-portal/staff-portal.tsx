@@ -16,6 +16,13 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+// **SOLUTION**: Import the Tabs components from the UI library
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
 import { generatePayslipPDF } from '@/lib/pdf-generator';
 import { useToast } from '@/hooks/use-toast';
 // The Tooltip from recharts can now be imported without conflict
