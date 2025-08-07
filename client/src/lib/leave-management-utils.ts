@@ -399,34 +399,51 @@ export async function checkLeaveBalance(
   leaveTypeId: string,
   requestedDays: number,
   year?: number
-): Promise<{ hasBalance: boolean; availableDays: number; message?: string }> {
+): Promise<{ hasBalance: boolean; message?: string }> {
   const currentYear = year || new Date().getFullYear();
+
+  // First, check if the leave type is paid. Unpaid leave doesn't need a balance check.
+  const { data: leaveType, error: leaveTypeError } = await supabase
+    .from('leave_types')
+    .select('is_paid, name')
+    .eq('id', leaveTypeId)
+    .single();
+
+  if (leaveTypeError) {
+    // This error is critical and should be thrown
+    throw new Error('Could not verify the leave type.');
+  }
+
+  if (!leaveType.is_paid) {
+    return { hasBalance: true, message: 'Sufficient balance.' };
+  }
   
-  const { data, error } = await supabase
+  // **FIX**: Use .maybeSingle() to safely fetch the balance.
+  // This returns `null` instead of throwing an error if no row is found.
+  const { data: balance, error } = await supabase
     .from('staff_leave_balances')
     .select('remaining_days')
     .eq('staff_id', staffId)
     .eq('leave_type_id', leaveTypeId)
     .eq('year', currentYear)
-    .single();
+    .maybeSingle();
 
+  // Handle actual database errors, but not the "0 rows" case
   if (error) {
-    // If no balance record exists, throw the error to be handled by the calling code
-    if (error.code === 'PGRST116') {
-      throw new Error('LEAVE_BALANCE_NOT_FOUND');
-    }
     throw error;
   }
 
-  const availableDays = parseFloat(data.remaining_days);
-  const hasBalance = availableDays >= requestedDays;
+  // If balance is null (no record) or the balance is insufficient
+  if (!balance || parseFloat(balance.remaining_days) < requestedDays) {
+    // This specific error code will be caught by the calling component
+    const customError: any = new Error('Insufficient leave balance.');
+    customError.code = 'PGRST116'; // Simulate the error code for consistent handling
+    throw customError;
+  }
 
-  return {
-    hasBalance,
-    availableDays,
-    message: hasBalance ? undefined : `Insufficient leave balance. Available: ${availableDays} days, Requested: ${requestedDays} days`,
-  };
+  return { hasBalance: true, message: 'Sufficient balance.' };
 }
+
 
 /**
  * Cancel a leave request (only if pending)
