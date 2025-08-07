@@ -43,13 +43,12 @@ export default function BankReports() {
     },
   });
 
-  // FIX: New query to fetch all unique banks for the selected period
+  // Query to fetch all unique banks for the selected period
   const { data: uniqueBanks } = useQuery({
     queryKey: ['unique-banks', selectedPeriod],
     queryFn: async () => {
       if (!selectedPeriod) return [];
       
-      // Fetch payslips and related staff data just to get unique bank names
       const { data, error } = await supabase
         .from('payslips')
         .select('staff(bank_name)')
@@ -61,11 +60,10 @@ export default function BankReports() {
         throw error;
       }
 
-      // Use a Set to get unique, non-null bank names
       const banks = Array.from(new Set(data.map(p => p.staff?.bank_name).filter(Boolean as any)));
       return banks.sort();
     },
-    enabled: !!selectedPeriod, // Only run this query when a period is selected
+    enabled: !!selectedPeriod,
   });
 
   // Fetch bank transfer data based on selected period and bank
@@ -78,7 +76,7 @@ export default function BankReports() {
         .from('payslips')
         .select(`
           id,
-          net_pay,
+          net_pay, /* <--- FIX: Restored the net_pay field */
           period,
           staff (
             staff_id,
@@ -97,7 +95,6 @@ export default function BankReports() {
         .not('staff.bank_name', 'is', null)
         .not('staff.account_number', 'is', null);
 
-      // Apply bank filter if a specific bank is selected
       if (selectedBank !== 'all') {
         query = query.eq('staff.bank_name', selectedBank);
       }
@@ -235,7 +232,7 @@ export default function BankReports() {
               </label>
               <Select value={selectedPeriod} onValueChange={(value) => {
                 setSelectedPeriod(value);
-                setSelectedBank('all'); // Reset bank filter when period changes
+                setSelectedBank('all');
               }}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select pay period" />
