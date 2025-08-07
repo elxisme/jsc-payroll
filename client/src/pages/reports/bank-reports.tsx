@@ -21,7 +21,7 @@ import {
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { exportToBankCSV, exportToBankExcel } from '@/lib/export-utils';
-import { Download, University, FileSpreadsheet, FileText, Calendar, DollarSign, Loader2 } from 'lucide-react';
+import { Download, University, FileSpreadsheet, FileText, Calendar, DollarSign } from 'lucide-react';
 
 export default function BankReports() {
   const [selectedPeriod, setSelectedPeriod] = useState('');
@@ -43,30 +43,7 @@ export default function BankReports() {
     },
   });
 
-  // Query to fetch all unique banks for the selected period
-  const { data: uniqueBanks } = useQuery({
-    queryKey: ['unique-banks', selectedPeriod],
-    queryFn: async () => {
-      if (!selectedPeriod) return [];
-      
-      const { data, error } = await supabase
-        .from('payslips')
-        .select('staff(bank_name)')
-        .eq('period', selectedPeriod)
-        .not('staff.bank_name', 'is', null);
-
-      if (error) {
-        console.error("Failed to fetch unique banks:", error);
-        throw error;
-      }
-
-      const banks = Array.from(new Set(data.map(p => p.staff?.bank_name).filter(Boolean as any)));
-      return banks.sort();
-    },
-    enabled: !!selectedPeriod,
-  });
-
-  // Fetch bank transfer data based on selected period and bank
+  // Fetch bank transfer data
   const { data: bankTransfers, isLoading } = useQuery({
     queryKey: ['bank-transfers', selectedPeriod, selectedBank],
     queryFn: async () => {
@@ -75,9 +52,7 @@ export default function BankReports() {
       let query = supabase
         .from('payslips')
         .select(`
-          id,
-          net_pay, /* <--- FIX: Restored the net_pay field */
-          period,
+          *,
           staff (
             staff_id,
             first_name,
@@ -85,7 +60,7 @@ export default function BankReports() {
             bank_name,
             account_number,
             account_name,
-            departments (
+            departments!staff_department_id_fkey (
               name,
               code
             )
@@ -110,7 +85,21 @@ export default function BankReports() {
     enabled: !!selectedPeriod,
   });
 
-  // Calculate totals based on the (potentially filtered) bankTransfers
+  // Get unique banks - FIXED: Only show banks from filtered data
+  const uniqueBanks = React.useMemo(() => {
+    if (!bankTransfers) return [];
+    
+    // Get all unique banks from the database when 'all' is selected
+    if (selectedBank === 'all') {
+      const banks = Array.from(new Set(bankTransfers.map(t => t.staff?.bank_name).filter(Boolean));
+      return banks.sort();
+    }
+    
+    // When a specific bank is selected, only show that bank
+    return [selectedBank];
+  }, [bankTransfers, selectedBank]);
+
+  // Calculate totals - FIXED: Only calculate for filtered data
   const totals = React.useMemo(() => {
     if (!bankTransfers) return { totalAmount: 0, totalStaff: 0 };
     
@@ -127,12 +116,13 @@ export default function BankReports() {
     return new Intl.NumberFormat('en-NG', {
       style: 'currency',
       currency: 'NGN',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
     }).format(num);
   };
 
   // Format period display
   const formatPeriod = (period: string) => {
-    if (!period) return '';
     const [year, month] = period.split('-');
     const date = new Date(parseInt(year), parseInt(month) - 1);
     return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long' });
@@ -140,24 +130,61 @@ export default function BankReports() {
 
   // Get bank codes (simplified mapping)
   const getBankCode = (bankName: string) => {
-    if (!bankName) return '000';
     const bankCodes: Record<string, string> = {
-      'access bank': '044',
-      'guaranty trust bank': '058',
-      'first bank of nigeria': '011',
-      'zenith bank': '057',
-      'united bank for africa': '033',
-      'fidelity bank': '070',
-      'union bank of nigeria': '032',
+      'access': '044',
+      'gtb': '058',
+      'firstbank': '011',
+      'zenith': '057',
+      'uba': '033',
+      'fidelity': '070',
+      'union': '032',
     };
     return bankCodes[bankName.toLowerCase()] || '000';
   };
 
-  const handleExport = async (exportFn: Function, format: 'CSV' | 'Excel') => {
+  const handleExportCSV = async () => {
     if (!bankTransfers?.length) {
       toast({
-        title: 'No Data',
-        description: 'There is no data to export.',
+        title: 'Error',
+        description: 'No data to export',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    try {
+      const exportData = bankTransfers.map(transfer => ({
+        staffId: transfer.staff?.staff_id || '',
+        staffName: `${transfer.staff?.first_name || ''} ${transfer.staff?.last_name || ''}`.trim(),
+        accountNumber: transfer.staff?.account_number || '',
+        accountName: transfer.staff?.account_name || '',
+        bankName: transfer.staff?.bank_name || '',
+        bankCode: getBankCode(transfer.staff?.bank_name || ''),
+        amount: parseFloat(transfer.net_pay || '0'),
+        department: transfer.staff?.departments?.name || '',
+        period: transfer.period,
+      }));
+
+      await exportToBankCSV(exportData, `bank_transfers_${selectedPeriod}.csv`);
+      
+      toast({
+        title: 'Success',
+        description: 'Bank transfer CSV exported successfully',
+      });
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to export CSV file',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleExportExcel = async () => {
+    if (!bankTransfers?.length) {
+      toast({
+        title: 'Error',
+        description: 'No data to export',
         variant: 'destructive',
       });
       return;
@@ -176,17 +203,16 @@ export default function BankReports() {
         'Period': formatPeriod(transfer.period),
       }));
 
-      const filename = `bank_transfers_${selectedPeriod}_${selectedBank}.${format === 'CSV' ? 'csv' : 'xlsx'}`;
-      await exportFn(exportData, filename);
+      await exportToBankExcel(exportData, `bank_transfers_${selectedPeriod}.xlsx`);
       
       toast({
-        title: 'Export Successful',
-        description: `Bank transfer ${format} file has been generated.`,
+        title: 'Success',
+        description: 'Bank transfer Excel file exported successfully',
       });
     } catch (error) {
       toast({
-        title: 'Export Error',
-        description: `Failed to export the ${format} file.`,
+        title: 'Error',
+        description: 'Failed to export Excel file',
         variant: 'destructive',
       });
     }
@@ -204,15 +230,15 @@ export default function BankReports() {
             <Button
               variant="outline"
               className="w-full sm:w-auto"
-              onClick={() => handleExport(exportToBankCSV, 'CSV')}
-              disabled={!bankTransfers?.length || isLoading}
+              onClick={handleExportCSV}
+              disabled={!bankTransfers?.length}
             >
               <FileText className="mr-2 h-4 w-4" />
               Export CSV
             </Button>
             <Button
-              onClick={() => handleExport(exportToBankExcel, 'Excel')}
-              disabled={!bankTransfers?.length || isLoading}
+              onClick={handleExportExcel}
+              disabled={!bankTransfers?.length}
               className="w-full sm:w-auto bg-nigeria-green hover:bg-green-700"
             >
               <FileSpreadsheet className="mr-2 h-4 w-4" />
@@ -225,15 +251,12 @@ export default function BankReports() {
       {/* Filters */}
       <Card className="mb-6">
         <CardContent className="p-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
+          <div className="flex flex-col md:flex-row gap-4">
+            <div className="flex-1">
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Pay Period
               </label>
-              <Select value={selectedPeriod} onValueChange={(value) => {
-                setSelectedPeriod(value);
-                setSelectedBank('all');
-              }}>
+              <Select value={selectedPeriod} onValueChange={setSelectedPeriod}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select pay period" />
                 </SelectTrigger>
@@ -246,17 +269,17 @@ export default function BankReports() {
                 </SelectContent>
               </Select>
             </div>
-            <div>
+            <div className="flex-1">
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Bank Filter
               </label>
-              <Select value={selectedBank} onValueChange={setSelectedBank} disabled={!selectedPeriod}>
+              <Select value={selectedBank} onValueChange={setSelectedBank}>
                 <SelectTrigger>
                   <SelectValue placeholder="All banks" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Banks</SelectItem>
-                  {uniqueBanks?.map((bank) => (
+                  {uniqueBanks.map((bank) => (
                     <SelectItem key={bank} value={bank}>
                       {bank.toUpperCase()}
                     </SelectItem>
@@ -277,7 +300,7 @@ export default function BankReports() {
                 <div>
                   <p className="text-sm font-medium text-gray-600">Total Amount</p>
                   <p className="text-3xl font-bold text-gray-900">
-                    {isLoading ? <Loader2 className="animate-spin" /> : formatCurrency(totals.totalAmount)}
+                    {formatCurrency(totals.totalAmount)}
                   </p>
                 </div>
                 <div className="h-12 w-12 bg-green-100 rounded-lg flex items-center justify-center">
@@ -286,13 +309,14 @@ export default function BankReports() {
               </div>
             </CardContent>
           </Card>
+
           <Card>
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-gray-600">Total Recipients</p>
                   <p className="text-3xl font-bold text-gray-900">
-                    {isLoading ? <Loader2 className="animate-spin" /> : totals.totalStaff.toLocaleString()}
+                    {totals.totalStaff.toLocaleString()}
                   </p>
                 </div>
                 <div className="h-12 w-12 bg-blue-100 rounded-lg flex items-center justify-center">
@@ -301,13 +325,14 @@ export default function BankReports() {
               </div>
             </CardContent>
           </Card>
+
           <Card>
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-gray-600">Banks Involved</p>
                   <p className="text-3xl font-bold text-gray-900">
-                    {isLoading ? <Loader2 className="animate-spin" /> : (uniqueBanks?.length ?? 0)}
+                    {uniqueBanks.length}
                   </p>
                 </div>
                 <div className="h-12 w-12 bg-purple-100 rounded-lg flex items-center justify-center">
@@ -332,64 +357,74 @@ export default function BankReports() {
         </CardHeader>
         <CardContent>
           {!selectedPeriod ? (
-            <div className="text-center py-12 text-gray-500">
-              <Calendar className="mx-auto h-12 w-12 text-gray-300 mb-4" />
-              <p className="font-medium">Select a pay period to view the report.</p>
+            <div className="text-center py-8 text-gray-500">
+              <div className="h-16 w-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Calendar className="h-8 w-8 text-gray-400" />
+              </div>
+              <p>Select a pay period to view bank transfers</p>
             </div>
           ) : isLoading ? (
-            <div className="flex justify-center items-center py-12">
-              <Loader2 className="h-8 w-8 animate-spin text-nigeria-green" />
+            <div className="space-y-4">
+              {[...Array(5)].map((_, i) => (
+                <div key={i} className="animate-pulse flex space-x-4">
+                  <div className="rounded-full bg-gray-200 h-10 w-10"></div>
+                  <div className="flex-1 space-y-2 py-1">
+                    <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                    <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+                  </div>
+                </div>
+              ))}
             </div>
           ) : bankTransfers && bankTransfers.length > 0 ? (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Staff ID</TableHead>
-                    <TableHead>Staff Name</TableHead>
-                    <TableHead>Bank</TableHead>
-                    <TableHead>Account Number</TableHead>
-                    <TableHead>Account Name</TableHead>
-                    <TableHead>Department</TableHead>
-                    <TableHead className="text-right">Amount</TableHead>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Staff ID</TableHead>
+                  <TableHead>Staff Name</TableHead>
+                  <TableHead>Bank</TableHead>
+                  <TableHead>Account Number</TableHead>
+                  <TableHead>Account Name</TableHead>
+                  <TableHead>Department</TableHead>
+                  <TableHead className="text-right">Amount</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {bankTransfers.map((transfer) => (
+                  <TableRow key={transfer.id}>
+                    <TableCell className="font-medium">
+                      {transfer.staff?.staff_id}
+                    </TableCell>
+                    <TableCell>
+                      {transfer.staff?.first_name} {transfer.staff?.last_name}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center space-x-2">
+                        <University className="h-4 w-4 text-gray-400" />
+                        <span>{transfer.staff?.bank_name?.toUpperCase()}</span>
+                        <Badge variant="outline" className="text-xs">
+                          {getBankCode(transfer.staff?.bank_name || '')}
+                        </Badge>
+                      </div>
+                    </TableCell>
+                    <TableCell className="font-mono">
+                      {transfer.staff?.account_number}
+                    </TableCell>
+                    <TableCell>{transfer.staff?.account_name}</TableCell>
+                    <TableCell>{transfer.staff?.departments?.name}</TableCell>
+                    <TableCell className="text-right font-bold text-green-600 min-w-fit whitespace-nowrap">
+                      {formatCurrency(transfer.net_pay || 0)}
+                    </TableCell>
                   </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {bankTransfers.map((transfer) => (
-                    <TableRow key={transfer.id}>
-                      <TableCell className="font-medium">
-                        {transfer.staff?.staff_id}
-                      </TableCell>
-                      <TableCell>
-                        {transfer.staff?.first_name} {transfer.staff?.last_name}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center space-x-2">
-                          <University className="h-4 w-4 text-gray-400 flex-shrink-0" />
-                          <span className="font-medium">{transfer.staff?.bank_name?.toUpperCase()}</span>
-                          <Badge variant="secondary" className="text-xs">
-                            {getBankCode(transfer.staff?.bank_name || '')}
-                          </Badge>
-                        </div>
-                      </TableCell>
-                      <TableCell className="font-mono">
-                        {transfer.staff?.account_number}
-                      </TableCell>
-                      <TableCell>{transfer.staff?.account_name}</TableCell>
-                      <TableCell>{transfer.staff?.departments?.name}</TableCell>
-                      <TableCell className="text-right font-bold text-green-700">
-                        {formatCurrency(transfer.net_pay || 0)}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+                ))}
+              </TableBody>
+            </Table>
           ) : (
-            <div className="text-center py-12 text-gray-500">
-              <University className="mx-auto h-12 w-12 text-gray-300 mb-4" />
-              <p className="font-medium">No bank transfer data found for the selected criteria.</p>
-              <p className="text-sm">This may be because staff banking information is incomplete for this period.</p>
+            <div className="text-center py-8 text-gray-500">
+              <div className="h-16 w-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <University className="h-8 w-8 text-gray-400" />
+              </div>
+              <p>No bank transfer data found</p>
+              <p className="text-sm">Ensure staff have complete banking information</p>
             </div>
           )}
         </CardContent>
