@@ -1,4 +1,3 @@
-@@ .. @@
  CREATE POLICY "System can insert audit logs" ON audit_logs
    FOR INSERT 
    WITH CHECK (true); -- Allow system to log all actions
