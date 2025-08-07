@@ -111,6 +111,7 @@ const PayslipDetailsModal = ({ payslip, staffProfile, onClose }: { payslip: any,
                 </div>
               </div>
             </div>
+              </Card> 
           </div>
 
           {/* Summary */}
