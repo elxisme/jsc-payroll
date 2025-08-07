@@ -397,9 +397,9 @@ export default function StaffPortal() {
                       <TableHeader>
                         <TableRow>
                           <TableHead>Period</TableHead>
-                          <TableHead className="text-right">Gross Pay</TableHead>
+                          <TableHead className="text-right">Gross</TableHead>
                           <TableHead className="text-right">Deductions</TableHead>
-                          <TableHead className="text-right">Net Pay</TableHead>
+                          <TableHead className="text-right">Net</TableHead>
                           <TableHead className="text-center">Actions</TableHead>
                         </TableRow>
                       </TableHeader>
