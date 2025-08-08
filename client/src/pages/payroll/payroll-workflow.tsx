@@ -259,10 +259,9 @@ export default function PayrollWorkflow() {
       userRole: user?.role, 
       runStatus: run.status, 
       hasRole: hasRole(['account_admin', 'super_admin']),
-      isLocked: isPayrollLocked(run),
-      result: hasRole(['account_admin', 'super_admin']) && run.status === 'pending_review' && !isPayrollLocked(run)
+      result: hasRole(['account_admin', 'super_admin']) && run.status === 'pending_review'
     });
-    return hasRole(['account_admin', 'super_admin']) && run.status === 'pending_review' && !isPayrollLocked(run);
+    return hasRole(['account_admin', 'super_admin']) && run.status === 'pending_review';
   };
 
   const canFinalize = (run: any) => {
@@ -270,14 +269,9 @@ export default function PayrollWorkflow() {
       userRole: user?.role, 
       runStatus: run.status, 
       hasRole: hasRole(['super_admin']),
-      isLocked: isPayrollLocked(run),
-      result: hasRole(['super_admin']) && run.status === 'approved' && !isPayrollLocked(run)
+      result: hasRole(['super_admin']) && run.status === 'approved'
     });
-    return hasRole(['super_admin']) && run.status === 'approved' && !isPayrollLocked(run);
-  };
-
-  const isPayrollLocked = (run: any) => {
-    return run.status === 'processed';
+    return hasRole(['super_admin']) && run.status === 'approved';
   };
 
   return (
@@ -380,13 +374,19 @@ export default function PayrollWorkflow() {
                                   setSelectedRun(run);
                                   setShowApprovalModal(true);
                                 }}
+                                disabled={isPayrollLocked(run)}
                                 className="text-blue-600 hover:text-blue-700"
                               >
                                 <Check className="h-4 w-4" />
                               </Button>
                             </TooltipTrigger>
                             <TooltipContent>
-                              <p>Review and approve payroll</p>
+                              <p>
+                                {isPayrollLocked(run) 
+                                  ? 'Payroll is locked and cannot be modified' 
+                                  : 'Review and approve payroll'
+                                }
+                              </p>
                             </TooltipContent>
                           </Tooltip>
                         )}
@@ -400,13 +400,19 @@ export default function PayrollWorkflow() {
                                   setSelectedRun(run);
                                   finalizePayrollMutation.mutate(run.id);
                                 }}
+                                disabled={isPayrollLocked(run)}
                                 className="text-green-600 hover:text-green-700"
                               >
                                 <CheckCircle className="h-4 w-4" />
                               </Button>
                             </TooltipTrigger>
                             <TooltipContent>
-                              <p>Finalize and process payroll</p>
+                              <p>
+                                {isPayrollLocked(run) 
+                                  ? 'Payroll is already finalized and locked' 
+                                  : 'Finalize and process payroll'
+                                }
+                              </p>
                             </TooltipContent>
                           </Tooltip>
                         )}
@@ -474,7 +480,7 @@ export default function PayrollWorkflow() {
                 <Button
                   variant="outline"
                   onClick={() => approvePayrollMutation.mutate({ runId: selectedRun.id, action: 'reject' })}
-                  disabled={approvePayrollMutation.isPending}
+                  disabled={approvePayrollMutation.isPending || isPayrollLocked(selectedRun) || finalizePayrollMutation.isPending}
                   className="text-red-600 hover:text-red-700"
                 >
                   <X className="mr-2 h-4 w-4" />
@@ -482,7 +488,7 @@ export default function PayrollWorkflow() {
                 </Button>
                 <Button
                   onClick={() => approvePayrollMutation.mutate({ runId: selectedRun.id, action: 'approve' })}
-                  disabled={approvePayrollMutation.isPending}
+                  disabled={approvePayrollMutation.isPending || isPayrollLocked(selectedRun) || finalizePayrollMutation.isPending}
                   className="bg-nigeria-green hover:bg-green-700"
                 >
                   <Check className="mr-2 h-4 w-4" />
