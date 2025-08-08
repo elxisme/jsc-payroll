@@ -410,12 +410,13 @@ export default function Settings() {
         {/* === OPTIMIZATION START === */}
         {/* Replaced grid with a flex container that allows horizontal scrolling on small screens */}
         <div className="w-full overflow-x-auto">
-          <TabsList className="inline-flex h-auto min-w-full sm:min-w-fit sm:w-full sm:grid sm:grid-cols-5">
+          <TabsList className="inline-flex h-auto min-w-full sm:min-w-fit sm:w-full sm:grid sm:grid-cols-6">
             <TabsTrigger value="allowances">Allowances</TabsTrigger>
             <TabsTrigger value="deductions">Deductions</TabsTrigger>
             <TabsTrigger value="users">Users</TabsTrigger>
             <TabsTrigger value="salary">Salary Structure</TabsTrigger>
             <TabsTrigger value="leave">Leave Types</TabsTrigger>
+            <TabsTrigger value="audit">Audit Trail</TabsTrigger>
           </TabsList>
         </div>
         {/* === OPTIMIZATION END === */}
@@ -1061,6 +1062,11 @@ export default function Settings() {
         {/* Leave Types Tab */}
         <TabsContent value="leave">
           <LeaveTypesSettings />
+        </TabsContent>
+
+        {/* Audit Trail Tab */}
+        <TabsContent value="audit">
+          <AuditReport />
         </TabsContent>
       </Tabs>
 
