@@ -449,6 +449,27 @@ export async function calculateBulkPayroll(staffInputs: PayrollInputs[]): Promis
 }
 
 /**
+ * Check if a payroll run is locked (processed) using Supabase RPC
+ */
+export async function isPayrollLockedFrontend(payrollRunId: string): Promise<boolean> {
+  try {
+    const { data, error } = await supabase.rpc('is_payroll_locked', {
+      payroll_run_id: payrollRunId
+    });
+
+    if (error) {
+      console.error('Error checking payroll lock status:', error);
+      return false; // Default to unlocked if error occurs
+    }
+
+    return data || false;
+  } catch (error) {
+    console.error('Error calling is_payroll_locked RPC:', error);
+    return false; // Default to unlocked if error occurs
+  }
+}
+
+/**
  * Process payroll run and generate payslips
  */
 export async function processPayrollRun(

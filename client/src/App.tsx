@@ -50,15 +50,19 @@ function AppContent() {
       
       {/* Login route */}
       <Route path="/">
-        {!user ? <LoginPage /> : <Redirect to="/dashboard" />}
+        {!user ? <LoginPage /> : <Redirect to={user.role === 'staff' ? '/staff-portal' : '/dashboard'} />}
       </Route>
       
       {/* Protected routes (authenticated) */}
       <Route path="/dashboard">
         {user ? (
-          <ResponsiveLayout>
-            <Dashboard />
-          </ResponsiveLayout>
+          user.role === 'staff' ? (
+            <Redirect to="/staff-portal" />
+          ) : (
+            <ResponsiveLayout>
+              <Dashboard />
+            </ResponsiveLayout>
+          )
         ) : (
           <Redirect to="/" />
         )}

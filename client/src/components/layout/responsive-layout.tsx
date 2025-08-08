@@ -31,24 +31,30 @@ interface ResponsiveLayoutProps {
   children: React.ReactNode;
 }
 
-const navigation = [
-  { name: 'Dashboard', href: '/dashboard', icon: Home, roles: ['super_admin', 'account_admin', 'payroll_admin', 'staff'] },
-  { name: 'Staff Management', href: '/staff', icon: Users, roles: ['super_admin'] },
-  { name: 'Departments', href: '/departments', icon: Building2, roles: ['super_admin', 'account_admin', 'payroll_admin'] },
-  { name: 'Payroll', href: '/payroll', icon: CreditCard, roles: ['super_admin', 'account_admin', 'payroll_admin'] },
-  { name: 'Payroll Workflow', href: '/payroll/workflow', icon: CreditCard, roles: ['super_admin', 'account_admin', 'payroll_admin'] },
-  { name: 'Individual Adjustments', href: '/payroll/adjustments', icon: CreditCard, roles: ['super_admin', 'payroll_admin'] },
-  { name: 'Payslips', href: '/payslips', icon: FileText, roles: ['super_admin', 'account_admin', 'payroll_admin', 'staff'] },
-  { name: 'Leave Approval', href: '/leave/approval', icon: Calendar, roles: ['super_admin', 'account_admin', 'payroll_admin'] },
-  { name: 'Reports', href: '/reports', icon: BarChart3, roles: ['super_admin', 'account_admin'] },
-  { name: 'Settings', href: '/settings', icon: Settings, roles: ['super_admin'] },
-];
-
 export function ResponsiveLayout({ children }: ResponsiveLayoutProps) {
   const { user, signOut } = useAuth();
   const [location] = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [hasNewNotifications, setHasNewNotifications] = useState(false);
+
+  // Dynamic navigation based on user role
+  const navigation = React.useMemo(() => {
+    const baseNavigation = [
+      { name: 'Dashboard', href: '/dashboard', icon: Home, roles: ['super_admin', 'account_admin', 'payroll_admin'] },
+      { name: 'Staff Portal', href: '/staff-portal', icon: Home, roles: ['staff'] },
+      { name: 'Staff Management', href: '/staff', icon: Users, roles: ['super_admin'] },
+      { name: 'Departments', href: '/departments', icon: Building2, roles: ['super_admin', 'account_admin', 'payroll_admin'] },
+      { name: 'Payroll', href: '/payroll', icon: CreditCard, roles: ['super_admin', 'account_admin', 'payroll_admin'] },
+      { name: 'Payroll Workflow', href: '/payroll/workflow', icon: CreditCard, roles: ['super_admin', 'account_admin', 'payroll_admin'] },
+      { name: 'Individual Adjustments', href: '/payroll/adjustments', icon: CreditCard, roles: ['super_admin', 'payroll_admin'] },
+      { name: 'Payslips', href: '/payslips', icon: FileText, roles: ['super_admin', 'account_admin', 'payroll_admin', 'staff'] },
+      { name: 'Leave Approval', href: '/leave/approval', icon: Calendar, roles: ['super_admin', 'account_admin', 'payroll_admin'] },
+      { name: 'Reports', href: '/reports', icon: BarChart3, roles: ['super_admin', 'account_admin'] },
+      { name: 'Settings', href: '/settings', icon: Settings, roles: ['super_admin'] },
+    ];
+
+    return baseNavigation;
+  }, []);
 
   // Fetch unread notifications count
   const { data: notificationCount } = useQuery({
@@ -87,6 +93,9 @@ export function ResponsiveLayout({ children }: ResponsiveLayoutProps) {
   const isCurrentPath = (path: string) => {
     // Exact match first
     if (location === path) return true;
+    
+    // Special handling for staff portal as dashboard
+    if (user?.role === 'staff' && path === '/staff-portal' && location === '/dashboard') return true;
     
     // For sub-paths, ensure we don't match parent paths incorrectly
     // e.g., /payroll/workflow should not highlight /payroll

@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase';
 import { formatDisplayCurrency } from '@/lib/currency-utils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { logPayrollEvent } from '@/lib/audit-logger';
+import { isPayrollLockedFrontend } from '@/lib/payroll-calculator';
 import { PayrollDetailsModal } from '@/components/payroll-details-modal';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -272,6 +273,27 @@ export default function PayrollWorkflow() {
       result: hasRole(['super_admin']) && run.status === 'approved'
     });
     return hasRole(['super_admin']) && run.status === 'approved';
+  };
+
+  // Check if payroll is locked (async function)
+  const [lockedPayrolls, setLockedPayrolls] = React.useState<Record<string, boolean>>({});
+
+  // Load lock status for visible payroll runs
+  React.useEffect(() => {
+    if (payrollRuns?.length) {
+      const checkLockStatus = async () => {
+        const lockStatuses: Record<string, boolean> = {};
+        for (const run of payrollRuns) {
+          lockStatuses[run.id] = await isPayrollLockedFrontend(run.id);
+        }
+        setLockedPayrolls(lockStatuses);
+      };
+      checkLockStatus();
+    }
+  }, [payrollRuns]);
+
+  const isPayrollLocked = (run: any) => {
+    return lockedPayrolls[run.id] || false;
   };
 
   return (
