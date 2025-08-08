@@ -259,9 +259,10 @@ export default function PayrollWorkflow() {
       userRole: user?.role, 
       runStatus: run.status, 
       hasRole: hasRole(['account_admin', 'super_admin']),
-      result: hasRole(['account_admin', 'super_admin']) && run.status === 'pending_review'
+      isLocked: isPayrollLocked(run),
+      result: hasRole(['account_admin', 'super_admin']) && run.status === 'pending_review' && !isPayrollLocked(run)
     });
-    return hasRole(['account_admin', 'super_admin']) && run.status === 'pending_review';
+    return hasRole(['account_admin', 'super_admin']) && run.status === 'pending_review' && !isPayrollLocked(run);
   };
 
   const canFinalize = (run: any) => {
@@ -269,9 +270,14 @@ export default function PayrollWorkflow() {
       userRole: user?.role, 
       runStatus: run.status, 
       hasRole: hasRole(['super_admin']),
-      result: hasRole(['super_admin']) && run.status === 'approved'
+      isLocked: isPayrollLocked(run),
+      result: hasRole(['super_admin']) && run.status === 'approved' && !isPayrollLocked(run)
     });
-    return hasRole(['super_admin']) && run.status === 'approved';
+    return hasRole(['super_admin']) && run.status === 'approved' && !isPayrollLocked(run);
+  };
+
+  const isPayrollLocked = (run: any) => {
+    return run.status === 'processed';
   };
 
   return (
