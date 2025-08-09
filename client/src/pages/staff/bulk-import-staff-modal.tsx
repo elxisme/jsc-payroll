@@ -65,6 +65,9 @@ const staffRowSchema = z.object({
     'Account number must be exactly 10 digits'
   ),
   'Account Name': z.string().optional(),
+  'Pension PIN': z.string().optional(),
+  'Tax ID': z.string().optional(),
+  'Next of Kin': z.string().optional(),
 });
 
 type ImportStaffData = z.infer<typeof staffRowSchema>;
