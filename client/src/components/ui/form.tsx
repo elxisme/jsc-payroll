@@ -44,13 +44,20 @@ const FormField = <
 const useFormField = () => {
   const fieldContext = React.useContext(FormFieldContext)
   const itemContext = React.useContext(FormItemContext)
-  const { getFieldState, formState } = useFormContext()
-
-  const fieldState = getFieldState(fieldContext.name, formState)
+  const form = useFormContext()
 
   if (!fieldContext) {
     throw new Error("useFormField should be used within <FormField>")
   }
+
+  // This is the critical check. If form is null, it means the component
+  // is not wrapped in a <Form> provider, which is the root cause of the error.
+  if (!form) {
+    throw new Error("useFormField should be used within a <Form> provider.")
+  }
+
+  const { getFieldState, formState } = form
+  const fieldState = getFieldState(fieldContext.name, formState)
 
   const { id } = itemContext
 
