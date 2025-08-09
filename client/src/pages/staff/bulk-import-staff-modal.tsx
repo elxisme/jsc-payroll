@@ -37,9 +37,12 @@ const staffRowSchema = z.object({
   'Last Name': z.string().min(1, 'Last Name is required'),
   'Middle Name': z.string().optional(),
   'Email': z.string().email('Invalid email format'),
-  'Phone Number': z.string().optional().refine(
-    (val) => !val || /^\+?[\d\s\-\(\)]{10,15}$/.test(val),
-    'Invalid phone number format (10-15 digits)'
+  'Phone Number': z.preprocess(
+    (val) => val === '' || val === null || val === undefined ? '' : String(val),
+    z.string().optional().refine(
+      (val) => !val || /^\+?[\d\s\-\(\)]{10,15}$/.test(val),
+      'Invalid phone number format (10-15 digits)'
+    )
   ),
   'Department Code': z.string().min(1, 'Department Code is required'),
   'Position': z.string().min(1, 'Position is required'),
@@ -51,18 +54,33 @@ const staffRowSchema = z.object({
     (val) => val === '' ? undefined : Number(val),
     z.number().int().min(1, 'Step must be between 1-15').max(15, 'Step must be between 1-15')
   ),
-  'Employment Date': z.string().regex(
-    /^\d{4}-\d{2}-\d{2}$/,
-    'Employment Date must be in YYYY-MM-DD format'
+  'Employment Date': z.preprocess(
+    (val) => {
+      if (val === '' || val === null || val === undefined) return '';
+      // Handle Excel date numbers (days since 1900-01-01)
+      if (typeof val === 'number') {
+        const excelEpoch = new Date(1900, 0, 1);
+        const date = new Date(excelEpoch.getTime() + (val - 2) * 24 * 60 * 60 * 1000);
+        return date.toISOString().split('T')[0];
+      }
+      return String(val);
+    },
+    z.string().regex(
+      /^\d{4}-\d{2}-\d{2}$/,
+      'Employment Date must be in YYYY-MM-DD format'
+    )
   ),
   'Bank Name': z.enum([
     'access', 'zenith', 'gtb', 'firstbank', 'uba', 'fidelity', 'union',
     'stanbic', 'polaris', 'wema', 'sterling', 'unity', 'ecobank', 'keystone',
     'titan', 'globus', 'providus', 'suntrust', 'parallex', 'premium', 'taj', 'jaiz', ''
   ]).optional(),
-  'Account Number': z.string().optional().refine(
-    (val) => !val || /^\d{10}$/.test(val),
-    'Account number must be exactly 10 digits'
+  'Account Number': z.preprocess(
+    (val) => val === '' || val === null || val === undefined ? '' : String(val),
+    z.string().optional().refine(
+      (val) => !val || /^\d{10}$/.test(val),
+      'Account number must be exactly 10 digits'
+    )
   ),
   'Account Name': z.string().optional(),
 });

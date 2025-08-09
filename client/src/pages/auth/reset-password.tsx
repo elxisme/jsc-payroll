@@ -53,6 +53,9 @@ export default function ResetPasswordPage() {
         access_token: hashAccessToken,
         refresh_token: hashRefreshToken,
       });
+      
+      // Clear the URL hash to prevent re-processing tokens
+      window.location.hash = '';
     }
   }, [toast]);
 
