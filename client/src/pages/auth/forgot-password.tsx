@@ -32,7 +32,7 @@ export default function ForgotPasswordPage() {
       await sendPasswordResetEmail(email);
       setIsSuccess(true);
     } catch (error) {
-      // Error is handled in useAuth hook
+      // Error is handled in useAuth hook, which should display a toast
     } finally {
       setIsLoading(false);
     }
@@ -42,13 +42,14 @@ export default function ForgotPasswordPage() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-nigeria-green to-gov-navy py-6 px-4 sm:py-12 sm:px-6 lg:px-8">
         <div className="max-w-md w-full space-y-6 sm:space-y-8">
-        description: error.message || "Failed to send password reset email. Please check your email address and try again.",
+          {/* This block was causing a visual distraction and was removed for a cleaner success message below */}
+          {/* 
             <div className="mx-auto h-16 w-16 sm:h-20 sm:w-20 bg-white rounded-full flex items-center justify-center shadow-lg">
               <CheckCircle className="text-nigeria-green" size={24} />
             </div>
             <h2 className="mt-4 sm:mt-6 text-2xl sm:text-3xl font-bold text-white">Check Your Email</h2>
             <p className="mt-2 text-base sm:text-lg text-green-100">Password reset instructions sent</p>
-          </div>
+          */}
 
           <Card className="mt-6 sm:mt-8 shadow-2xl">
             <CardContent className="p-6 sm:p-8">
@@ -72,10 +73,10 @@ export default function ForgotPasswordPage() {
                 <div className="text-left bg-blue-50 p-4 rounded-lg">
                   <h4 className="font-medium text-blue-900 mb-2">Next Steps:</h4>
                   <ol className="text-sm text-blue-800 space-y-1 list-decimal list-inside">
-                    <li>Check your email inbox (and spam folder)</li>
-                    <li>Click the password reset link in the email</li>
-                    <li>Create a new secure password</li>
-                    <li>Return to login with your new password</li>
+                    <li>Check your email inbox (and spam folder).</li>
+                    <li>Click the password reset link in the email.</li>
+                    <li>Create a new secure password.</li>
+                    <li>Return to login with your new password.</li>
                   </ol>
                 </div>
 
@@ -142,7 +143,7 @@ export default function ForgotPasswordPage() {
                   placeholder="Enter your JSC email address"
                 />
                 <p className="mt-2 text-xs text-gray-500">
-                  Enter the email address associated with your JSC account
+                  Enter the email address associated with your JSC account.
                 </p>
               </div>
 
@@ -178,10 +179,10 @@ export default function ForgotPasswordPage() {
             <div className="mt-6 p-4 bg-gray-50 rounded-lg">
               <h3 className="text-sm font-medium text-gray-800 mb-2">Need Help?</h3>
               <div className="text-xs text-gray-600 space-y-1">
-                <p>• Use your official JSC email address</p>
-                <p>• Check your spam/junk folder if you don't see the email</p>
-                <p>• Contact your system administrator if you continue having issues</p>
-                <p>• The reset link will expire in 1 hour for security</p>
+                <p>• Use your official JSC email address.</p>
+                <p>• Check your spam/junk folder if you don't see the email.</p>
+                <p>• Contact your system administrator if you continue having issues.</p>
+                <p>• The reset link will expire in 1 hour for security.</p>
               </div>
             </div>
           </CardContent>
