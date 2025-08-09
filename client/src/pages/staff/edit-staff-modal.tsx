@@ -42,12 +42,15 @@ const editStaffSchema = z.object({
   gradeLevel: z.number().min(1).max(17),
   step: z.number().min(1).max(15),
   status: z.enum(['active', 'on_leave', 'retired', 'terminated']),
+  pensionPin: z.string().optional(),
+  taxPin: z.string().optional(),
   bankName: z.string().optional(),
   accountNumber: z.string().optional(),
   accountName: z.string().optional(),
-  pensionPin: z.string().optional(),
-  taxPin: z.string().optional(),
-  nextOfKin: z.string().optional(),
+  nextOfKinName: z.string().optional(),
+  nextOfKinRelationship: z.string().optional(),
+  nextOfKinPhone: z.string().optional(),
+  nextOfKinAddress: z.string().optional(),
 });
 
 type EditStaffFormData = z.infer<typeof editStaffSchema>;
@@ -70,6 +73,9 @@ export function EditStaffModal({ open, onClose, staff, onSuccess }: EditStaffMod
   // Reset form when staff data changes
   React.useEffect(() => {
     if (staff) {
+      // Extract next of kin details from JSON object
+      const nextOfKin = staff.next_of_kin || {};
+      
       form.reset({
         firstName: staff.first_name || '',
         lastName: staff.last_name || '',
@@ -81,12 +87,15 @@ export function EditStaffModal({ open, onClose, staff, onSuccess }: EditStaffMod
         gradeLevel: staff.grade_level || 1,
         step: staff.step || 1,
         status: staff.status || 'active',
+        pensionPin: staff.pension_pin || '',
+        taxPin: staff.tax_pin || '',
         bankName: staff.bank_name || '',
         accountNumber: staff.account_number || '',
         accountName: staff.account_name || '',
-        pensionPin: staff.pension_pin || '',
-        taxPin: staff.tax_pin || '',
-        nextOfKin: staff.next_of_kin ? JSON.stringify(staff.next_of_kin, null, 2) : '',
+        nextOfKinName: nextOfKin.name || '',
+        nextOfKinRelationship: nextOfKin.relationship || '',
+        nextOfKinPhone: nextOfKin.phone || '',
+        nextOfKinAddress: nextOfKin.address || '',
       });
     }
   }, [staff, form]);
@@ -120,12 +129,17 @@ export function EditStaffModal({ open, onClose, staff, onSuccess }: EditStaffMod
         grade_level: data.gradeLevel,
         step: data.step,
         status: data.status,
+        pension_pin: data.pensionPin || null,
+        tax_pin: data.taxPin || null,
         bank_name: data.bankName || null,
         account_number: data.accountNumber || null,
         account_name: data.accountName || null,
-        pension_pin: data.pensionPin || null,
-        tax_pin: data.taxPin || null,
-        next_of_kin: data.nextOfKin ? JSON.parse(data.nextOfKin) : null,
+        next_of_kin: (data.nextOfKinName || data.nextOfKinRelationship || data.nextOfKinPhone || data.nextOfKinAddress) ? {
+          name: data.nextOfKinName || null,
+          relationship: data.nextOfKinRelationship || null,
+          phone: data.nextOfKinPhone || null,
+          address: data.nextOfKinAddress || null,
+        } : null,
         updated_at: new Date().toISOString(),
       };
 
@@ -265,6 +279,34 @@ export function EditStaffModal({ open, onClose, staff, onSuccess }: EditStaffMod
                           <SelectItem value="terminated">Terminated</SelectItem>
                         </SelectContent>
                       </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="pensionPin"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Pension PIN (Optional)</FormLabel>
+                      <FormControl>
+                        <Input {...field} placeholder="e.g., PEN123456" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="taxPin"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Tax ID/PIN (Optional)</FormLabel>
+                      <FormControl>
+                        <Input {...field} placeholder="e.g., TIN123456" />
+                      </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -439,27 +481,74 @@ export function EditStaffModal({ open, onClose, staff, onSuccess }: EditStaffMod
               </div>
             </div>
 
-            {/* Additional Information */}
+            {/* Next of Kin Information */}
             <div>
-              <h4 className="text-md font-medium mb-4">Additional Information (Optional)</h4>
-              <div className="space-y-4">
+              <h4 className="text-md font-medium mb-4">Next of Kin Information (Optional)</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
-                  name="nextOfKin"
+                  name="nextOfKinName"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Next of Kin (JSON Format)</FormLabel>
+                      <FormLabel>Full Name</FormLabel>
                       <FormControl>
-                        <textarea
-                          {...field}
-                          placeholder='{"name": "John Doe", "relationship": "Spouse", "phone": "08012345678", "address": "123 Main St"}'
-                          className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                          rows={4}
-                        />
+                        <Input {...field} placeholder="e.g., Jane Doe" />
                       </FormControl>
-                      <div className="text-xs text-gray-500 mt-1">
-                        Enter next of kin information in JSON format (optional)
-                      </div>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="nextOfKinRelationship"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Relationship</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value || ""}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select relationship" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="spouse">Spouse</SelectItem>
+                          <SelectItem value="parent">Parent</SelectItem>
+                          <SelectItem value="child">Child</SelectItem>
+                          <SelectItem value="sibling">Sibling</SelectItem>
+                          <SelectItem value="relative">Other Relative</SelectItem>
+                          <SelectItem value="friend">Friend</SelectItem>
+                          <SelectItem value="other">Other</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="nextOfKinPhone"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Phone Number</FormLabel>
+                      <FormControl>
+                        <Input {...field} placeholder="e.g., 08012345678" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="nextOfKinAddress"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Address</FormLabel>
+                      <FormControl>
+                        <Input {...field} placeholder="e.g., 123 Main Street, Lagos" />
+                      </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
