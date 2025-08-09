@@ -47,7 +47,10 @@ const editStaffSchema = z.object({
   accountName: z.string().optional(),
   pensionPin: z.string().optional(),
   taxPin: z.string().optional(),
-  nextOfKin: z.string().optional(),
+  nokName: z.string().optional(),
+  nokRelationship: z.string().optional(),
+  nokPhone: z.string().optional(),
+  nokAddress: z.string().optional(),
 });
 
 type EditStaffFormData = z.infer<typeof editStaffSchema>;
@@ -86,7 +89,10 @@ export function EditStaffModal({ open, onClose, staff, onSuccess }: EditStaffMod
         accountName: staff.account_name || '',
         pensionPin: staff.pension_pin || '',
         taxPin: staff.tax_pin || '',
-        nextOfKin: staff.next_of_kin ? JSON.stringify(staff.next_of_kin, null, 2) : '',
+        nokName: staff.next_of_kin?.name || '',
+        nokRelationship: staff.next_of_kin?.relationship || '',
+        nokPhone: staff.next_of_kin?.phone || '',
+        nokAddress: staff.next_of_kin?.address || '',
       });
     }
   }, [staff, form]);
@@ -125,7 +131,12 @@ export function EditStaffModal({ open, onClose, staff, onSuccess }: EditStaffMod
         account_name: data.accountName || null,
         pension_pin: data.pensionPin || null,
         tax_pin: data.taxPin || null,
-        next_of_kin: data.nextOfKin ? JSON.parse(data.nextOfKin) : null,
+        next_of_kin: (data.nokName || data.nokRelationship || data.nokPhone || data.nokAddress) ? {
+          name: data.nokName || null,
+          relationship: data.nokRelationship || null,
+          phone: data.nokPhone || null,
+          address: data.nokAddress || null,
+        } : null,
         updated_at: new Date().toISOString(),
       };
 
@@ -467,29 +478,92 @@ export function EditStaffModal({ open, onClose, staff, onSuccess }: EditStaffMod
               </div>
             </div>
 
-            {/* Action Buttons */}
-            <div className="flex justify-end space-x-3 pt-6">
-              <Button type="button" variant="outline" onClick={handleClose}>
-                Cancel
-              </Button>
-              <Button 
-                type="submit" 
-                disabled={updateStaffMutation.isPending}
-                className="bg-nigeria-green hover:bg-green-700"
-              >
-                {updateStaffMutation.isPending ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Updating...
-                  </>
-                ) : (
-                  'Update Staff Member'
-                )}
-              </Button>
+            {/* Additional Information */}
+            <div>
+              <h4 className="text-md font-medium mb-4">Additional Information (Optional)</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="pensionPin"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Pension PIN</FormLabel>
+                      <FormControl>
+                        <Input {...field} placeholder="e.g., PEN123456" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="taxPin"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Tax ID/PIN</FormLabel>
+                      <FormControl>
+                        <Input {...field} placeholder="e.g., TIN123456" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
             </div>
-          </form>
-        </Form>
-      </DialogContent>
-    </Dialog>
-  );
+
+            {/* Next of Kin Information */}
+            <div>
+              <h4 className="text-md font-medium mb-4">Next of Kin Information (Optional)</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="nokName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Full Name</FormLabel>
+                      <FormControl>
+                        <Input {...field} placeholder="e.g., Jane Doe" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="nokRelationship"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Relationship</FormLabel>
+                      <FormControl>
+                        <Input {...field} placeholder="e.g., Spouse, Parent, Sibling" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="nokPhone"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Phone Number</FormLabel>
+                      <FormControl>
+                        <Input {...field} placeholder="e.g., 08012345678" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="nokAddress"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Address</FormLabel>
+                      <FormControl>
+                        <Input {...field} placeholder="e.g., 123 Main Street, Lagos" />
 }
