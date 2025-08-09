@@ -22,7 +22,7 @@ export default function LoginPage() {
     if (!email || !password) {
       toast({
         title: "Error",
-        description: "Please enter both email and password",
+        description: "Please enter both your email address and password to sign in",
         variant: "destructive",
       });
       return;
@@ -32,7 +32,7 @@ export default function LoginPage() {
     try {
       await signIn(email, password);
     } catch (error) {
-      // Error is handled in useAuth hook
+      // Error is handled in useAuth hook with improved messaging
     } finally {
       setIsLoading(false);
     }

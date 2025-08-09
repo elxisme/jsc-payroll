@@ -104,7 +104,7 @@ export function BulkImportStaffModal({ open, onClose, onSuccess }: BulkImportSta
     if (!selectedFile.name.endsWith('.xlsx') && !selectedFile.name.endsWith('.xls')) {
       toast({
         title: 'Error',
-        description: 'Please select an Excel file (.xlsx or .xls)',
+        description: 'Invalid file format. Please select an Excel file with .xlsx or .xls extension.',
         variant: 'destructive',
       });
       return;
@@ -119,7 +119,7 @@ export function BulkImportStaffModal({ open, onClose, onSuccess }: BulkImportSta
     } catch (error) {
       toast({
         title: 'Error',
-        description: 'Failed to parse Excel file',
+        description: 'Failed to read the Excel file. Please ensure the file is not corrupted and follows the template format.',
         variant: 'destructive',
       });
     }
@@ -316,9 +316,19 @@ export function BulkImportStaffModal({ open, onClose, onSuccess }: BulkImportSta
       onSuccess();
     },
     onError: (error: any) => {
+      let errorMessage = 'Failed to import staff data. Please check your file and try again.';
+      
+      if (error.message.includes('duplicate key')) {
+        errorMessage = 'Some staff members already exist in the system. Please remove duplicates and try again.';
+      } else if (error.message.includes('foreign key')) {
+        errorMessage = 'Invalid department codes found. Please ensure all department codes exist in the system.';
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
       toast({
         title: 'Error',
-        description: error.message || 'Failed to import staff data',
+        description: errorMessage,
         variant: 'destructive',
       });
     },

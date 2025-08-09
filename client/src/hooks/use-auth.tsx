@@ -37,9 +37,50 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     });
 
+    // Check for email verification feedback in URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const hashParams = new URLSearchParams(window.location.hash.substring(1));
+    
+    const type = urlParams.get('type') || hashParams.get('type');
+    const error = urlParams.get('error') || hashParams.get('error');
+    const errorDescription = urlParams.get('error_description') || hashParams.get('error_description');
+    
+    if (type === 'signup') {
+      if (error) {
+        toast({
+          title: "Email Verification Failed",
+          description: errorDescription || error || "Failed to verify your email address",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Email Verified Successfully",
+          description: "Your account has been verified. You can now sign in.",
+        });
+      }
+      
+      // Clear URL parameters to prevent re-triggering
+      const newUrl = window.location.pathname;
+      window.history.replaceState({}, document.title, newUrl);
+    }
+
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        // Handle email verification events
+        if (event === 'SIGNED_IN' && session?.user?.email_confirmed_at) {
+          const urlParams = new URLSearchParams(window.location.search);
+          const hashParams = new URLSearchParams(window.location.hash.substring(1));
+          const type = urlParams.get('type') || hashParams.get('type');
+          
+          if (type === 'signup') {
+            toast({
+              title: "Email Verified Successfully",
+              description: "Your account has been verified. Welcome to JSC Payroll System!",
+            });
+          }
+        }
+        
         if (session?.user) {
           fetchUserProfile(session.user);
         } else {
@@ -135,7 +176,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.error('Error fetching user profile:', error);
       toast({
         title: "Error",
-        description: "Failed to load user profile",
+        description: "Failed to load your profile information. Please refresh the page or contact support if the issue persists.",
         variant: "destructive",
       });
     } finally {
@@ -151,19 +192,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         password,
       });
 
-      if (error) throw error;
+      if (error) {
+        // Provide more specific error messages
+        if (error.message.includes('Invalid login credentials')) {
+          throw new Error('Invalid email or password. Please check your credentials and try again.');
+        } else if (error.message.includes('Email not confirmed')) {
+          throw new Error('Please verify your email address before signing in. Check your inbox for a verification link.');
+        } else if (error.message.includes('Too many requests')) {
+          throw new Error('Too many login attempts. Please wait a few minutes before trying again.');
+        } else {
+          throw new Error(error.message || 'Failed to sign in. Please try again.');
+        }
+      }
 
       // Log successful login
       await logAuthEvent('login', email);
 
       toast({
         title: "Success",
-        description: "Signed in successfully",
+        description: "Welcome back! You have been signed in successfully.",
       });
     } catch (error: any) {
       toast({
         title: "Error",
-        description: error.message || "Failed to sign in",
+        description: error.message || "Failed to sign in. Please check your credentials and try again.",
         variant: "destructive",
       });
       throw error;
@@ -184,12 +236,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       toast({
         title: "Success",
-        description: "Signed out successfully",
+        description: "You have been signed out successfully. Thank you for using JSC Payroll System.",
       });
     } catch (error: any) {
       toast({
         title: "Error",
-        description: error.message || "Failed to sign out",
+        description: error.message || "Failed to sign out. Please try again or close your browser.",
         variant: "destructive",
       });
     }
@@ -205,12 +257,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       toast({
         title: "Success",
-        description: "Password reset instructions sent to your email",
+        description: `Password reset instructions have been sent to ${email}. Please check your inbox and spam folder.`,
       });
     } catch (error: any) {
+      let errorMessage = "Failed to send password reset email. Please try again.";
+      
+      if (error.message.includes('rate limit')) {
+        errorMessage = "Too many password reset requests. Please wait a few minutes before trying again.";
+      } else if (error.message.includes('not found')) {
+        errorMessage = "No account found with this email address. Please check the email and try again.";
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
       toast({
         title: "Error",
-        description: error.message || "Failed to send password reset email",
+        description: errorMessage,
         variant: "destructive",
       });
       throw error;

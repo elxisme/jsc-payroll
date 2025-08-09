@@ -42,7 +42,7 @@ export default function ForgotPasswordPage() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-nigeria-green to-gov-navy py-6 px-4 sm:py-12 sm:px-6 lg:px-8">
         <div className="max-w-md w-full space-y-6 sm:space-y-8">
-          <div className="text-center">
+        description: error.message || "Failed to send password reset email. Please check your email address and try again.",
             <div className="mx-auto h-16 w-16 sm:h-20 sm:w-20 bg-white rounded-full flex items-center justify-center shadow-lg">
               <CheckCircle className="text-nigeria-green" size={24} />
             </div>

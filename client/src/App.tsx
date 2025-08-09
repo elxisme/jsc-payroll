@@ -45,7 +45,7 @@ function AppContent() {
       </Route>
       
       <Route path="/reset-password">
-        {!user ? <ResetPasswordPage /> : <Redirect to="/dashboard" />}
+        <ResetPasswordPage />
       </Route>
       
       {/* Login route */}

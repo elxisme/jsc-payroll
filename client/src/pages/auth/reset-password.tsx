@@ -29,11 +29,22 @@ export default function ResetPasswordPage() {
     const refreshToken = urlParams.get('refresh_token');
     const hashAccessToken = hashParams.get('access_token');
     const hashRefreshToken = hashParams.get('refresh_token');
+    const error = urlParams.get('error') || hashParams.get('error');
+    const errorDescription = urlParams.get('error_description') || hashParams.get('error_description');
+    
+    if (error) {
+      toast({
+        title: "Password Reset Error",
+        description: errorDescription || error || "This password reset link is invalid or has expired",
+        variant: "destructive",
+      });
+      return;
+    }
     
     if ((!accessToken || !refreshToken) && (!hashAccessToken || !hashRefreshToken)) {
       toast({
         title: "Invalid Reset Link",
-        description: "This password reset link is invalid or has expired",
+        description: "This password reset link is invalid or has expired. Please request a new password reset.",
         variant: "destructive",
       });
     } else if (hashAccessToken && hashRefreshToken) {
@@ -109,12 +120,12 @@ export default function ResetPasswordPage() {
       
       // Redirect to login after a short delay
       setTimeout(() => {
-        setLocation('/');
+        window.location.href = '/';
       }, 2000);
     } catch (error: any) {
       toast({
         title: "Error",
-        description: error.message || "Failed to update password",
+        description: error.message || "Failed to update password. Please try again or request a new reset link.",
         variant: "destructive",
       });
     } finally {

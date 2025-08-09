@@ -136,8 +136,10 @@ export function AddStaffModal({ open, onClose, onSuccess }: AddStaffModalProps) 
       });
 
       if (authError) {
-        if (authError.message.includes('already registered')) {
-          throw new Error('A user with this email already exists in the system');
+        if (authError.message.includes('already registered') || 
+            authError.message.includes('User already registered') ||
+            authError.message.includes('email address is already registered')) {
+          throw new Error(`This email address (${data.email}) is already registered in the system. Please use a different email address or check if the staff member already exists.`);
         }
         throw authError;
       }

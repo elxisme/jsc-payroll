@@ -29,10 +29,8 @@ import {
 export default function ProfileSettings() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmNewPassword, setConfirmNewPassword] = useState('');
-  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
@@ -49,14 +47,13 @@ export default function ProfileSettings() {
         title: 'Success',
         description: 'Password updated successfully',
       });
-      setCurrentPassword('');
       setNewPassword('');
       setConfirmNewPassword('');
     },
     onError: (error: any) => {
       toast({
         title: 'Error',
-        description: error.message || 'Failed to update password',
+        description: error.message || 'Failed to update password. Please try again.',
         variant: 'destructive',
       });
     },
@@ -83,10 +80,10 @@ export default function ProfileSettings() {
   const handlePasswordChangeSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!currentPassword || !newPassword || !confirmNewPassword) {
+    if (!newPassword || !confirmNewPassword) {
       toast({
         title: 'Error',
-        description: 'Please fill in all password fields',
+        description: 'Please fill in both password fields',
         variant: 'destructive',
       });
       return;
@@ -521,30 +518,6 @@ export default function ProfileSettings() {
             </CardHeader>
             <CardContent>
               <form onSubmit={handlePasswordChangeSubmit} className="space-y-4">
-                <div>
-                  <Label htmlFor="currentPassword">Current Password</Label>
-                  <div className="relative mt-1">
-                    <Input
-                      id="currentPassword"
-                      type={showCurrentPassword ? "text" : "password"}
-                      value={currentPassword}
-                      onChange={(e) => setCurrentPassword(e.target.value)}
-                      placeholder="Enter current password"
-                      className="pr-10"
-                    />
-                    <button
-                      type="button"
-                      className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                      onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                    >
-                      {showCurrentPassword ? (
-                        <EyeOff className="h-4 w-4 text-gray-400" />
-                      ) : (
-                        <Eye className="h-4 w-4 text-gray-400" />
-                      )}
-                    </button>
-                  </div>
-                </div>
 
                 <div>
                   <Label htmlFor="newPassword">New Password</Label>
@@ -624,9 +597,16 @@ export default function ProfileSettings() {
                   )}
                 </div>
 
+                <div className="bg-blue-50 p-4 rounded-lg">
+                  <h4 className="font-medium text-blue-900 mb-2">Password Change Notice:</h4>
+                  <p className="text-sm text-blue-800">
+                    You can change your password without entering your current password. 
+                    Make sure to use a strong password that meets all the security requirements above.
+                  </p>
+                </div>
                 <Button
                   type="submit"
-                  disabled={changePasswordMutation.isPending || !passwordValidation.isValid || !passwordsMatch || !currentPassword}
+                  disabled={changePasswordMutation.isPending || !passwordValidation.isValid || !passwordsMatch}
                   className="w-full bg-nigeria-green hover:bg-green-700"
                 >
                   {changePasswordMutation.isPending ? (
