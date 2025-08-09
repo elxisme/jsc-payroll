@@ -65,9 +65,6 @@ const staffRowSchema = z.object({
     'Account number must be exactly 10 digits'
   ),
   'Account Name': z.string().optional(),
-  'Pension PIN': z.string().optional(),
-  'Tax ID': z.string().optional(),
-  'Next of Kin': z.string().optional(),
 });
 
 type ImportStaffData = z.infer<typeof staffRowSchema>;
@@ -330,9 +327,9 @@ export function BulkImportStaffModal({ open, onClose, onSuccess }: BulkImportSta
   const handleDownloadTemplate = () => {
     // Create a simple CSV template
     const template = [
-      'First Name,Last Name,Middle Name,Email,Phone Number,Department Code,Position,Grade Level,Step,Employment Date,Bank Name,Account Number,Account Name',
-      'John,Doe,Middle,john.doe@jsc.gov.ng,08012345678,SC,Justice,15,5,2023-01-15,gtb,1234567890,John Doe',
-      'Jane,Smith,,jane.smith@jsc.gov.ng,08087654321,CA,Registrar,12,8,2022-06-01,access,0987654321,Jane Smith',
+      'First Name,Last Name,Middle Name,Email,Phone Number,Department Code,Position,Grade Level,Step,Employment Date,Bank Name,Account Number,Account Name,Pension PIN,Tax ID,Next of Kin',
+      'John,Doe,Middle,john.doe@jsc.gov.ng,08012345678,SC,Justice,15,5,2023-01-15,gtb,1234567890,John Doe,PEN123456,TIN789012,"{""name"":""Jane Doe"",""relationship"":""Spouse"",""phone"":""08098765432""}"',
+      'Jane,Smith,,jane.smith@jsc.gov.ng,08087654321,CA,Registrar,12,8,2022-06-01,access,0987654321,Jane Smith,PEN654321,TIN345678,"{""name"":""John Smith"",""relationship"":""Brother"",""phone"":""08076543210""}"',
     ].join('\n');
 
     const blob = new Blob([template], { type: 'text/csv' });

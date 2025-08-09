@@ -309,6 +309,49 @@ export function StaffDetailsModal({ open, onClose, staff }: StaffDetailsModalPro
                 </CardContent>
               </Card>
 
+              {/* Next of Kin Information */}
+              {staff.next_of_kin && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center space-x-2">
+                      <User className="h-5 w-5" />
+                      <span>Next of Kin</span>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {staff.next_of_kin.name && (
+                        <div>
+                          <p className="text-sm text-gray-600">Name</p>
+                          <p className="font-medium">{staff.next_of_kin.name}</p>
+                        </div>
+                      )}
+                      
+                      {staff.next_of_kin.relationship && (
+                        <div>
+                          <p className="text-sm text-gray-600">Relationship</p>
+                          <p className="font-medium">{staff.next_of_kin.relationship}</p>
+                        </div>
+                      )}
+                      
+                      {staff.next_of_kin.phone && (
+                        <div>
+                          <p className="text-sm text-gray-600">Phone Number</p>
+                          <p className="font-medium">{staff.next_of_kin.phone}</p>
+                        </div>
+                      )}
+                      
+                      {staff.next_of_kin.address && (
+                        <div className="md:col-span-2">
+                          <p className="text-sm text-gray-600">Address</p>
+                          <p className="font-medium">{staff.next_of_kin.address}</p>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
               {/* Banking Information */}
               {(staff.bank_name || staff.account_number) && (
                 <Card>
