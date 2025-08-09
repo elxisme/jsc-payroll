@@ -45,6 +45,9 @@ const editStaffSchema = z.object({
   bankName: z.string().optional(),
   accountNumber: z.string().optional(),
   accountName: z.string().optional(),
+  pensionPin: z.string().optional(),
+  taxPin: z.string().optional(),
+  nextOfKin: z.string().optional(),
 });
 
 type EditStaffFormData = z.infer<typeof editStaffSchema>;
@@ -81,6 +84,9 @@ export function EditStaffModal({ open, onClose, staff, onSuccess }: EditStaffMod
         bankName: staff.bank_name || '',
         accountNumber: staff.account_number || '',
         accountName: staff.account_name || '',
+        pensionPin: staff.pension_pin || '',
+        taxPin: staff.tax_pin || '',
+        nextOfKin: staff.next_of_kin ? JSON.stringify(staff.next_of_kin, null, 2) : '',
       });
     }
   }, [staff, form]);
@@ -117,6 +123,9 @@ export function EditStaffModal({ open, onClose, staff, onSuccess }: EditStaffMod
         bank_name: data.bankName || null,
         account_number: data.accountNumber || null,
         account_name: data.accountName || null,
+        pension_pin: data.pensionPin || null,
+        tax_pin: data.taxPin || null,
+        next_of_kin: data.nextOfKin ? JSON.parse(data.nextOfKin) : null,
         updated_at: new Date().toISOString(),
       };
 

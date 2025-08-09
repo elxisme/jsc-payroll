@@ -41,7 +41,8 @@ export function ResponsiveLayout({ children }: ResponsiveLayoutProps) {
   const navigation = React.useMemo(() => {
     const baseNavigation = [
       { name: 'Dashboard', href: '/dashboard', icon: Home, roles: ['super_admin', 'account_admin', 'payroll_admin'] },
-      { name: 'Staff Portal', href: '/staff-portal', icon: Home, roles: ['staff'] },
+      { name: 'Dashboard', href: '/staff-portal', icon: Home, roles: ['staff'] },
+      { name: 'Profile', href: '/settings/profile', icon: User, roles: ['staff'] },
       { name: 'Staff Management', href: '/staff', icon: Users, roles: ['super_admin'] },
       { name: 'Departments', href: '/departments', icon: Building2, roles: ['super_admin', 'account_admin', 'payroll_admin'] },
       { name: 'Payroll', href: '/payroll', icon: CreditCard, roles: ['super_admin', 'account_admin', 'payroll_admin'] },
