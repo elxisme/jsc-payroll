@@ -436,6 +436,34 @@ export function EditStaffModal({ open, onClose, staff, onSuccess }: EditStaffMod
                     </FormItem>
                   )}
                 />
+
+                <FormField
+                  control={form.control}
+                  name="pensionPin"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Pension PIN (Optional)</FormLabel>
+                      <FormControl>
+                        <Input {...field} placeholder="e.g., PEN123456" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="taxPin"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Tax ID/PIN (Optional)</FormLabel>
+                      <FormControl>
+                        <Input {...field} placeholder="e.g., TIN123456" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
               </div>
             </div>
 
