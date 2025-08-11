@@ -6,7 +6,7 @@ import { supabase } from '@/lib/supabase';
 import { formatDisplayCurrency } from '@/lib/currency-utils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { logPayrollEvent } from '@/lib/audit-logger';
-import { isPayrollLockedFrontend } from '@/lib/payroll-calculator';
+import { isPayrollLockedFrontend, processPayrollRun, generatePayslipsForPayrollRun } from '@/lib/payroll-calculator';
 import { PayrollDetailsModal } from '@/components/payroll-details-modal';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -49,7 +49,10 @@ import {
   FileText,
   Calendar,
   Users,
-  Unlock
+  Unlock,
+  Play,
+  Send,
+  RefreshCw
 } from 'lucide-react';
 
 export default function PayrollWorkflow() {
@@ -290,6 +293,202 @@ export default function PayrollWorkflow() {
     },
   });
 
+  // Send for review mutation (Payroll Admin)
+  const sendForReviewMutation = useMutation({
+    mutationFn: async (runId: string) => {
+      const { error } = await supabase
+        .from('payroll_runs')
+        .update({
+          status: 'pending_review',
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', runId);
+
+      if (error) throw error;
+
+      // Log the action for audit trail
+      await logPayrollEvent('submitted_for_review', runId, { status: 'draft' }, { status: 'pending_review' });
+
+      // Create notification for account admins
+      const { data: accountAdmins } = await supabase
+        .from('users')
+        .select('id')
+        .in('role', ['super_admin', 'account_admin']);
+
+      if (accountAdmins?.length) {
+        const notifications = accountAdmins.map(admin => ({
+          user_id: admin.id,
+          title: 'Payroll Ready for Review',
+          message: `Payroll for ${selectedRun?.period} has been submitted for review and approval.`,
+          type: 'info',
+        }));
+
+        await supabase
+          .from('notifications')
+          .insert(notifications);
+      }
+    },
+    onSuccess: () => {
+      toast({
+        title: 'Success',
+        description: 'Payroll sent for review successfully',
+      });
+      queryClient.invalidateQueries({ queryKey: ['payroll-workflow'] });
+      setSelectedRun(null);
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to send payroll for review',
+        variant: 'destructive',
+      });
+    },
+  });
+
+  // Rerun payroll mutation (Payroll Admin)
+  const rerunPayrollMutation = useMutation({
+    mutationFn: async (runId: string) => {
+      // Fetch staff for this payroll run
+      const { data: payrollRun, error: payrollError } = await supabase
+        .from('payroll_runs')
+        .select('period, department_id')
+        .eq('id', runId)
+        .single();
+
+      if (payrollError) throw payrollError;
+
+      // Fetch staff based on department filter
+      let staffQuery = supabase
+        .from('staff')
+        .select('id, grade_level, step, position')
+        .eq('status', 'active');
+
+      if (payrollRun.department_id) {
+        staffQuery = staffQuery.eq('department_id', payrollRun.department_id);
+      }
+
+      const { data: staff, error: staffError } = await staffQuery;
+      if (staffError) throw staffError;
+
+      if (!staff || staff.length === 0) {
+        throw new Error('No staff found for this payroll run');
+      }
+
+      // Prepare payroll inputs
+      const payrollInputs = staff.map(staffMember => ({
+        staffId: staffMember.id,
+        gradeLevel: staffMember.grade_level,
+        step: staffMember.step,
+        position: staffMember.position,
+        arrears: 0,
+        overtime: 0,
+        bonus: 0,
+        loans: 0,
+        cooperatives: 0,
+      }));
+
+      // Process payroll (calculate only, no payslips)
+      await processPayrollRun(runId, payrollRun.period, payrollInputs);
+    },
+    onSuccess: () => {
+      toast({
+        title: 'Success',
+        description: 'Payroll recalculated successfully',
+      });
+      queryClient.invalidateQueries({ queryKey: ['payroll-workflow'] });
+      setSelectedRun(null);
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to rerun payroll',
+        variant: 'destructive',
+      });
+    },
+  });
+
+  // Generate payslips mutation (Super Admin)
+  const generatePayslipsMutation = useMutation({
+    mutationFn: async (runId: string) => {
+      // Fetch staff for this payroll run
+      const { data: payrollRun, error: payrollError } = await supabase
+        .from('payroll_runs')
+        .select('period, department_id')
+        .eq('id', runId)
+        .single();
+
+      if (payrollError) throw payrollError;
+
+      // Fetch staff based on department filter
+      let staffQuery = supabase
+        .from('staff')
+        .select('id, grade_level, step, position')
+        .eq('status', 'active');
+
+      if (payrollRun.department_id) {
+        staffQuery = staffQuery.eq('department_id', payrollRun.department_id);
+      }
+
+      const { data: staff, error: staffError } = await staffQuery;
+      if (staffError) throw staffError;
+
+      if (!staff || staff.length === 0) {
+        throw new Error('No staff found for this payroll run');
+      }
+
+      // Prepare payroll inputs
+      const payrollInputs = staff.map(staffMember => ({
+        staffId: staffMember.id,
+        gradeLevel: staffMember.grade_level,
+        step: staffMember.step,
+        position: staffMember.position,
+        arrears: 0,
+        overtime: 0,
+        bonus: 0,
+        loans: 0,
+        cooperatives: 0,
+      }));
+
+      // Generate payslips
+      await generatePayslipsForPayrollRun(runId, payrollRun.period, payrollInputs);
+
+      // Create notification for all admins
+      const { data: adminUsers } = await supabase
+        .from('users')
+        .select('id')
+        .in('role', ['super_admin', 'account_admin', 'payroll_admin']);
+
+      if (adminUsers?.length) {
+        const notifications = adminUsers.map(admin => ({
+          user_id: admin.id,
+          title: 'Payslips Generated',
+          message: `Payslips for ${payrollRun.period} have been generated and are now available for download.`,
+          type: 'success',
+        }));
+
+        await supabase
+          .from('notifications')
+          .insert(notifications);
+      }
+    },
+    onSuccess: () => {
+      toast({
+        title: 'Success',
+        description: 'Payslips generated successfully',
+      });
+      queryClient.invalidateQueries({ queryKey: ['payroll-workflow'] });
+      queryClient.invalidateQueries({ queryKey: ['payslips'] });
+      setSelectedRun(null);
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to generate payslips',
+        variant: 'destructive',
+      });
+    },
+  });
+
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'draft':
@@ -330,6 +529,14 @@ export default function PayrollWorkflow() {
     return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long' });
   };
 
+  const canSendForReview = (run: any) => {
+    return hasRole(['payroll_admin', 'super_admin']) && run.status === 'draft';
+  };
+
+  const canRerun = (run: any) => {
+    return hasRole(['payroll_admin', 'super_admin']) && run.status === 'draft';
+  };
+
   const canApprove = (run: any) => {
     console.log('canApprove check:', { 
       userRole: user?.role, 
@@ -357,6 +564,10 @@ export default function PayrollWorkflow() {
       hasRole: hasRole(['super_admin']),
       result: hasRole(['super_admin']) && run.status === 'processed'
     });
+    return hasRole(['super_admin']) && run.status === 'processed';
+  };
+
+  const canGeneratePayslips = (run: any) => {
     return hasRole(['super_admin']) && run.status === 'processed';
   };
 
@@ -453,7 +664,7 @@ export default function PayrollWorkflow() {
                       {run.created_by_user?.email || 'System'}
                     </TableCell>
                     <TableCell>
-                      <div className="flex space-x-2">
+                      <div className="flex space-x-1 flex-wrap gap-1">
                         <Tooltip>
                           <TooltipTrigger asChild>
                             <Button
@@ -471,6 +682,48 @@ export default function PayrollWorkflow() {
                             <p>View payroll run details</p>
                           </TooltipContent>
                         </Tooltip>
+                        {canRerun(run) && (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  setSelectedRun(run);
+                                  rerunPayrollMutation.mutate(run.id);
+                                }}
+                                disabled={rerunPayrollMutation.isPending}
+                                className="text-blue-600 hover:text-blue-700"
+                              >
+                                <RefreshCw className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Rerun payroll calculation</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        )}
+                        {canSendForReview(run) && (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  setSelectedRun(run);
+                                  sendForReviewMutation.mutate(run.id);
+                                }}
+                                disabled={sendForReviewMutation.isPending}
+                                className="text-green-600 hover:text-green-700"
+                              >
+                                <Send className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Send for review</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        )}
                         {canApprove(run) && (
                           <Tooltip>
                             <TooltipTrigger asChild>
@@ -520,6 +773,27 @@ export default function PayrollWorkflow() {
                                   : 'Finalize and process payroll'
                                 }
                               </p>
+                            </TooltipContent>
+                          </Tooltip>
+                        )}
+                        {canGeneratePayslips(run) && (
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  setSelectedRun(run);
+                                  generatePayslipsMutation.mutate(run.id);
+                                }}
+                                disabled={generatePayslipsMutation.isPending}
+                                className="text-purple-600 hover:text-purple-700"
+                              >
+                                <FileText className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Generate payslips</p>
                             </TooltipContent>
                           </Tooltip>
                         )}
@@ -647,7 +921,7 @@ export default function PayrollWorkflow() {
                 <Button
                   variant="outline"
                   onClick={() => approvePayrollMutation.mutate({ runId: selectedRun.id, action: 'reject' })}
-                  disabled={approvePayrollMutation.isPending || isPayrollLocked(selectedRun) || finalizePayrollMutation.isPending || reopenPayrollMutation.isPending}
+                  disabled={approvePayrollMutation.isPending || isPayrollLocked(selectedRun) || finalizePayrollMutation.isPending || reopenPayrollMutation.isPending || sendForReviewMutation.isPending || rerunPayrollMutation.isPending || generatePayslipsMutation.isPending}
                   className="text-red-600 hover:text-red-700"
                 >
                   <X className="mr-2 h-4 w-4" />
@@ -655,7 +929,7 @@ export default function PayrollWorkflow() {
                 </Button>
                 <Button
                   onClick={() => approvePayrollMutation.mutate({ runId: selectedRun.id, action: 'approve' })}
-                  disabled={approvePayrollMutation.isPending || isPayrollLocked(selectedRun) || finalizePayrollMutation.isPending || reopenPayrollMutation.isPending}
+                  disabled={approvePayrollMutation.isPending || isPayrollLocked(selectedRun) || finalizePayrollMutation.isPending || reopenPayrollMutation.isPending || sendForReviewMutation.isPending || rerunPayrollMutation.isPending || generatePayslipsMutation.isPending}
                   className="bg-nigeria-green hover:bg-green-700"
                 >
                   <Check className="mr-2 h-4 w-4" />

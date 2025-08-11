@@ -161,21 +161,6 @@ export default function Payslips() {
                 : 'Manage staff payslips and generate reports'}
             </p>
           </div>
-          {hasRole(['super_admin', 'account_admin', 'payroll_admin']) && (
-            <div className="w-full sm:w-auto">
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button className="w-full sm:w-auto bg-nigeria-green hover:bg-green-700">
-                    <FileText className="mr-2 h-4 w-4" />
-                    Generate Payslips
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Generate payslips for current period</p>
-                </TooltipContent>
-              </Tooltip>
-            </div>
-          )}
         </div>
       </div>
 

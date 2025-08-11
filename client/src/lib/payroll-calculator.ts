@@ -476,7 +476,7 @@ export async function processPayrollRun(
   payrollRunId: string,
   period: string,
   staffInputs: PayrollInputs[]
-): Promise<void> {
+): Promise<{ totalGross: number; totalDeductions: number; totalNet: number; staffCount: number }> {
   // Check for staff already processed in finalized payrolls for this period
   const { data: existingPayslips, error: existingError } = await supabase
     .from('payslips')
@@ -528,6 +528,86 @@ export async function processPayrollRun(
   // Calculate payroll for all staff
   const payrollResults = await calculateBulkPayroll(enhancedStaffInputs);
   
+  // Update payroll run with totals
+  const totalGross = payrollResults.reduce((sum, result) => sum + result.grossPay, 0);
+  const totalDeductions = payrollResults.reduce((sum, result) => sum + result.totalDeductions, 0);
+  const totalNet = payrollResults.reduce((sum, result) => sum + result.netPay, 0);
+
+  const { error: updateError } = await supabase
+    .from('payroll_runs')
+    .update({
+      total_staff: payrollResults.length,
+      gross_amount: totalGross.toString(),
+      total_deductions: totalDeductions.toString(),
+      net_amount: totalNet.toString(),
+      status: 'pending_review',
+    })
+    .eq('id', payrollRunId);
+
+  if (updateError) throw updateError;
+
+  return {
+    totalGross,
+    totalDeductions,
+    totalNet,
+    staffCount: payrollResults.length,
+  };
+}
+
+/**
+ * Generate payslips for a processed payroll run
+ */
+export async function generatePayslipsForPayrollRun(
+  payrollRunId: string,
+  period: string,
+  staffInputs: PayrollInputs[]
+): Promise<void> {
+  // Check if payroll run is processed
+  const { data: payrollRun, error: payrollError } = await supabase
+    .from('payroll_runs')
+    .select('status')
+    .eq('id', payrollRunId)
+    .single();
+
+  if (payrollError) throw payrollError;
+
+  if (payrollRun.status !== 'processed') {
+    throw new Error('Payslips can only be generated for processed payroll runs');
+  }
+
+  // Check if payslips already exist for this payroll run
+  const { data: existingPayslips, error: existingError } = await supabase
+    .from('payslips')
+    .select('id')
+    .eq('payroll_run_id', payrollRunId)
+    .limit(1);
+
+  if (existingError) throw existingError;
+
+  if (existingPayslips && existingPayslips.length > 0) {
+    throw new Error('Payslips have already been generated for this payroll run');
+  }
+
+  // Get leave requests that affect this payroll period
+  const leaveRequests = await getLeaveRequestsForPayrollPeriod(period);
+  
+  // Create a map of staff ID to unpaid leave days
+  const unpaidLeaveDaysMap: Record<string, number> = {};
+  leaveRequests.forEach(request => {
+    if (!request.isPaid && request.staff?.id) {
+      unpaidLeaveDaysMap[request.staff.id] = (unpaidLeaveDaysMap[request.staff.id] || 0) + request.daysInPeriod;
+    }
+  });
+  
+  // Add unpaid leave days to staff inputs
+  const enhancedStaffInputs = staffInputs.map(input => ({
+    ...input,
+    unpaidLeaveDays: unpaidLeaveDaysMap[input.staffId] || 0,
+  }));
+  
+  // Calculate payroll for all staff
+  const payrollResults = await calculateBulkPayroll(enhancedStaffInputs);
+  
   // Create payslip records
   const payslips = payrollResults.map(result => ({
     staff_id: result.staffId,
@@ -566,7 +646,6 @@ export async function processPayrollRun(
       .eq('period', period)
       .eq('status', 'pending')
       .in('staff_id', payrollResults.map(r => r.staffId));
-
     if (allowanceUpdateError) console.error('Error updating individual allowances status:', allowanceUpdateError);
   }
 
@@ -591,28 +670,5 @@ export async function processPayrollRun(
         }
       }
     }
-  }
-
-  // Update payroll run with totals
-  const totalGross = payrollResults.reduce((sum, result) => sum + result.grossPay, 0);
-  const totalDeductions = payrollResults.reduce((sum, result) => sum + result.totalDeductions, 0);
-  const totalNet = payrollResults.reduce((sum, result) => sum + result.netPay, 0);
-
-  const { error: updateError } = await supabase
-    .from('payroll_runs')
-    .update({
-      total_staff: payrollResults.length,
-      gross_amount: totalGross.toString(),
-      total_deductions: totalDeductions.toString(),
-      net_amount: totalNet.toString(),
-      status: 'pending_review',
-    })
-    .eq('id', payrollRunId);
-
-  if (updateError) throw updateError;
-
-  // Log information about skipped staff if any
-  if (skippedStaff.length > 0) {
-    console.log(`Payroll processing completed. ${payrollResults.length} staff processed, ${skippedStaff.length} staff skipped (already processed in finalized payrolls).`);
   }
 }

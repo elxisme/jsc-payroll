@@ -237,7 +237,7 @@ export default function PayrollProcessing() {
       }));
 
       // Calculate payroll and create payslips
-      await processPayrollRun(payrollRun.id, selectedPeriod, payrollInputs);
+      const results = await processPayrollRun(payrollRun.id, selectedPeriod, payrollInputs);
 
       // Create notifications for relevant users
       const { data: adminUsers } = await supabase
@@ -249,7 +249,7 @@ export default function PayrollProcessing() {
         const notifications = adminUsers.map(admin => ({
           user_id: admin.id,
           title: 'Payroll Run Completed',
-          message: `Payroll for ${selectedPeriod} has been processed for ${staffToProcess.length} staff members and is ready for review.${skippedStaff.length > 0 ? ` ${skippedStaff.length} staff were skipped (already processed).` : ''}`,
+          message: `Payroll for ${selectedPeriod} has been calculated for ${results.staffCount} staff members and is ready for review.${skippedStaff.length > 0 ? ` ${skippedStaff.length} staff were skipped (already processed).` : ''}`,
           type: 'success',
         }));
 
@@ -260,7 +260,7 @@ export default function PayrollProcessing() {
 
       toast({
         title: "Success",
-        description: `Payroll processed successfully for ${staffToProcess.length} staff members.${skippedStaff.length > 0 ? ` ${skippedStaff.length} staff were skipped (already processed).` : ''}`,
+        description: `Payroll calculated successfully for ${results.staffCount} staff members.${skippedStaff.length > 0 ? ` ${skippedStaff.length} staff were skipped (already processed).` : ''}`,
       });
 
       // Reload data to show the new payroll run
@@ -274,7 +274,7 @@ export default function PayrollProcessing() {
       console.error('Error processing payroll:', error);
       toast({
         title: "Error",
-        description: "Failed to process payroll. Please try again.",
+        description: "Failed to calculate payroll. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -384,12 +384,12 @@ export default function PayrollProcessing() {
               {isProcessing ? (
                 <>
                   <Clock className="w-4 h-4 animate-spin" />
-                  Processing...
+                  Calculating...
                 </>
               ) : (
                 <>
                   <Play className="w-4 h-4" />
-                  Process Payroll
+                  Calculate Payroll
                 </>
               )}
             </Button>
