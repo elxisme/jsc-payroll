@@ -59,9 +59,32 @@ const staffRowSchema = z.object({
       if (val === '' || val === null || val === undefined) return '';
       // Handle Excel date numbers (days since 1900-01-01)
       if (typeof val === 'number') {
-        const excelEpoch = new Date(1900, 0, 1);
-        const date = new Date(excelEpoch.getTime() + (val - 2) * 24 * 60 * 60 * 1000);
-        return date.toISOString().split('T')[0];
+        // Excel date serial number to JavaScript date
+        // Excel counts from 1900-01-01, but has a leap year bug (treats 1900 as leap year)
+        // So we need to subtract 2 days for dates after 1900-02-28
+        const excelEpoch = new Date(1899, 11, 30); // December 30, 1899
+        const jsDate = new Date(excelEpoch.getTime() + val * 24 * 60 * 60 * 1000);
+        
+        // Format as YYYY-MM-DD to avoid timezone issues
+        const year = jsDate.getFullYear();
+        const month = String(jsDate.getMonth() + 1).padStart(2, '0');
+        const day = String(jsDate.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+      }
+      // Handle string dates
+      if (typeof val === 'string') {
+        // If it's already in YYYY-MM-DD format, return as is
+        if (/^\d{4}-\d{2}-\d{2}$/.test(val)) {
+          return val;
+        }
+        // Try to parse other date formats
+        const parsedDate = new Date(val);
+        if (!isNaN(parsedDate.getTime())) {
+          const year = parsedDate.getFullYear();
+          const month = String(parsedDate.getMonth() + 1).padStart(2, '0');
+          const day = String(parsedDate.getDate()).padStart(2, '0');
+          return `${year}-${month}-${day}`;
+        }
       }
       return String(val);
     },
@@ -83,6 +106,21 @@ const staffRowSchema = z.object({
     )
   ),
   'Account Name': z.string().optional(),
+  'Pension PIN': z.preprocess(
+    (val) => val === '' || val === null || val === undefined ? '' : String(val),
+    z.string().optional()
+  ),
+  'Tax ID': z.preprocess(
+    (val) => val === '' || val === null || val === undefined ? '' : String(val),
+    z.string().optional()
+  ),
+  'Next of Kin': z.preprocess(
+    (val) => {
+      if (val === '' || val === null || val === undefined) return '';
+      return String(val);
+    },
+    z.string().optional()
+  ),
 });
 
 type ImportStaffData = z.infer<typeof staffRowSchema>;
@@ -277,6 +315,36 @@ export function BulkImportStaffModal({ open, onClose, onSuccess }: BulkImportSta
         
         const staffId = await generateStaffId(i);
         
+        // Parse Next of Kin JSON if provided
+        let nextOfKinData = null;
+        if (row['Next of Kin']) {
+          try {
+            // Try to parse as JSON first
+            nextOfKinData = JSON.parse(row['Next of Kin']);
+          } catch {
+            // If not JSON, treat as simple name
+            nextOfKinData = {
+              name: row['Next of Kin'],
+              relationship: null,
+              phone: null,
+              address: null
+            };
+          }
+        }
+        
+        // Ensure employment date is properly formatted
+        const employmentDate = row['Employment Date'];
+        let formattedEmploymentDate;
+        
+        try {
+          // Create date object and format as ISO string
+          const dateObj = new Date(employmentDate + 'T00:00:00'); // Add time to avoid timezone issues
+          formattedEmploymentDate = dateObj.toISOString();
+        } catch {
+          // Fallback: assume it's already in correct format
+          formattedEmploymentDate = new Date(employmentDate).toISOString();
+        }
+        
         staffToInsert.push({
           staff_id: staffId,
           first_name: row['First Name'],
@@ -288,12 +356,13 @@ export function BulkImportStaffModal({ open, onClose, onSuccess }: BulkImportSta
           position: row['Position'],
           grade_level: parseInt(row['Grade Level']),
           step: parseInt(row['Step']),
-          employment_date: new Date(row['Employment Date']).toISOString(),
+          employment_date: formattedEmploymentDate,
           bank_name: row['Bank Name'] || null,
           account_number: row['Account Number'] || null,
           account_name: row['Account Name'] || null,
-          status: 'active',
-        });
+          pension_pin: row['Pension PIN'] || null,
+          tax_pin: row['Tax ID'] || null,
+          next_of_kin: nextOfKinData
       }
 
       const { data, error } = await supabase
@@ -356,8 +425,8 @@ export function BulkImportStaffModal({ open, onClose, onSuccess }: BulkImportSta
     // Create a simple CSV template
     const template = [
       'First Name,Last Name,Middle Name,Email,Phone Number,Department Code,Position,Grade Level,Step,Employment Date,Bank Name,Account Number,Account Name,Pension PIN,Tax ID,Next of Kin',
-      'John,Doe,Middle,john.doe@jsc.gov.ng,08012345678,SC,Justice,15,5,2023-01-15,gtb,1234567890,John Doe,PEN123456,TIN789012,"{""name"":""Jane Doe"",""relationship"":""Spouse"",""phone"":""08098765432""}"',
-      'Jane,Smith,,jane.smith@jsc.gov.ng,08087654321,CA,Registrar,12,8,2022-06-01,access,0987654321,Jane Smith,PEN654321,TIN345678,"{""name"":""John Smith"",""relationship"":""Brother"",""phone"":""08076543210""}"',
+      'John,Doe,Middle,john.doe@jsc.gov.ng,08012345678,SC,Justice,15,5,2023-01-15,gtb,1234567890,John Doe,PEN123456,TIN789012,"{""name"":""Jane Doe"",""relationship"":""Spouse"",""phone"":""08098765432"",""address"":""123 Main St""}"',
+      'Jane,Smith,,jane.smith@jsc.gov.ng,08087654321,CA,Registrar,12,8,2022-06-01,access,0987654321,Jane Smith,PEN654321,TIN345678,"{""name"":""John Smith"",""relationship"":""Brother"",""phone"":""08076543210"",""address"":""456 Oak Ave""}"',
     ].join('\n');
 
     const blob = new Blob([template], { type: 'text/csv' });
@@ -445,6 +514,8 @@ export function BulkImportStaffModal({ open, onClose, onSuccess }: BulkImportSta
                       <li>Account numbers must be exactly 10 digits</li>
                       <li>Department codes must match existing departments</li>
                       <li>Bank Name should match: access, zenith, gtb, firstbank, uba, fidelity, union, stanbic, polaris, wema, sterling, unity, ecobank, keystone, titan, globus, providus, suntrust, parallex, premium, taj, jaiz</li>
+                      <li>Next of Kin should be JSON format: {"{\"name\":\"Full Name\",\"relationship\":\"Spouse\",\"phone\":\"08012345678\",\"address\":\"Address\"}"}</li>
+                      <li>Employment Date: Use YYYY-MM-DD format or Excel will auto-convert</li>
                       <li>Save as .xlsx and upload through the system</li>
                     </ul>
                   </div>
@@ -515,6 +586,7 @@ export function BulkImportStaffModal({ open, onClose, onSuccess }: BulkImportSta
                       <TableHead>Position</TableHead>
                       <TableHead>Grade Level</TableHead>
                       <TableHead>Employment Date</TableHead>
+                      <TableHead>Bank Info</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -528,11 +600,21 @@ export function BulkImportStaffModal({ open, onClose, onSuccess }: BulkImportSta
                         <TableCell>{row['Position']}</TableCell>
                         <TableCell>GL {row['Grade Level']} Step {row['Step']}</TableCell>
                         <TableCell>{row['Employment Date']}</TableCell>
+                        <TableCell>
+                          {row['Bank Name'] ? (
+                            <div className="text-xs">
+                              <div>{row['Bank Name']?.toUpperCase()}</div>
+                              <div className="text-gray-500">{row['Account Number']}</div>
+                            </div>
+                          ) : (
+                            <span className="text-gray-400">Not provided</span>
+                          )}
+                        </TableCell>
                       </TableRow>
                     ))}
                     {importData.length > 10 && (
                       <TableRow>
-                        <TableCell colSpan={6} className="text-center text-gray-500">
+                        <TableCell colSpan={7} className="text-center text-gray-500">
                           ... and {importData.length - 10} more records
                         </TableCell>
                       </TableRow>
@@ -553,6 +635,16 @@ export function BulkImportStaffModal({ open, onClose, onSuccess }: BulkImportSta
               <p className="text-sm mt-2">
                 Download the template to see the required format and column headers
               </p>
+              <div className="mt-4 p-4 bg-blue-50 rounded-lg text-left">
+                <h4 className="font-medium text-blue-900 mb-2">Template Format Notes:</h4>
+                <ul className="text-sm text-blue-800 space-y-1 list-disc list-inside">
+                  <li><strong>Employment Date:</strong> Use YYYY-MM-DD format (e.g., 2023-01-15)</li>
+                  <li><strong>Bank Name:</strong> Use lowercase bank codes (e.g., gtb, access, zenith)</li>
+                  <li><strong>Next of Kin:</strong> JSON format with name, relationship, phone, address</li>
+                  <li><strong>Account Number:</strong> Must be exactly 10 digits</li>
+                  <li><strong>Department Code:</strong> Must match existing department codes</li>
+                </ul>
+              </div>
             </div>
           )}
 
