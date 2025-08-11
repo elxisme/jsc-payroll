@@ -477,6 +477,37 @@ export async function processPayrollRun(
   period: string,
   staffInputs: PayrollInputs[]
 ): Promise<void> {
+  // Check for staff already processed in finalized payrolls for this period
+  const { data: existingPayslips, error: existingError } = await supabase
+    .from('payslips')
+    .select(`
+      staff_id,
+      payroll_runs!inner (
+        status,
+        department_id
+      )
+    `)
+    .eq('period', period)
+    .eq('payroll_runs.status', 'processed');
+
+  if (existingError) {
+    console.error('Error checking existing payslips:', existingError);
+  }
+
+  const processedStaffIds = new Set(existingPayslips?.map(p => p.staff_id) || []);
+  
+  // Filter out staff who have already been processed in finalized payrolls
+  const staffToProcess = staffInputs.filter(input => !processedStaffIds.has(input.staffId));
+  const skippedStaff = staffInputs.filter(input => processedStaffIds.has(input.staffId));
+
+  if (skippedStaff.length > 0) {
+    console.log(`Skipping ${skippedStaff.length} staff members who were already processed in finalized payrolls for ${period}`);
+  }
+
+  if (staffToProcess.length === 0) {
+    throw new Error('All selected staff have already been processed for this period in finalized payrolls.');
+  }
+
   // Get leave requests that affect this payroll period
   const leaveRequests = await getLeaveRequestsForPayrollPeriod(period);
   
@@ -489,7 +520,7 @@ export async function processPayrollRun(
   });
   
   // Add unpaid leave days to staff inputs
-  const enhancedStaffInputs = staffInputs.map(input => ({
+  const enhancedStaffInputs = staffToProcess.map(input => ({
     ...input,
     unpaidLeaveDays: unpaidLeaveDaysMap[input.staffId] || 0,
   }));
@@ -579,4 +610,9 @@ export async function processPayrollRun(
     .eq('id', payrollRunId);
 
   if (updateError) throw updateError;
+
+  // Log information about skipped staff if any
+  if (skippedStaff.length > 0) {
+    console.log(`Payroll processing completed. ${payrollResults.length} staff processed, ${skippedStaff.length} staff skipped (already processed in finalized payrolls).`);
+  }
 }

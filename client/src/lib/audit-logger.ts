@@ -97,7 +97,7 @@ export async function logDepartmentEvent(
  * Log payroll events
  */
 export async function logPayrollEvent(
-  action: 'created' | 'approved' | 'rejected' | 'processed',
+  action: 'created' | 'approved' | 'rejected' | 'processed' | 'reopened',
   payrollRunId: string,
   oldValues?: any,
   newValues?: any

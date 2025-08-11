@@ -20,6 +20,17 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
+import {
   Dialog,
   DialogContent,
   DialogHeader,
@@ -37,7 +48,8 @@ import {
   X,
   FileText,
   Calendar,
-  Users
+  Users,
+  Unlock
 } from 'lucide-react';
 
 export default function PayrollWorkflow() {
@@ -215,6 +227,69 @@ export default function PayrollWorkflow() {
     },
   });
 
+  // Reopen payroll run mutation (Super Admin only)
+  const reopenPayrollMutation = useMutation({
+    mutationFn: async (runId: string) => {
+      console.log('reopenPayrollMutation started:', { runId, isPending: true });
+      const oldValues = {
+        status: selectedRun?.status,
+        processed_at: selectedRun?.processed_at,
+      };
+
+      const newValues = {
+        status: 'draft',
+        processed_at: null,
+      };
+
+      const { error } = await supabase
+        .from('payroll_runs')
+        .update(newValues)
+        .eq('id', runId);
+
+      if (error) throw error;
+
+      // Log the reopening for audit trail
+      await logPayrollEvent('reopened', runId, oldValues, newValues);
+
+      // Create notification for all admins
+      const { data: adminUsers } = await supabase
+        .from('users')
+        .select('id')
+        .in('role', ['super_admin', 'account_admin', 'payroll_admin']);
+
+      if (adminUsers?.length) {
+        const notifications = adminUsers.map(admin => ({
+          user_id: admin.id,
+          title: 'Payroll Reopened',
+          message: `Payroll for ${selectedRun?.period} has been reopened by a Super Admin and is now available for modifications.`,
+          type: 'warning',
+        }));
+
+        await supabase
+          .from('notifications')
+          .insert(notifications);
+      }
+    },
+    onSuccess: () => {
+      console.log('reopenPayrollMutation success');
+      toast({
+        title: 'Success',
+        description: 'Payroll run reopened successfully. You can now make modifications.',
+      });
+      queryClient.invalidateQueries({ queryKey: ['payroll-workflow'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
+      setSelectedRun(null);
+    },
+    onError: (error: any) => {
+      console.log('reopenPayrollMutation error:', error);
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to reopen payroll run',
+        variant: 'destructive',
+      });
+    },
+  });
+
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'draft':
@@ -273,6 +348,16 @@ export default function PayrollWorkflow() {
       result: hasRole(['super_admin']) && run.status === 'approved'
     });
     return hasRole(['super_admin']) && run.status === 'approved';
+  };
+
+  const canReopen = (run: any) => {
+    console.log('canReopen check:', { 
+      userRole: user?.role, 
+      runStatus: run.status, 
+      hasRole: hasRole(['super_admin']),
+      result: hasRole(['super_admin']) && run.status === 'processed'
+    });
+    return hasRole(['super_admin']) && run.status === 'processed';
   };
 
   // Check if payroll is locked (async function)
@@ -438,6 +523,66 @@ export default function PayrollWorkflow() {
                             </TooltipContent>
                           </Tooltip>
                         )}
+                        {canReopen(run) && (
+                          <AlertDialog>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <AlertDialogTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="text-orange-600 hover:text-orange-700"
+                                  >
+                                    <Unlock className="h-4 w-4" />
+                                  </Button>
+                                </AlertDialogTrigger>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Reopen processed payroll (Super Admin only)</p>
+                              </TooltipContent>
+                            </Tooltip>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Reopen Processed Payroll</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Are you sure you want to reopen this processed payroll for {formatPeriod(run.period)}?
+                                  <br /><br />
+                                  <strong>Warning:</strong> This will change the status from "Processed" to "Draft" and allow modifications. 
+                                  This action should only be done in exceptional circumstances and will be logged for audit purposes.
+                                  <br /><br />
+                                  <strong>Department:</strong> {run.departments?.name || 'All Departments'}
+                                  <br />
+                                  <strong>Staff Count:</strong> {run.total_staff || 0}
+                                  <br />
+                                  <strong>Net Amount:</strong> {formatCurrency(run.net_amount || 0)}
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => {
+                                    setSelectedRun(run);
+                                    reopenPayrollMutation.mutate(run.id);
+                                  }}
+                                  disabled={reopenPayrollMutation.isPending}
+                                  className="bg-orange-600 hover:bg-orange-700"
+                                >
+                                  {reopenPayrollMutation.isPending ? (
+                                    <>
+                                      <Clock className="mr-2 h-4 w-4 animate-spin" />
+                                      Reopening...
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Unlock className="mr-2 h-4 w-4" />
+                                      Reopen Payroll
+                                    </>
+                                  )}
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>
@@ -502,7 +647,7 @@ export default function PayrollWorkflow() {
                 <Button
                   variant="outline"
                   onClick={() => approvePayrollMutation.mutate({ runId: selectedRun.id, action: 'reject' })}
-                  disabled={approvePayrollMutation.isPending || isPayrollLocked(selectedRun) || finalizePayrollMutation.isPending}
+                  disabled={approvePayrollMutation.isPending || isPayrollLocked(selectedRun) || finalizePayrollMutation.isPending || reopenPayrollMutation.isPending}
                   className="text-red-600 hover:text-red-700"
                 >
                   <X className="mr-2 h-4 w-4" />
@@ -510,7 +655,7 @@ export default function PayrollWorkflow() {
                 </Button>
                 <Button
                   onClick={() => approvePayrollMutation.mutate({ runId: selectedRun.id, action: 'approve' })}
-                  disabled={approvePayrollMutation.isPending || isPayrollLocked(selectedRun) || finalizePayrollMutation.isPending}
+                  disabled={approvePayrollMutation.isPending || isPayrollLocked(selectedRun) || finalizePayrollMutation.isPending || reopenPayrollMutation.isPending}
                   className="bg-nigeria-green hover:bg-green-700"
                 >
                   <Check className="mr-2 h-4 w-4" />

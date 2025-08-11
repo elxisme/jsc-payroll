@@ -118,6 +118,38 @@ export default function PayrollProcessing() {
     try {
       setIsProcessing(true);
       
+      // Check if payroll already exists for this period and department
+      let existingPayrollQuery = supabase
+        .from('payroll_runs')
+        .select('id, status, departments(name)')
+        .eq('period', selectedPeriod)
+        .eq('status', 'processed');
+
+      if (selectedDepartment === 'all') {
+        existingPayrollQuery = existingPayrollQuery.is('department_id', null);
+      } else {
+        existingPayrollQuery = existingPayrollQuery.eq('department_id', selectedDepartment);
+      }
+
+      const { data: existingPayroll, error: existingError } = await existingPayrollQuery.single();
+
+      if (existingError && existingError.code !== 'PGRST116') {
+        throw existingError;
+      }
+
+      if (existingPayroll) {
+        const departmentName = selectedDepartment === 'all' 
+          ? 'all departments' 
+          : existingPayroll.departments?.name || 'selected department';
+        
+        toast({
+          title: "Payroll Already Processed",
+          description: `Payroll for ${selectedPeriod} (${departmentName}) is already finalized. Please contact a Super Admin to reopen if changes are needed.`,
+          variant: "destructive",
+        });
+        return;
+      }
+
       // Filter staff by department if selected
       const filteredStaff = selectedDepartment === 'all' 
         ? staff 
@@ -132,6 +164,44 @@ export default function PayrollProcessing() {
         return;
       }
 
+      // Check for staff already processed in other payroll runs for this period
+      const { data: existingPayslips, error: payslipsError } = await supabase
+        .from('payslips')
+        .select(`
+          staff_id,
+          payroll_runs!inner (
+            status,
+            department_id
+          )
+        `)
+        .eq('period', selectedPeriod)
+        .eq('payroll_runs.status', 'processed');
+
+      if (payslipsError) {
+        console.error('Error checking existing payslips:', payslipsError);
+      }
+
+      const processedStaffIds = new Set(existingPayslips?.map(p => p.staff_id) || []);
+      const staffToProcess = filteredStaff.filter(s => !processedStaffIds.has(s.id));
+      const skippedStaff = filteredStaff.filter(s => processedStaffIds.has(s.id));
+
+      if (skippedStaff.length > 0) {
+        toast({
+          title: "Some Staff Already Processed",
+          description: `${skippedStaff.length} staff members were skipped as they have already been paid for ${selectedPeriod} in a finalized payroll.`,
+          variant: "destructive",
+        });
+      }
+
+      if (staffToProcess.length === 0) {
+        toast({
+          title: "No Staff to Process",
+          description: "All selected staff have already been processed for this period.",
+          variant: "destructive",
+        });
+        return;
+      }
+
       // Create payroll run
       const { data: payrollRun, error: runError } = await supabase
         .from('payroll_runs')
@@ -139,7 +209,7 @@ export default function PayrollProcessing() {
           period: selectedPeriod,
           department_id: selectedDepartment === 'all' ? null : selectedDepartment,
           status: 'draft',
-          total_staff: filteredStaff.length,
+          total_staff: staffToProcess.length,
         })
         .select()
         .single();
@@ -150,11 +220,11 @@ export default function PayrollProcessing() {
       await logPayrollEvent('created', payrollRun.id, null, {
         period: selectedPeriod,
         department_id: selectedDepartment === 'all' ? null : selectedDepartment,
-        total_staff: filteredStaff.length,
+        total_staff: staffToProcess.length,
       });
 
       // Prepare payroll inputs for calculation
-      const payrollInputs = filteredStaff.map(staffMember => ({
+      const payrollInputs = staffToProcess.map(staffMember => ({
         staffId: staffMember.id,
         gradeLevel: staffMember.grade_level,
         step: staffMember.step,
@@ -179,7 +249,7 @@ export default function PayrollProcessing() {
         const notifications = adminUsers.map(admin => ({
           user_id: admin.id,
           title: 'Payroll Run Completed',
-          message: `Payroll for ${selectedPeriod} has been processed for ${filteredStaff.length} staff members and is ready for review.`,
+          message: `Payroll for ${selectedPeriod} has been processed for ${staffToProcess.length} staff members and is ready for review.${skippedStaff.length > 0 ? ` ${skippedStaff.length} staff were skipped (already processed).` : ''}`,
           type: 'success',
         }));
 
@@ -190,7 +260,7 @@ export default function PayrollProcessing() {
 
       toast({
         title: "Success",
-        description: `Payroll processed successfully for ${filteredStaff.length} staff members.`,
+        description: `Payroll processed successfully for ${staffToProcess.length} staff members.${skippedStaff.length > 0 ? ` ${skippedStaff.length} staff were skipped (already processed).` : ''}`,
       });
 
       // Reload data to show the new payroll run
