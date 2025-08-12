@@ -39,28 +39,7 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { 
-  DropdownMenuSeparator,
-  CheckCircle, 
-  Clock, 
-  AlertCircle, 
-  Eye, 
-  FileText,
-  CheckCircle, 
-  Clock, 
-  AlertCircle, 
-  Eye, 
-  Check, 
-  X,
-  FileText,
-  Calendar,
-  Users,
-  Unlock,
-  Play,
-  Send,
-  RefreshCw,
-  MoreHorizontal
-} from 'lucide-react';
+import { SeparatorVertical as DropdownMenuSeparator, CheckCircle, Clock, AlertCircle, Eye, FileText, CheckCircle, Clock, AlertCircle, Eye, Check, X, FileText, Calendar, Users, Unlock, Play, Send, RefreshCw, MoreHorizontal } from 'lucide-react';
 
 export default function PayrollWorkflow() {
   const { user, hasRole } = useAuth();
