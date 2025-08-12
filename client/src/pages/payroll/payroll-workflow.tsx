@@ -40,6 +40,12 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { 
+  DropdownMenuSeparator,
+  CheckCircle, 
+  Clock, 
+  AlertCircle, 
+  Eye, 
+  FileText,
   CheckCircle, 
   Clock, 
   AlertCircle, 
@@ -52,7 +58,8 @@ import {
   Unlock,
   Play,
   Send,
-  RefreshCw
+  RefreshCw,
+  MoreHorizontal
 } from 'lucide-react';
 
 export default function PayrollWorkflow() {
@@ -664,200 +671,154 @@ export default function PayrollWorkflow() {
                       {run.created_by_user?.email || 'System'}
                     </TableCell>
                     <TableCell>
-                      <div className="flex space-x-1 flex-wrap gap-1">
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="sm"
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="sm">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem
+                            onClick={() => {
+                              setSelectedRun(run);
+                              setShowRunDetailsModal(true);
+                            }}
+                          >
+                            <Eye className="mr-2 h-4 w-4" />
+                            View Details
+                          </DropdownMenuItem>
+                          
+                          {canRerun(run) && (
+                            <DropdownMenuItem
                               onClick={() => {
                                 setSelectedRun(run);
-                                setShowRunDetailsModal(true);
+                                rerunPayrollMutation.mutate(run.id);
                               }}
+                              disabled={rerunPayrollMutation.isPending}
+                              className="text-blue-600"
                             >
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p>View payroll run details</p>
-                          </TooltipContent>
-                        </Tooltip>
-                        {canRerun(run) && (
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => {
-                                  setSelectedRun(run);
-                                  rerunPayrollMutation.mutate(run.id);
-                                }}
-                                disabled={rerunPayrollMutation.isPending}
-                                className="text-blue-600 hover:text-blue-700"
-                              >
-                                <RefreshCw className="h-4 w-4" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>Rerun payroll calculation</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        )}
-                        {canSendForReview(run) && (
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => {
-                                  setSelectedRun(run);
-                                  sendForReviewMutation.mutate(run.id);
-                                }}
-                                disabled={sendForReviewMutation.isPending}
-                                className="text-green-600 hover:text-green-700"
-                              >
-                                <Send className="h-4 w-4" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>Send for review</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        )}
-                        {canApprove(run) && (
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="sm"
+                              <RefreshCw className="mr-2 h-4 w-4" />
+                              Rerun Payroll
+                            </DropdownMenuItem>
+                          )}
+                          
+                          {canSendForReview(run) && (
+                            <DropdownMenuItem
+                              onClick={() => {
+                                setSelectedRun(run);
+                                sendForReviewMutation.mutate(run.id);
+                              }}
+                              disabled={sendForReviewMutation.isPending}
+                              className="text-green-600"
+                            >
+                              <Send className="mr-2 h-4 w-4" />
+                              Send for Review
+                            </DropdownMenuItem>
+                          )}
+                          
+                          {canApprove(run) && (
+                            <>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
                                 onClick={() => {
                                   setSelectedRun(run);
                                   setShowApprovalModal(true);
                                 }}
                                 disabled={isPayrollLocked(run)}
-                                className="text-blue-600 hover:text-blue-700"
+                                className="text-blue-600"
                               >
-                                <Check className="h-4 w-4" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>
-                                {isPayrollLocked(run) 
-                                  ? 'Payroll is locked and cannot be modified' 
-                                  : 'Review and approve payroll'
-                                }
-                              </p>
-                            </TooltipContent>
-                          </Tooltip>
-                        )}
-                        {canFinalize(run) && (
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => {
-                                  setSelectedRun(run);
-                                  finalizePayrollMutation.mutate(run.id);
-                                }}
-                                disabled={isPayrollLocked(run)}
-                                className="text-green-600 hover:text-green-700"
-                              >
-                                <CheckCircle className="h-4 w-4" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>
-                                {isPayrollLocked(run) 
-                                  ? 'Payroll is already finalized and locked' 
-                                  : 'Finalize and process payroll'
-                                }
-                              </p>
-                            </TooltipContent>
-                          </Tooltip>
-                        )}
-                        {canGeneratePayslips(run) && (
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => {
-                                  setSelectedRun(run);
-                                  generatePayslipsMutation.mutate(run.id);
-                                }}
-                                disabled={generatePayslipsMutation.isPending}
-                                className="text-purple-600 hover:text-purple-700"
-                              >
-                                <FileText className="h-4 w-4" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>Generate payslips</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        )}
-                        {canReopen(run) && (
-                          <AlertDialog>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
+                                <Check className="mr-2 h-4 w-4" />
+                                Approve
+                              </DropdownMenuItem>
+                            </>
+                          )}
+                          
+                          {canFinalize(run) && (
+                            <DropdownMenuItem
+                              onClick={() => {
+                                setSelectedRun(run);
+                                finalizePayrollMutation.mutate(run.id);
+                              }}
+                              disabled={isPayrollLocked(run) || finalizePayrollMutation.isPending}
+                              className="text-green-600"
+                            >
+                              <CheckCircle className="mr-2 h-4 w-4" />
+                              Finalize Payroll
+                            </DropdownMenuItem>
+                          )}
+                          
+                          {canGeneratePayslips(run) && (
+                            <DropdownMenuItem
+                              onClick={() => {
+                                setSelectedRun(run);
+                                generatePayslipsMutation.mutate(run.id);
+                              }}
+                              disabled={generatePayslipsMutation.isPending}
+                              className="text-purple-600"
+                            >
+                              <FileText className="mr-2 h-4 w-4" />
+                              Generate Payslips
+                            </DropdownMenuItem>
+                          )}
+                          
+                          {canReopen(run) && (
+                            <>
+                              <DropdownMenuSeparator />
+                              <AlertDialog>
                                 <AlertDialogTrigger asChild>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="text-orange-600 hover:text-orange-700"
+                                  <DropdownMenuItem
+                                    onSelect={(e) => e.preventDefault()}
+                                    className="text-orange-600"
                                   >
-                                    <Unlock className="h-4 w-4" />
-                                  </Button>
+                                    <Unlock className="mr-2 h-4 w-4" />
+                                    Reopen Payroll
+                                  </DropdownMenuItem>
                                 </AlertDialogTrigger>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>Reopen processed payroll (Super Admin only)</p>
-                              </TooltipContent>
-                            </Tooltip>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Reopen Processed Payroll</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  Are you sure you want to reopen this processed payroll for {formatPeriod(run.period)}?
-                                  <br /><br />
-                                  <strong>Warning:</strong> This will change the status from "Processed" to "Draft" and allow modifications. 
-                                  This action should only be done in exceptional circumstances and will be logged for audit purposes.
-                                  <br /><br />
-                                  <strong>Department:</strong> {run.departments?.name || 'All Departments'}
-                                  <br />
-                                  <strong>Staff Count:</strong> {run.total_staff || 0}
-                                  <br />
-                                  <strong>Net Amount:</strong> {formatCurrency(run.net_amount || 0)}
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction
-                                  onClick={() => {
-                                    setSelectedRun(run);
-                                    reopenPayrollMutation.mutate(run.id);
-                                  }}
-                                  disabled={reopenPayrollMutation.isPending}
-                                  className="bg-orange-600 hover:bg-orange-700"
-                                >
-                                  {reopenPayrollMutation.isPending ? (
-                                    <>
-                                      <Clock className="mr-2 h-4 w-4 animate-spin" />
-                                      Reopening...
-                                    </>
-                                  ) : (
-                                    <>
-                                      <Unlock className="mr-2 h-4 w-4" />
-                                      Reopen Payroll
-                                    </>
-                                  )}
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
-                        )}
-                      </div>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Reopen Processed Payroll</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      Are you sure you want to reopen this processed payroll for {formatPeriod(run.period)}?
+                                      <br /><br />
+                                      <strong>Warning:</strong> This will change the status from "Processed" to "Draft" and allow modifications. 
+                                      This action should only be done in exceptional circumstances and will be logged for audit purposes.
+                                      <br /><br />
+                                      <strong>Department:</strong> {run.departments?.name || 'All Departments'}
+                                      <br />
+                                      <strong>Staff Count:</strong> {run.total_staff || 0}
+                                      <br />
+                                      <strong>Net Amount:</strong> {formatCurrency(run.net_amount || 0)}
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction
+                                      onClick={() => {
+                                        setSelectedRun(run);
+                                        reopenPayrollMutation.mutate(run.id);
+                                      }}
+                                      disabled={reopenPayrollMutation.isPending}
+                                      className="bg-orange-600 hover:bg-orange-700"
+                                    >
+                                      {reopenPayrollMutation.isPending ? (
+                                        <>
+                                          <Clock className="mr-2 h-4 w-4 animate-spin" />
+                                          Reopening...
+                                        </>
+                                      ) : (
+                                        <>
+                                          <Unlock className="mr-2 h-4 w-4" />
+                                          Reopen Payroll
+                                        </>
+                                      )}
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            </>
+                          )}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </TableCell>
                   </TableRow>
                 ))}
