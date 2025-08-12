@@ -102,6 +102,8 @@ CREATE TABLE payroll_runs (
   processed_at TIMESTAMP WITH TIME ZONE,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() -- Add this line
+);
 
 -- Payslips table
 CREATE TABLE payslips (
