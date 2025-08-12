@@ -6,7 +6,7 @@ import { supabase } from '@/lib/supabase';
 import { formatDisplayCurrency } from '@/lib/currency-utils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { logPayrollEvent } from '@/lib/audit-logger';
-import { isPayrollLockedFrontend, prociessPayrollRun, generatePayslipsForPayrollRun } from '@/lib/payroll-calculator';
+import { isPayrollLockedFrontend, processPayrollRun, generatePayslipsForPayrollRun } from '@/lib/payroll-calculator';
 import { PayrollDetailsModal } from '@/components/payroll-details-modal';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -36,19 +36,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Textarea } from '@/components/ui/textarea';
-import { Label } from '@/components/ui/label';
-import { useToast } from '@/hooks/use-toast';
-import { SeparatorVertical as DropdownMenuSeparator, CheckCircle, Clock, AlertCircle, Eye, FileText, Check, X, Calendar, Users, Unlock, Play, Send, RefreshCw, MoreHorizontal } from 'lucide-react';
-
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import { useToast } from '@/hooks/use-toast';
+import { SeparatorVertical as DropdownMenuSeparator, CheckCircle, Clock, AlertCircle, Eye, FileText, Check, X, Calendar, Users, Unlock, Play, Send, RefreshCw, MoreHorizontal } from 'lucide-react';
 
 export default function PayrollWorkflow() {
   const { user, hasRole } = useAuth();
@@ -767,14 +764,20 @@ export default function PayrollWorkflow() {
                                     <AlertDialogTitle>Reopen Processed Payroll</AlertDialogTitle>
                                     <AlertDialogDescription>
                                       Are you sure you want to reopen this processed payroll for {formatPeriod(run.period)}?
-                                      <br /><br />
+                                        
+  
+
                                       <strong>Warning:</strong> This will change the status from "Processed" to "Draft" and allow modifications. 
                                       This action should only be done in exceptional circumstances and will be logged for audit purposes.
-                                      <br /><br />
+                                        
+  
+
                                       <strong>Department:</strong> {run.departments?.name || 'All Departments'}
-                                      <br />
+                                        
+
                                       <strong>Staff Count:</strong> {run.total_staff || 0}
-                                      <br />
+                                        
+
                                       <strong>Net Amount:</strong> {formatCurrency(run.net_amount || 0)}
                                     </AlertDialogDescription>
                                   </AlertDialogHeader>
