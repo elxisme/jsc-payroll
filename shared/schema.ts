@@ -94,6 +94,7 @@ export const payrollRuns = pgTable("payroll_runs", {
   approvedBy: uuid("approved_by").references(() => users.id),
   processedAt: timestamp("processed_at"),
   createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(), // Add this line
 });
 
 // Payslips table
