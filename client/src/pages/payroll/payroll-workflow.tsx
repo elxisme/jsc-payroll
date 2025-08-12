@@ -6,7 +6,7 @@ import { supabase } from '@/lib/supabase';
 import { formatDisplayCurrency } from '@/lib/currency-utils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { logPayrollEvent } from '@/lib/audit-logger';
-import { isPayrollLockedFrontend, processPayrollRun, generatePayslipsForPayrollRun } from '@/lib/payroll-calculator';
+import { isPayrollLockedFrontend, prociessPayrollRun, generatePayslipsForPayrollRun } from '@/lib/payroll-calculator';
 import { PayrollDetailsModal } from '@/components/payroll-details-modal';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -39,7 +39,16 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { SeparatorVertical as DropdownMenuSeparator, CheckCircle, Clock, AlertCircle, Eye, FileText, CheckCircle, Clock, AlertCircle, Eye, Check, X, FileText, Calendar, Users, Unlock, Play, Send, RefreshCw, MoreHorizontal } from 'lucide-react';
+import { SeparatorVertical as DropdownMenuSeparator, CheckCircle, Clock, AlertCircle, Eye, FileText, Check, X, Calendar, Users, Unlock, Play, Send, RefreshCw, MoreHorizontal } from 'lucide-react';
+
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export default function PayrollWorkflow() {
   const { user, hasRole } = useAuth();
