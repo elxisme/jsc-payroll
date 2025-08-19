@@ -1,7 +1,10 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useAuth } from '@/hooks/use-auth';
 import { supabase } from '@/lib/supabase';
 import { formatDisplayCurrency, formatDetailCurrency } from '@/lib/currency-utils';
+import { exportPayrollToExcel } from '@/lib/export-utils';
+import { useToast } from '@/hooks/use-toast';
 import {
   Dialog,
   DialogContent,
@@ -21,7 +24,8 @@ import {
   User,
   Clock,
   CheckCircle,
-  AlertCircle
+  AlertCircle,
+  Download
 } from 'lucide-react';
 
 interface PayrollDetailsModalProps {
@@ -31,6 +35,9 @@ interface PayrollDetailsModalProps {
 }
 
 export function PayrollDetailsModal({ open, onClose, payrollRun }: PayrollDetailsModalProps) {
+  const { hasRole } = useAuth();
+  const { toast } = useToast();
+
   // Fetch detailed payroll data including payslips
   const { data: payrollDetails, isLoading } = useQuery({
     queryKey: ['payroll-details', payrollRun?.id],
@@ -127,6 +134,66 @@ export function PayrollDetailsModal({ open, onClose, payrollRun }: PayrollDetail
         return 'bg-gray-100 text-gray-800';
       default:
         return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const handleDownloadFullReport = async () => {
+    if (!payrollDetails?.payslips || payrollDetails.payslips.length === 0) {
+      toast({
+        title: "No Data",
+        description: "No payslip data available to export",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      // Transform payslips data for export
+      const exportData = payrollDetails.payslips.map((payslip: any) => {
+        // Parse allowances and deductions JSON
+        const allowances = typeof payslip.allowances === 'string' 
+          ? JSON.parse(payslip.allowances) 
+          : payslip.allowances || {};
+        
+        const deductions = typeof payslip.deductions === 'string' 
+          ? JSON.parse(payslip.deductions) 
+          : payslip.deductions || {};
+
+        // Calculate total allowances and deductions
+        const totalAllowances = Object.values(allowances).reduce((sum: number, amount: any) => 
+          sum + (parseFloat(amount) || 0), 0);
+        const totalDeductions = Object.values(deductions).reduce((sum: number, amount: any) => 
+          sum + (parseFloat(amount) || 0), 0);
+
+        return {
+          staffId: payslip.staff?.staff_id || '',
+          staffName: `${payslip.staff?.first_name || ''} ${payslip.staff?.last_name || ''}`.trim(),
+          department: payslip.staff?.departments?.name || 'Unassigned',
+          position: payslip.staff?.position || '',
+          gradeLevel: `GL ${payslip.staff?.grade_level || 0} Step ${payslip.staff?.step || 0}`,
+          basicSalary: parseFloat(payslip.basic_salary || '0'),
+          allowances: totalAllowances,
+          grossPay: parseFloat(payslip.gross_pay || '0'),
+          deductions: totalDeductions,
+          netPay: parseFloat(payslip.net_pay || '0'),
+          period: payrollRun.period,
+        };
+      });
+
+      const filename = `payroll_audit_report_${payrollRun.period}_${new Date().toISOString().split('T')[0]}.xlsx`;
+      await exportPayrollToExcel(exportData, filename);
+      
+      toast({
+        title: "Success",
+        description: "Payroll audit report downloaded successfully",
+      });
+    } catch (error) {
+      console.error('Error generating payroll report:', error);
+      toast({
+        title: "Error",
+        description: "Failed to generate payroll report",
+        variant: "destructive",
+      });
     }
   };
 
@@ -327,6 +394,16 @@ export function PayrollDetailsModal({ open, onClose, payrollRun }: PayrollDetail
             <Button variant="outline" onClick={onClose}>
               Close
             </Button>
+            {hasRole(['super_admin', 'account_admin', 'payroll_admin']) && (
+              <Button 
+                onClick={handleDownloadFullReport}
+                className="bg-nigeria-green hover:bg-green-700"
+                disabled={!payrollDetails?.payslips || payrollDetails.payslips.length === 0}
+              >
+                <Download className="mr-2 h-4 w-4" />
+                Download Full Report
+              </Button>
+            )}
           </div>
         </div>
       </DialogContent>
