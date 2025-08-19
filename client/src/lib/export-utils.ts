@@ -167,8 +167,15 @@ export async function exportToBankExcel(data: any[], filename: string): Promise<
  * Export payroll data to Excel format
  */
 export async function exportPayrollToExcel(data: PayrollExportData[], filename: string): Promise<void> {
-  // Create worksheet with custom headers
-  const headers = [
+  // Calculate totals for the report summary
+  const totalStaff = data.length;
+  const totalGrossPay = data.reduce((sum, row) => sum + row.grossPay, 0);
+  const totalNetPay = data.reduce((sum, row) => sum + row.netPay, 0);
+  const totalAllowances = data.reduce((sum, row) => sum + row.allowances, 0);
+  const totalDeductions = data.reduce((sum, row) => sum + row.deductions, 0);
+
+  // Define the main table headers (these will be the actual column headers for staff data)
+  const tableHeaders = [
     'Staff ID',
     'Staff Name',
     'Department',
@@ -188,7 +195,7 @@ export async function exportPayrollToExcel(data: PayrollExportData[], filename: 
     'Staff Name': row.staffName,
     'Department': row.department,
     'Position': row.position,
-    'Grade Level': row.gradeLevel,
+    'Grade Level': row.gradeLevel || 'N/A',
     'Basic Salary (NGN)': row.basicSalary,
     'Allowances (NGN)': row.allowances,
     'Gross Pay (NGN)': row.grossPay,
@@ -197,26 +204,36 @@ export async function exportPayrollToExcel(data: PayrollExportData[], filename: 
     'Pay Period': row.period,
   }));
 
-  const worksheet = XLSX.utils.json_to_sheet(formattedData, { header: headers, skipHeader: true });
+  // Create empty worksheet
+  const worksheet = XLSX.utils.aoa_to_sheet([]);
   const workbook = XLSX.utils.book_new();
 
-  // Add report metadata
-  const reportInfo = [
+  // Add report metadata at the top (NO staff data here)
+  const reportMetadata = [
     ['JSC PAYROLL MANAGEMENT SYSTEM'],
     ['Payroll Summary Report'],
     [`Generated on: ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}`],
     [`Total Staff: ${data.length}`],
-    [`Total Gross Pay: ₦${data.reduce((sum, row) => sum + row.grossPay, 0).toLocaleString()}`],
-    [`Total Net Pay: ₦${data.reduce((sum, row) => sum + row.netPay, 0).toLocaleString()}`],
-    [''], // Empty row
-    headers // Add the actual header row
+    [`Total Staff: ${totalStaff}`],
+    [`Total Gross Pay: ₦${totalGrossPay.toLocaleString()}`],
+    [`Total Allowances: ₦${totalAllowances.toLocaleString()}`],
+    [`Total Deductions: ₦${totalDeductions.toLocaleString()}`],
+    [`Total Net Pay: ₦${totalNetPay.toLocaleString()}`],
+    [''], // Empty row to separate metadata from table
   ];
 
-  // Insert report info at the beginning
-  XLSX.utils.sheet_add_aoa(worksheet, reportInfo, { origin: 'A1' });
+  // Add report metadata to worksheet
+  XLSX.utils.sheet_add_aoa(worksheet, reportMetadata, { origin: 'A1' });
 
-  // Adjust the data to start after the report info
-  XLSX.utils.sheet_add_json(worksheet, formattedData, { origin: `A${reportInfo.length + 1}`, skipHeader: true });
+  // Add table headers after the metadata
+  const headerRowPosition = reportMetadata.length + 1;
+  XLSX.utils.sheet_add_aoa(worksheet, [tableHeaders], { origin: `A${headerRowPosition}` });
+
+  // Add the actual staff data after the headers
+  XLSX.utils.sheet_add_json(worksheet, formattedData, { 
+    origin: `A${headerRowPosition + 1}`, 
+    skipHeader: true 
+  });
 
   // Set column widths
   const columnWidths = [
@@ -234,9 +251,9 @@ export async function exportPayrollToExcel(data: PayrollExportData[], filename: 
   ];
   worksheet['!cols'] = columnWidths;
 
-  // Style the header row
-  const headerRowIndex = reportInfo.length - 1;
-  for (let col = 0; col < headers.length; col++) {
+  // Style the table header row (not the report metadata)
+  const headerRowIndex = headerRowPosition - 1; // Convert to 0-based index
+  for (let col = 0; col < tableHeaders.length; col++) {
     const cellAddress = XLSX.utils.encode_cell({ r: headerRowIndex, c: col });
     if (!worksheet[cellAddress]) continue;
     worksheet[cellAddress].s = {
