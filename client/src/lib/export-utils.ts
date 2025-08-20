@@ -44,12 +44,14 @@ export interface BankTransferData {
   period: string;
 }
 
+// --- MODIFICATION 1: Added 'step' to the interface ---
 export interface PayrollExportData {
   staffId: string;
   staffName: string;
   department: string;
   position: string;
-  gradeLevel: string;
+  gradeLevel: string | number; // Can be string or number
+  step: string | number;         // Can be string or number
   basicSalary: number;
   allowances: number;
   grossPay: number;
@@ -174,7 +176,7 @@ export async function exportPayrollToExcel(data: PayrollExportData[], filename: 
   const totalAllowances = data.reduce((sum, row) => sum + row.allowances, 0);
   const totalDeductions = data.reduce((sum, row) => sum + row.deductions, 0);
 
-  // Define the main table headers (these will be the actual column headers for staff data)
+  // Define the main table headers
   const tableHeaders = [
     'Staff ID',
     'Staff Name',
@@ -189,32 +191,36 @@ export async function exportPayrollToExcel(data: PayrollExportData[], filename: 
     'Pay Period'
   ];
 
-  // Format data for export
-  const formattedData = data.map(row => ({
-    'Staff ID': row.staffId,
-    'Staff Name': row.staffName,
-    'Department': row.department,
-    'Position': row.position,
-    // FIX: Explicitly check for null/undefined to allow the number 0
-    'Grade Level': row.gradeLevel !== null && row.gradeLevel !== undefined ? row.gradeLevel : 'N/A',
-    'Basic Salary (NGN)': row.basicSalary,
-    'Allowances (NGN)': row.allowances,
-    'Gross Pay (NGN)': row.grossPay,
-    'Deductions (NGN)': row.deductions,
-    'Net Pay (NGN)': row.netPay,
-    'Pay Period': row.period,
-  }));
+  // --- MODIFICATION 2: Format 'Grade Level' as a combined string ---
+  const formattedData = data.map(row => {
+    // Handle cases where gradeLevel or step might be missing
+    const gradeLevel = row.gradeLevel ?? 'N/A';
+    const step = row.step ?? 'N/A';
+
+    return {
+      'Staff ID': row.staffId,
+      'Staff Name': row.staffName,
+      'Department': row.department,
+      'Position': row.position,
+      'Grade Level': `GL ${gradeLevel} Step ${step}`, // Combine GL and Step here
+      'Basic Salary (NGN)': row.basicSalary,
+      'Allowances (NGN)': row.allowances,
+      'Gross Pay (NGN)': row.grossPay,
+      'Deductions (NGN)': row.deductions,
+      'Net Pay (NGN)': row.netPay,
+      'Pay Period': row.period,
+    };
+  });
 
   // Create empty worksheet
   const worksheet = XLSX.utils.aoa_to_sheet([]);
   const workbook = XLSX.utils.book_new();
 
-  // Add report metadata at the top (NO staff data here)
+  // Add report metadata at the top
   const reportMetadata = [
     ['JSC PAYROLL MANAGEMENT SYSTEM'],
     ['Payroll Summary Report'],
     [`Generated on: ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}`],
-    [`Total Staff: ${data.length}`],
     [`Total Staff: ${totalStaff}`],
     [`Total Gross Pay: ₦${totalGrossPay.toLocaleString()}`],
     [`Total Allowances: ₦${totalAllowances.toLocaleString()}`],
@@ -242,7 +248,7 @@ export async function exportPayrollToExcel(data: PayrollExportData[], filename: 
     { wch: 25 }, // Staff Name
     { wch: 20 }, // Department
     { wch: 20 }, // Position
-    { wch: 12 }, // Grade Level
+    { wch: 20 }, // Grade Level (Increased width for the new format)
     { wch: 15 }, // Basic Salary
     { wch: 15 }, // Allowances
     { wch: 15 }, // Gross Pay
@@ -252,8 +258,8 @@ export async function exportPayrollToExcel(data: PayrollExportData[], filename: 
   ];
   worksheet['!cols'] = columnWidths;
 
-  // Style the table header row (not the report metadata)
-  const headerRowIndex = headerRowPosition - 1; // Convert to 0-based index
+  // Style the table header row
+  const headerRowIndex = headerRowPosition - 1;
   for (let col = 0; col < tableHeaders.length; col++) {
     const cellAddress = XLSX.utils.encode_cell({ r: headerRowIndex, c: col });
     if (!worksheet[cellAddress]) continue;
