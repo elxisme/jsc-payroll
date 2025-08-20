@@ -195,7 +195,8 @@ export async function exportPayrollToExcel(data: PayrollExportData[], filename: 
     'Staff Name': row.staffName,
     'Department': row.department,
     'Position': row.position,
-    'Grade Level': row.gradeLevel || 'N/A',
+    // FIX: Explicitly check for null/undefined to allow the number 0
+    'Grade Level': row.gradeLevel !== null && row.gradeLevel !== undefined ? row.gradeLevel : 'N/A',
     'Basic Salary (NGN)': row.basicSalary,
     'Allowances (NGN)': row.allowances,
     'Gross Pay (NGN)': row.grossPay,
