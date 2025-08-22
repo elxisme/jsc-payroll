@@ -50,8 +50,8 @@ export interface PayrollExportData {
   staffName: string;
   department: string;
   position: string;
-  gradeLevel: string | number; // Can be string or number
-  step: string | number;         // Can be string or number
+  gradeLevel: number;
+  step: number;
   basicSalary: number;
   allowances: number;
   grossPay: number;
@@ -193,16 +193,12 @@ export async function exportPayrollToExcel(data: PayrollExportData[], filename: 
 
   // --- MODIFICATION 2: Format 'Grade Level' as a combined string ---
   const formattedData = data.map(row => {
-    // Handle cases where gradeLevel or step might be missing
-    const gradeLevel = row.gradeLevel ?? 'N/A';
-    const step = row.step ?? 'N/A';
-
     return {
       'Staff ID': row.staffId,
       'Staff Name': row.staffName,
       'Department': row.department,
       'Position': row.position,
-      'Grade Level': `GL ${gradeLevel} Step ${step}`, // Combine GL and Step here
+      'Grade Level': `GL ${row.gradeLevel || 0} Step ${row.step || 0}`,
       'Basic Salary (NGN)': row.basicSalary,
       'Allowances (NGN)': row.allowances,
       'Gross Pay (NGN)': row.grossPay,
