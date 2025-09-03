@@ -198,7 +198,7 @@ export async function exportPayrollToExcel(data: PayrollExportData[], filename: 
       'Staff Name': row.staffName,
       'Department': row.department,
       'Position': row.position,
-      'Grade Level': `GL ${row.gradeLevel || 0} Step ${row.step || 0}`,
+      'Grade Level': `${(row.gradeLevel || 0).toString().padStart(2, '0')}${(row.step || 0).toString().padStart(2, '0')}`,
       'Basic Salary (NGN)': row.basicSalary,
       'Allowances (NGN)': row.allowances,
       'Gross Pay (NGN)': row.grossPay,
