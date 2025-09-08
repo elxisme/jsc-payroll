@@ -169,7 +169,7 @@ RETURNS TABLE(
 ) AS $$
 DECLARE
   promotion_record record;
-  current_date date;
+  period_date date;  -- Changed from current_date to period_date
   next_date date;
   current_grade integer;
   current_step integer;
@@ -178,7 +178,7 @@ BEGIN
   SELECT g.grade_level, g.step INTO current_grade, current_step
   FROM get_staff_grade_on_date(p_staff_id, p_start_date) g;
   
-  current_date := p_start_date;
+  period_date := p_start_date;  -- Changed from current_date to period_date
   
   -- Loop through all promotions in the period
   FOR promotion_record IN
@@ -190,27 +190,27 @@ BEGIN
     ORDER BY effective_date
   LOOP
     -- Return the current grade for days before this promotion
-    IF promotion_record.effective_date > current_date THEN
+    IF promotion_record.effective_date > period_date THEN
       RETURN QUERY SELECT 
-        current_date,
+        period_date,
         current_grade,
         current_step,
-        (promotion_record.effective_date - current_date)::integer;
+        (promotion_record.effective_date - period_date)::integer;
     END IF;
     
     -- Update to new grade/step
     current_grade := promotion_record.new_grade_level;
     current_step := promotion_record.new_step;
-    current_date := promotion_record.effective_date;
+    period_date := promotion_record.effective_date;  -- Changed from current_date to period_date
   END LOOP;
   
   -- Return remaining days in period with final grade/step
-  IF current_date <= p_end_date THEN
+  IF period_date <= p_end_date THEN
     RETURN QUERY SELECT 
-      current_date,
+      period_date,
       current_grade,
       current_step,
-      (p_end_date - current_date + 1)::integer;
+      (p_end_date - period_date + 1)::integer;
   END IF;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
