@@ -276,36 +276,58 @@ export async function fetchIndividualDeductions(staffId: string, period: string)
  * Calculate complete payroll for a staff member
  */
 export async function calculateStaffPayroll(inputs: PayrollInputs): Promise<PayrollResult> {
-  // Get basic salary from database
-  const basicSalary = await getBasicSalaryFromDB(inputs.gradeLevel, inputs.step);
-  
+  const period = new Date().toISOString().slice(0, 7); // Current period, could be passed as parameter
+
   // Fetch allowance and deduction rules
   const { allowances: allowanceRules, deductions: deductionRules } = await fetchPayrollRules();
   
   // Fetch individual allowances and deductions for this staff member
-  const period = new Date().toISOString().slice(0, 7); // Current period, could be passed as parameter
   const individualAllowances = inputs.individualAllowances || await fetchIndividualAllowances(inputs.staffId, period);
   const individualDeductions = inputs.individualDeductions || await fetchIndividualDeductions(inputs.staffId, period);
   
-  // Calculate allowances
-  const allowancesBreakdown = calculateAllowances(
-    basicSalary,
-    allowanceRules,
-    inputs.gradeLevel,
-    inputs.position
-  );
-  
-  // Calculate individual allowances breakdown
+  // --- Proration Logic Start ---
+  let totalProratedBasicSalary = 0;
+  let totalProratedAllowances = 0;
+
+  // Get grade changes for the period using the RPC function
+  const { data: gradeChanges, error: rpcError } = await supabase.rpc('get_staff_grade_changes_in_period', {
+    p_staff_id: inputs.staffId,
+    period_date: period // Use period_date as per the migration
+  });
+
+  if (rpcError) {
+    console.error('Error fetching grade changes for proration:', rpcError);
+    // Fallback to current grade/step if RPC fails
+    const basicSalary = await getBasicSalaryFromDB(inputs.gradeLevel, inputs.step);
+    const allowancesBreakdown = calculateAllowances(basicSalary, allowanceRules, inputs.gradeLevel, inputs.position);
+    totalProratedBasicSalary = basicSalary;
+    totalProratedAllowances = Object.values(allowancesBreakdown).reduce((sum, amount) => sum + amount, 0);
+  } else {
+    for (const change of gradeChanges) {
+      const basicSalaryForSegment = await getBasicSalaryFromDB(change.grade_level, change.step);
+      const allowancesForSegment = calculateAllowances(basicSalaryForSegment, allowanceRules, change.grade_level, change.step); // Assuming position is constant for proration
+
+      const daysInMonth = new Date(new Date(period).getFullYear(), new Date(period).getMonth() + 1, 0).getDate(); // Get actual days in month
+      const dailyBasicSalary = basicSalaryForSegment / daysInMonth;
+      const dailyAllowances = Object.values(allowancesForSegment).reduce((sum, amount) => sum + amount, 0) / daysInMonth;
+
+      totalProratedBasicSalary += dailyBasicSalary * change.days_in_period;
+      totalProratedAllowances += dailyAllowances * change.days_in_period;
+    }
+  }
+  // --- Proration Logic End ---
+
+  const basicSalary = totalProratedBasicSalary; // This is now the prorated basic salary
+  const allowancesBreakdown = calculateAllowances(basicSalary, allowanceRules, inputs.gradeLevel, inputs.position); // Recalculate based on prorated basic for consistency, or refine proration of individual allowance types
+
   const individualAllowancesBreakdown: Record<string, number> = {};
   individualAllowances.forEach(allowance => {
     const key = allowance.type.toLowerCase().replace(/\s+/g, '_');
     individualAllowancesBreakdown[key] = (individualAllowancesBreakdown[key] || 0) + allowance.amount;
   });
   
-  const totalAllowances = Object.values(allowancesBreakdown).reduce((sum, amount) => sum + amount, 0);
   const totalIndividualAllowances = Object.values(individualAllowancesBreakdown).reduce((sum, amount) => sum + amount, 0);
   
-  // Calculate gross pay including extras
   const arrears = inputs.arrears || 0;
   const overtime = inputs.overtime || 0;
   const bonus = inputs.bonus || 0;
@@ -315,7 +337,7 @@ export async function calculateStaffPayroll(inputs: PayrollInputs): Promise<Payr
   const dailySalary = basicSalary / 30; // Assuming 30 working days per month
   const unpaidLeaveDeduction = unpaidLeaveDays * dailySalary;
   
-  const grossPay = basicSalary + totalAllowances + totalIndividualAllowances + arrears + overtime + bonus;
+  const grossPay = basicSalary + totalProratedAllowances + totalIndividualAllowances + arrears + overtime + bonus;
   
   // Calculate deductions
   const deductionsBreakdown = calculateDeductions(
@@ -350,7 +372,7 @@ export async function calculateStaffPayroll(inputs: PayrollInputs): Promise<Payr
     basicSalary,
     allowancesBreakdown,
     individualAllowancesBreakdown,
-    totalAllowances: totalAllowances + totalIndividualAllowances,
+    totalAllowances: totalProratedAllowances + totalIndividualAllowances,
     grossPay,
     deductionsBreakdown,
     individualDeductionsBreakdown,
@@ -375,34 +397,55 @@ export async function calculateBulkPayroll(staffInputs: PayrollInputs[]): Promis
   
   for (const inputs of staffInputs) {
     try {
-      const basicSalary = await getBasicSalaryFromDB(inputs.gradeLevel, inputs.step);
-      
-      // Fetch individual allowances and deductions for this staff member
       const period = new Date().toISOString().slice(0, 7); // Current period
+
+      // --- Proration Logic Start (duplicated for bulk, consider refactoring into a helper) ---
+      let totalProratedBasicSalary = 0;
+      let totalProratedAllowances = 0;
+
+      const { data: gradeChanges, error: rpcError } = await supabase.rpc('get_staff_grade_changes_in_period', {
+        p_staff_id: inputs.staffId,
+        period_date: period
+      });
+
+      if (rpcError) {
+        console.error('Error fetching grade changes for proration in bulk:', rpcError);
+        const basicSalary = await getBasicSalaryFromDB(inputs.gradeLevel, inputs.step);
+        const allowancesBreakdown = calculateAllowances(basicSalary, allowanceRules, inputs.gradeLevel, inputs.position);
+        totalProratedBasicSalary = basicSalary;
+        totalProratedAllowances = Object.values(allowancesBreakdown).reduce((sum, amount) => sum + amount, 0);
+      } else {
+        for (const change of gradeChanges) {
+          const basicSalaryForSegment = await getBasicSalaryFromDB(change.grade_level, change.step);
+          const allowancesForSegment = calculateAllowances(basicSalaryForSegment, allowanceRules, change.grade_level, change.step);
+
+          const daysInMonth = new Date(new Date(period).getFullYear(), new Date(period).getMonth() + 1, 0).getDate();
+          const dailyBasicSalary = basicSalaryForSegment / daysInMonth;
+          const dailyAllowances = Object.values(allowancesForSegment).reduce((sum, amount) => sum + amount, 0) / daysInMonth;
+
+          totalProratedBasicSalary += dailyBasicSalary * change.days_in_period;
+          totalProratedAllowances += dailyAllowances * change.days_in_period;
+        }
+      }
+      // --- Proration Logic End ---
+
+      const basicSalary = totalProratedBasicSalary;
+      
       const individualAllowances = inputs.individualAllowances || await fetchIndividualAllowances(inputs.staffId, period);
       const individualDeductions = inputs.individualDeductions || await fetchIndividualDeductions(inputs.staffId, period);
       
-      const allowancesBreakdown = calculateAllowances(
-        basicSalary,
-        allowanceRules,
-        inputs.gradeLevel,
-        inputs.position
-      );
-      
-      // Calculate individual allowances breakdown
       const individualAllowancesBreakdown: Record<string, number> = {};
       individualAllowances.forEach(allowance => {
         const key = allowance.type.toLowerCase().replace(/\s+/g, '_');
         individualAllowancesBreakdown[key] = (individualAllowancesBreakdown[key] || 0) + allowance.amount;
       });
       
-      const totalAllowances = Object.values(allowancesBreakdown).reduce((sum, amount) => sum + amount, 0);
       const totalIndividualAllowances = Object.values(individualAllowancesBreakdown).reduce((sum, amount) => sum + amount, 0);
       
       const arrears = inputs.arrears || 0;
       const overtime = inputs.overtime || 0;
       const bonus = inputs.bonus || 0;
-      const grossPay = basicSalary + totalAllowances + totalIndividualAllowances + arrears + overtime + bonus;
+      const grossPay = basicSalary + totalProratedAllowances + totalIndividualAllowances + arrears + overtime + bonus;
       
       const deductionsBreakdown = calculateDeductions(
         basicSalary,
@@ -412,7 +455,6 @@ export async function calculateBulkPayroll(staffInputs: PayrollInputs[]): Promis
         inputs.cooperatives
       );
       
-      // Calculate individual deductions breakdown
       const individualDeductionsBreakdown: Record<string, number> = {};
       individualDeductions.forEach(deduction => {
         const key = deduction.type.toLowerCase().replace(/\s+/g, '_');
@@ -427,9 +469,9 @@ export async function calculateBulkPayroll(staffInputs: PayrollInputs[]): Promis
       results.push({
         staffId: inputs.staffId,
         basicSalary,
-        allowancesBreakdown,
+        allowancesBreakdown: calculateAllowances(basicSalary, allowanceRules, inputs.gradeLevel, inputs.position), // Recalculate for breakdown
         individualAllowancesBreakdown,
-        totalAllowances: totalAllowances + totalIndividualAllowances,
+        totalAllowances: totalProratedAllowances + totalIndividualAllowances,
         grossPay,
         deductionsBreakdown,
         individualDeductionsBreakdown,
@@ -438,6 +480,8 @@ export async function calculateBulkPayroll(staffInputs: PayrollInputs[]): Promis
         arrears,
         overtime,
         bonus,
+        unpaidLeaveDays: inputs.unpaidLeaveDays || 0, // Ensure this is passed through
+        unpaidLeaveDeduction: (inputs.unpaidLeaveDays || 0) * (basicSalary / 30), // Ensure this is passed through
       });
     } catch (error) {
       console.error(`Error calculating payroll for staff ${inputs.staffId}:`, error);
@@ -525,7 +569,7 @@ export async function processPayrollRun(
     unpaidLeaveDays: unpaidLeaveDaysMap[input.staffId] || 0,
   }));
   
-  // Calculate payroll for all staff
+  // Calculate payroll (this will now use the proration logic)
   const payrollResults = await calculateBulkPayroll(enhancedStaffInputs);
   
   // Update payroll run with totals
@@ -605,7 +649,7 @@ export async function generatePayslipsForPayrollRun(
     unpaidLeaveDays: unpaidLeaveDaysMap[input.staffId] || 0,
   }));
   
-  // Calculate payroll for all staff
+  // Calculate payroll for all staff (this will now use the proration logic)
   const payrollResults = await calculateBulkPayroll(enhancedStaffInputs);
   
   // Create payslip records
