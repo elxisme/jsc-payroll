@@ -45,6 +45,7 @@ export function ResponsiveLayout({ children }: ResponsiveLayoutProps) {
       { name: 'Profile', href: '/settings/profile', icon: User, roles: ['staff'] },
       { name: 'Staff Management', href: '/staff', icon: Users, roles: ['super_admin'] },
       { name: 'Departments', href: '/departments', icon: Building2, roles: ['super_admin', 'account_admin', 'payroll_admin'] },
+      { name: 'Promotions', href: '/promotions', icon: TrendingUp, roles: ['super_admin', 'payroll_admin'] },
       { name: 'Payroll', href: '/payroll', icon: CreditCard, roles: ['super_admin', 'account_admin', 'payroll_admin'] },
       { name: 'Payroll Workflow', href: '/payroll/workflow', icon: CreditCard, roles: ['super_admin', 'account_admin', 'payroll_admin'] },
       { name: 'Individual Adjustments', href: '/payroll/adjustments', icon: CreditCard, roles: ['super_admin', 'payroll_admin'] },
