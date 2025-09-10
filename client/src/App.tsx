@@ -24,6 +24,7 @@ import Settings from "@/pages/settings/settings";
 import ProfileSettings from "@/pages/settings/profile-settings";
 import LeaveApprovalWorkflow from "@/pages/leave/leave-approval-workflow";
 import StaffPortal from "@/pages/staff-portal/staff-portal";
+import PromotionsManagement from "@/pages/promotions/PromotionsManagement"; // New Import
 import NotFound from "@/pages/not-found";
 
 function AppContent() {
@@ -190,6 +191,19 @@ function AppContent() {
         {user ? (
           <ResponsiveLayout>
             <ProfileSettings />
+          </ResponsiveLayout>
+        ) : (
+          <Redirect to="/" />
+        )}
+      </Route>
+
+      {/* New Promotions Management Route */}
+      <Route path="/promotions">
+        {user ? (
+          <ResponsiveLayout>
+            <AuthGuard roles={['super_admin', 'payroll_admin']}>
+              <PromotionsManagement />
+            </AuthGuard>
           </ResponsiveLayout>
         ) : (
           <Redirect to="/" />
