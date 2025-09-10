@@ -13,6 +13,7 @@ import {
   BarChart3,
   LogOut,
   Scale,
+  TrendingUp, // New Import
 } from 'lucide-react';
 
 interface MenuItem {
@@ -44,6 +45,13 @@ const menuItems: MenuItem[] = [
     label: 'Departments',
     icon: Building,
     path: '/departments',
+    roles: ['super_admin', 'payroll_admin'],
+  },
+  {
+    id: 'promotions', // New Menu Item
+    label: 'Promotions',
+    icon: TrendingUp,
+    path: '/promotions',
     roles: ['super_admin', 'payroll_admin'],
   },
   {
