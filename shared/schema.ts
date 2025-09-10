@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, timestamp, integer, decimal, boolean, jsonb, uuid } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, timestamp, integer, decimal, boolean, jsonb, uuid, date } from "drizzle-orm/pg-core"; // Added 'date'
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -173,6 +173,24 @@ export const staffIndividualDeductions = pgTable("staff_individual_deductions", 
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Promotions table (New Table)
+export const promotions = pgTable("promotions", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  staffId: uuid("staff_id").notNull().references(() => staff.id, { onDelete: "cascade" }),
+  oldGradeLevel: integer("old_grade_level").notNull(),
+  oldStep: integer("old_step").notNull(),
+  newGradeLevel: integer("new_grade_level").notNull(),
+  newStep: integer("new_step").notNull(),
+  effectiveDate: date("effective_date").notNull(),
+  promotionType: text("promotion_type").notNull().default("regular"), // regular, acting, temporary, demotion
+  reason: text("reason"),
+  approvedBy: uuid("approved_by").references(() => users.id),
+  approvedAt: timestamp("approved_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
@@ -215,6 +233,16 @@ export const insertStaffIndividualDeductionSchema = createInsertSchema(staffIndi
   updatedAt: true,
 });
 
+// New Insert Schema for Promotions
+export const insertPromotionSchema = createInsertSchema(promotions).omit({
+  id: true,
+  approvedBy: true,
+  approvedAt: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -243,6 +271,11 @@ export type InsertStaffIndividualAllowance = z.infer<typeof insertStaffIndividua
 
 export type StaffIndividualDeduction = typeof staffIndividualDeductions.$inferSelect;
 export type InsertStaffIndividualDeduction = z.infer<typeof insertStaffIndividualDeductionSchema>;
+
+// New Types for Promotions
+export type Promotion = typeof promotions.$inferSelect;
+export type InsertPromotion = z.infer<typeof insertPromotionSchema>;
+
 
 // Leave Types table
 export const leaveTypes = pgTable("leave_types", {
