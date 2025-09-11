@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { Calendar, CreditCard, FileText, BarChart3, Settings } from 'lucide-react';
+import { Calendar, CreditCard, FileText, BarChart3, Settings, TrendingUp } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -352,5 +352,5 @@ export function ResponsiveLayout({ children }: ResponsiveLayoutProps) {
         </main>
       </div>
     </div>
-  );
+   );
 }
