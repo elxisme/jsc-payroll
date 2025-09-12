@@ -3,11 +3,11 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import {
-  getCooperativeOrganizations,
-  createCooperativeOrganization,
-  updateCooperativeOrganization,
-  deleteCooperativeOrganization
+import { 
+  getCooperativeOrganizations, 
+  createCooperativeOrganization, 
+  updateCooperativeOrganization, 
+  deleteCooperativeOrganization 
 } from '@/lib/individual-payroll-utils';
 import { logCooperativeEvent } from '@/lib/audit-logger';
 import {
@@ -125,8 +125,8 @@ export function CooperativeManagementModal({ open, onClose, onSuccess }: Coopera
         description: 'Cooperative organization created successfully',
       });
       queryClient.invalidateQueries({ queryKey: ['cooperative-organizations'] });
+      form.reset();
       setShowAddForm(false);
-      setEditingCooperative(null);
     },
     onError: (error: any) => {
       toast({
@@ -154,13 +154,27 @@ export function CooperativeManagementModal({ open, onClose, onSuccess }: Coopera
       });
 
       await logCooperativeEvent('updated', editingCooperative.id, oldValues, data);
+      // Return the updated data to onSuccess for optimistic update
+      return { id: editingCooperative.id, ...data };
     },
-    onSuccess: () => {
+    onSuccess: (updatedData) => {
       toast({
         title: 'Success',
         description: 'Cooperative organization updated successfully',
       });
+      
+      // Optimistically update the cache
+      queryClient.setQueryData(['cooperative-organizations'], (oldData: any) => {
+        if (!oldData) return [];
+        return oldData.map((coop: any) => 
+          coop.id === updatedData.id ? { ...coop, ...updatedData } : coop
+        );
+      });
+
+      // Invalidate to ensure eventual consistency with the server
       queryClient.invalidateQueries({ queryKey: ['cooperative-organizations'] });
+      
+      form.reset();
       setShowAddForm(false);
       setEditingCooperative(null);
     },
@@ -207,22 +221,6 @@ export function CooperativeManagementModal({ open, onClose, onSuccess }: Coopera
     }
   };
 
-  // UPDATED: Handler for adding a new cooperative
-  const handleAddNew = () => {
-    setEditingCooperative(null);
-    form.reset({
-      name: '',
-      contactPerson: '',
-      phoneNumber: '',
-      email: '',
-      address: '',
-      interestRateDefault: 0,
-      isActive: true, // Default new cooperatives to Active
-    });
-    setShowAddForm(true);
-  };
-
-  // UPDATED: Handler for editing an existing cooperative
   const handleEdit = (cooperative: any) => {
     setEditingCooperative(cooperative);
     form.reset({
@@ -232,8 +230,7 @@ export function CooperativeManagementModal({ open, onClose, onSuccess }: Coopera
       email: cooperative.email || '',
       address: cooperative.address || '',
       interestRateDefault: cooperative.interestRateDefault || 0,
-      // FIX: Ensure the value is a strict boolean for the Switch component
-      isActive: !!cooperative.isActive,
+      isActive: cooperative.isActive,
     });
     setShowAddForm(true);
   };
@@ -245,11 +242,10 @@ export function CooperativeManagementModal({ open, onClose, onSuccess }: Coopera
     onClose();
   };
 
-  // UPDATED: Simplified cancel handler
   const handleCancelForm = () => {
+    form.reset();
     setShowAddForm(false);
     setEditingCooperative(null);
-    // No need to call form.reset() here as it's handled by handleClose or the next edit/add action
   };
 
   return (
@@ -269,7 +265,7 @@ export function CooperativeManagementModal({ open, onClose, onSuccess }: Coopera
               <div className="flex justify-between items-center">
                 <p className="text-gray-600">Manage cooperative organizations that provide loans to staff</p>
                 <Button
-                  onClick={handleAddNew} // UPDATED: Use the new handler
+                  onClick={() => setShowAddForm(true)}
                   className="bg-nigeria-green hover:bg-green-700"
                 >
                   <Plus className="mr-2 h-4 w-4" />
@@ -462,12 +458,11 @@ export function CooperativeManagementModal({ open, onClose, onSuccess }: Coopera
                         <FormLabel>Phone Number (Optional)</FormLabel>
                         <FormControl>
                           <Input {...field} placeholder="e.g., 08012345678" />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
+                          </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
                 <FormField
                   control={form.control}
