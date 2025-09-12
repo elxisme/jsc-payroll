@@ -96,6 +96,13 @@ export function CooperativeManagementModal({ open, onClose, onSuccess }: Coopera
     enabled: open,
   });
 
+  // Log cooperatives data for debugging
+  React.useEffect(() => {
+    if (cooperatives) {
+      console.log('Fetched cooperatives data:', cooperatives);
+    }
+  }, [cooperatives]);
+
   // Create cooperative mutation
   const createCooperativeMutation = useMutation({
     mutationFn: async (data: CooperativeFormData) => {
@@ -274,101 +281,105 @@ export function CooperativeManagementModal({ open, onClose, onSuccess }: Coopera
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {cooperatives.map((cooperative) => (
-                      <TableRow key={cooperative.id}>
-                        <TableCell>
-                          <div className="font-medium">{cooperative.name}</div>
-                        </TableCell>
-                        <TableCell>
-                          {cooperative.contactPerson || 'Not specified'}
-                        </TableCell>
-                        <TableCell>
-                          <div className="space-y-1 text-sm">
-                            {cooperative.phoneNumber && (
-                              <div className="flex items-center space-x-1">
-                                <Phone className="h-3 w-3 text-gray-400" />
-                                <span>{cooperative.phoneNumber}</span>
-                              </div>
-                            )}
-                            {cooperative.email && (
-                              <div className="flex items-center space-x-1">
-                                <Mail className="h-3 w-3 text-gray-400" />
-                                <span>{cooperative.email}</span>
-                              </div>
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          {cooperative.interestRateDefault ? `${cooperative.interestRateDefault}%` : 'Not set'}
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant={cooperative.isActive ? 'default' : 'secondary'}>
-                            {cooperative.isActive ? 'Active' : 'Inactive'}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex space-x-2">
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => handleEdit(cooperative)}
-                                >
-                                  <Edit className="h-4 w-4" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>Edit cooperative</p>
-                              </TooltipContent>
-                            </Tooltip>
-                            <AlertDialog>
+                    {cooperatives.map((cooperative) => {
+                      // Log individual cooperative data for debugging
+                      console.log(`Cooperative: ${cooperative.name}, ID: ${cooperative.id}, isActive: ${cooperative.isActive}, Type: ${typeof cooperative.isActive}`);
+                      return (
+                        <TableRow key={cooperative.id}>
+                          <TableCell>
+                            <div className="font-medium">{cooperative.name}</div>
+                          </TableCell>
+                          <TableCell>
+                            {cooperative.contactPerson || 'Not specified'}
+                          </TableCell>
+                          <TableCell>
+                            <div className="space-y-1 text-sm">
+                              {cooperative.phoneNumber && (
+                                <div className="flex items-center space-x-1">
+                                  <Phone className="h-3 w-3 text-gray-400" />
+                                  <span>{cooperative.phoneNumber}</span>
+                                </div>
+                              )}
+                              {cooperative.email && (
+                                <div className="flex items-center space-x-1">
+                                  <Mail className="h-3 w-3 text-gray-400" />
+                                  <span>{cooperative.email}</span>
+                                </div>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            {cooperative.interestRateDefault ? `${cooperative.interestRateDefault}%` : 'Not set'}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant={cooperative.isActive ? 'default' : 'secondary'}>
+                              {cooperative.isActive ? 'Active' : 'Inactive'}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex space-x-2">
                               <Tooltip>
                                 <TooltipTrigger asChild>
-                                  <AlertDialogTrigger asChild>
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      className="text-red-600 hover:text-red-700"
-                                    >
-                                      <Trash2 className="h-4 w-4" />
-                                    </Button>
-                                  </AlertDialogTrigger>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleEdit(cooperative)}
+                                  >
+                                    <Edit className="h-4 w-4" />
+                                  </Button>
                                 </TooltipTrigger>
                                 <TooltipContent>
-                                  <p>Delete cooperative</p>
+                                  <p>Edit cooperative</p>
                                 </TooltipContent>
                               </Tooltip>
-                              <AlertDialogContent>
-                                <AlertDialogHeader>
-                                  <AlertDialogTitle>Delete Cooperative</AlertDialogTitle>
-                                  <AlertDialogDescription>
-                                    Are you sure you want to delete "{cooperative.name}"? This action cannot be undone.
-                                  </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                  <AlertDialogAction
-                                    onClick={() => deleteCooperativeMutation.mutate(cooperative.id)}
-                                    disabled={deleteCooperativeMutation.isPending}
-                                    className="bg-red-600 hover:bg-red-700"
-                                  >
-                                    {deleteCooperativeMutation.isPending ? (
-                                      <>
-                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                        Deleting...
-                                      </>
-                                    ) : (
-                                      'Delete'
-                                    )}
-                                  </AlertDialogAction>
-                                </AlertDialogFooter>
-                              </AlertDialogContent>
-                            </AlertDialog>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
+                              <AlertDialog>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <AlertDialogTrigger asChild>
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="text-red-600 hover:text-red-700"
+                                      >
+                                        <Trash2 className="h-4 w-4" />
+                                      </Button>
+                                    </AlertDialogTrigger>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>Delete cooperative</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                                <AlertDialogContent>
+                                  <AlertDialogHeader>
+                                    <AlertDialogTitle>Delete Cooperative</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                      Are you sure you want to delete "{cooperative.name}"? This action cannot be undone.
+                                    </AlertDialogDescription>
+                                  </AlertDialogHeader>
+                                  <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction
+                                      onClick={() => deleteCooperativeMutation.mutate(cooperative.id)}
+                                      disabled={deleteCooperativeMutation.isPending}
+                                      className="bg-red-600 hover:bg-red-700"
+                                    >
+                                      {deleteCooperativeMutation.isPending ? (
+                                        <>
+                                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                          Deleting...
+                                        </>
+                                      ) : (
+                                        'Delete'
+                                      )}
+                                    </AlertDialogAction>
+                                  </AlertDialogFooter>
+                                </AlertDialogContent>
+                              </AlertDialog>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
                   </TableBody>
                 </Table>
               ) : (
