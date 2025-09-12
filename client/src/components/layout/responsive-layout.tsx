@@ -260,26 +260,30 @@ export function ResponsiveLayout({ children }: ResponsiveLayoutProps) {
               const isActive = isCurrentPath(item.href);
               
               return (
-                <Link key={item.name} href={item.href}>
-                  <button
-                    onClick={() => isMobile && setMobileMenuOpen(false)}
-                    className={`
-                      group flex items-center w-full px-3 py-2 text-sm font-medium rounded-lg transition-colors
-                      ${isActive
-                        ? 'bg-nigeria-green text-white shadow-sm'
-                        : 'text-gray-700 hover:text-gray-900 hover:bg-gray-50'
-                      }
-                    `}
-                  >
-                    <item.icon
-                      className={`
-                        mr-3 h-5 w-5 flex-shrink-0
-                        ${isActive ? 'text-white' : 'text-gray-400 group-hover:text-gray-900'}
-                      `}
-                    />
-                    {group.name}
-                  </button>
-                </Link>
+                <Button
+                  key={item.name}
+                  asChild
+                  variant="ghost"
+                  className={`
+                    group flex items-center w-full px-3 py-2 text-sm font-medium rounded-lg transition-colors justify-start
+                    ${isActive
+                      ? 'bg-nigeria-green text-white shadow-sm hover:bg-nigeria-green'
+                      : 'text-gray-700 hover:text-gray-900 hover:bg-gray-50'
+                    }
+                  `}
+                >
+                  <Link href={item.href} onClick={() => isMobile && setMobileMenuOpen(false)}>
+                    <div className="flex items-center w-full">
+                      <item.icon
+                        className={`
+                          mr-3 h-5 w-5 flex-shrink-0
+                          ${isActive ? 'text-white' : 'text-gray-400 group-hover:text-gray-900'}
+                        `}
+                      />
+                      {item.name}
+                    </div>
+                  </Link>
+                </Button>
               );
             }
 
@@ -290,11 +294,12 @@ export function ResponsiveLayout({ children }: ResponsiveLayoutProps) {
                 onOpenChange={() => toggleGroup(groupKey)}
               >
                 <CollapsibleTrigger asChild>
-                  <button
+                  <Button
+                    variant="ghost"
                     className={`
                       group flex items-center justify-between w-full px-3 py-2 text-sm font-medium rounded-lg transition-colors
                       ${groupIsActive
-                        ? 'bg-gray-100 text-gray-900'
+                        ? 'bg-gray-100 text-gray-900 hover:bg-gray-100'
                         : 'text-gray-700 hover:text-gray-900 hover:bg-gray-50'
                       }
                     `}
@@ -313,33 +318,37 @@ export function ResponsiveLayout({ children }: ResponsiveLayoutProps) {
                     ) : (
                       <ChevronRight className="h-4 w-4 text-gray-400" />
                     )}
-                  </button>
+                  </Button>
                 </CollapsibleTrigger>
                 <CollapsibleContent className="space-y-1">
                   <div className="ml-6 mt-1 space-y-1">
                     {group.items.map((item) => {
                       const isActive = isCurrentPath(item.href);
                       return (
-                        <Link key={item.name} href={item.href}>
-                          <button
-                            onClick={() => isMobile && setMobileMenuOpen(false)}
-                            className={`
-                              group flex items-center w-full px-3 py-2 text-sm rounded-md transition-colors
-                              ${isActive
-                                ? 'bg-nigeria-green text-white shadow-sm'
-                                : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-                              }
-                            `}
-                          >
-                            <item.icon
-                              className={`
-                                mr-3 h-4 w-4 flex-shrink-0
-                                ${isActive ? 'text-white' : 'text-gray-400 group-hover:text-gray-600'}
-                              `}
-                            />
-                            {item.name}
-                          </button>
-                        </Link>
+                        <Button
+                          key={item.name}
+                          asChild
+                          variant="ghost"
+                          className={`
+                            group flex items-center w-full px-3 py-2 text-sm rounded-md transition-colors justify-start
+                            ${isActive
+                              ? 'bg-nigeria-green text-white shadow-sm hover:bg-nigeria-green'
+                              : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                            }
+                          `}
+                        >
+                          <Link href={item.href} onClick={() => isMobile && setMobileMenuOpen(false)}>
+                            <div className="flex items-center w-full">
+                              <item.icon
+                                className={`
+                                  mr-3 h-4 w-4 flex-shrink-0
+                                  ${isActive ? 'text-white' : 'text-gray-400 group-hover:text-gray-600'}
+                                `}
+                              />
+                              {item.name}
+                            </div>
+                          </Link>
+                        </Button>
                       );
                     })}
                   </div>
@@ -350,31 +359,34 @@ export function ResponsiveLayout({ children }: ResponsiveLayoutProps) {
 
           {/* Notifications - Always visible */}
           <div className="pt-4 border-t border-gray-200">
-            <Link href="/notifications">
-              <button
-                onClick={() => isMobile && setMobileMenuOpen(false)}
-                className={`
-                  group flex items-center w-full px-3 py-2 text-sm font-medium rounded-lg transition-colors relative
-                  ${isCurrentPath('/notifications')
-                    ? 'bg-nigeria-green text-white shadow-sm'
-                    : 'text-gray-700 hover:text-gray-900 hover:bg-gray-50'
-                  }
-                `}
-              >
-                <Bell
-                  className={`
-                    mr-3 h-5 w-5 flex-shrink-0
-                    ${isCurrentPath('/notifications') ? 'text-white' : 'text-gray-400 group-hover:text-gray-900'}
-                  `}
-                />
-                Notifications
-                {notificationCount && notificationCount > 0 && (
-                  <span className="ml-auto bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                    {notificationCount > 99 ? '99+' : notificationCount}
-                  </span>
-                )}
-              </button>
-            </Link>
+            <Button
+              asChild
+              variant="ghost"
+              className={`
+                group flex items-center w-full px-3 py-2 text-sm font-medium rounded-lg transition-colors relative justify-start
+                ${isCurrentPath('/notifications')
+                  ? 'bg-nigeria-green text-white shadow-sm hover:bg-nigeria-green'
+                  : 'text-gray-700 hover:text-gray-900 hover:bg-gray-50'
+                }
+              `}
+            >
+              <Link href="/notifications" onClick={() => isMobile && setMobileMenuOpen(false)}>
+                <div className="flex items-center w-full">
+                  <Bell
+                    className={`
+                      mr-3 h-5 w-5 flex-shrink-0
+                      ${isCurrentPath('/notifications') ? 'text-white' : 'text-gray-400 group-hover:text-gray-900'}
+                    `}
+                  />
+                  Notifications
+                  {notificationCount && notificationCount > 0 && (
+                    <span className="ml-auto bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                      {notificationCount > 99 ? '99+' : notificationCount}
+                    </span>
+                  )}
+                </div>
+              </Link>
+            </Button>
           </div>
         </nav>
       </ScrollArea>
