@@ -54,6 +54,7 @@
 */
 
 -- Create cooperative organizations table
+-- Create cooperative organizations table
 CREATE TABLE IF NOT EXISTS cooperative_organizations (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   name text NOT NULL UNIQUE,
@@ -326,7 +327,7 @@ DECLARE
   period_start date;
   period_end date;
   promotion_record record;
-  current_date date;
+  v_current_date date;
   next_date date;
   current_grade integer;
   current_step integer;
@@ -340,7 +341,7 @@ BEGIN
   FROM staff s
   WHERE s.id = p_staff_id;
   
-  current_date := period_start;
+  v_current_date := period_start;
   
   -- Check for any promotions that became effective during this period
   FOR promotion_record IN
@@ -352,25 +353,25 @@ BEGIN
     ORDER BY effective_date
   LOOP
     -- Return the current grade for days before this promotion
-    IF promotion_record.effective_date > current_date THEN
+    IF promotion_record.effective_date > v_current_date THEN
       RETURN QUERY SELECT 
         current_grade,
         current_step,
-        (promotion_record.effective_date - current_date)::integer;
+        (promotion_record.effective_date - v_current_date)::integer;
     END IF;
     
     -- Update to new grade/step
     current_grade := promotion_record.new_grade_level;
     current_step := promotion_record.new_step;
-    current_date := promotion_record.effective_date;
+    v_current_date := promotion_record.effective_date;
   END LOOP;
   
   -- Return remaining days in period with final grade/step
-  IF current_date <= period_end THEN
+  IF v_current_date <= period_end THEN
     RETURN QUERY SELECT 
       current_grade,
       current_step,
-      (period_end - current_date + 1)::integer;
+      (period_end - v_current_date + 1)::integer;
   END IF;
   
   -- If no promotions in period, return full month with current grade/step
