@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { supabase } from '@/lib/supabase';
-import { addIndividualDeduction } from '@/lib/individual-payroll-utils';
+import { addIndividualDeduction, getStaffLoans } from '@/lib/individual-payroll-utils';
 import {
   Dialog,
   DialogContent,
@@ -22,6 +22,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { Switch } from '@/components/ui/switch';
 import {
   Select,
   SelectContent,
@@ -41,6 +42,8 @@ const addDeductionSchema = z.object({
   startPeriod: z.string().optional(),
   endPeriod: z.string().optional(),
   description: z.string().optional(),
+  loanId: z.string().optional(),
+  isLoanRepayment: z.boolean(),
 });
 
 type AddDeductionFormData = z.infer<typeof addDeductionSchema>;
@@ -85,6 +88,8 @@ export function AddIndividualDeductionModal({
       startPeriod: '',
       endPeriod: '',
       description: '',
+      loanId: '',
+      isLoanRepayment: false,
     },
   });
 
@@ -100,6 +105,8 @@ export function AddIndividualDeductionModal({
         startPeriod: '',
         endPeriod: '',
         description: '',
+        loanId: '',
+        isLoanRepayment: false,
       });
     }
   }, [open, preselectedStaffId, form]);
@@ -129,6 +136,28 @@ export function AddIndividualDeductionModal({
     enabled: open,
   });
 
+  // Fetch staff loans for loan repayment linking
+  const selectedStaffId = form.watch('staffId');
+  const { data: staffLoans } = useQuery({
+    queryKey: ['staff-loans', selectedStaffId],
+    queryFn: () => getStaffLoans(selectedStaffId),
+    enabled: !!selectedStaffId && open,
+  });
+
+  // Watch for loan selection to auto-populate amount
+  const selectedLoanId = form.watch('loanId');
+  const isLoanRepayment = form.watch('isLoanRepayment');
+  
+  React.useEffect(() => {
+    if (isLoanRepayment && selectedLoanId && staffLoans) {
+      const selectedLoan = staffLoans.find(loan => loan.id === selectedLoanId);
+      if (selectedLoan) {
+        form.setValue('amount', selectedLoan.monthlyTotalDeduction);
+        form.setValue('totalAmount', selectedLoan.remainingBalance);
+      }
+    }
+  }, [selectedLoanId, isLoanRepayment, staffLoans, form]);
+
   // Add deduction mutation
   const addDeductionMutation = useMutation({
     mutationFn: async (data: AddDeductionFormData) => {
@@ -143,6 +172,8 @@ export function AddIndividualDeductionModal({
         endPeriod: data.endPeriod,
         description: data.description,
         status: 'active',
+        loanId: data.isLoanRepayment ? data.loanId : undefined,
+        isLoanRepayment: data.isLoanRepayment,
       });
 
       // Create notification for the staff member
@@ -277,6 +308,62 @@ export function AddIndividualDeductionModal({
 
             <FormField
               control={form.control}
+              name="isLoanRepayment"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
+                  <div className="space-y-0.5">
+                    <FormLabel className="text-base">Loan Repayment</FormLabel>
+                    <div className="text-sm text-muted-foreground">
+                      Check if this deduction is for loan repayment
+                    </div>
+                  </div>
+                  <FormControl>
+                    <Switch
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+
+            {isLoanRepayment && (
+              <FormField
+                control={form.control}
+                name="loanId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Select Loan</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value || ""}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select an active loan" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {staffLoans?.filter(loan => loan.status === 'active').map((loan) => (
+                          <SelectItem key={loan.id} value={loan.id}>
+                            <div className="flex flex-col">
+                              <span className="font-medium">
+                                {loan.loanType.replace('_', ' ')} - ₦{loan.totalLoanAmount.toLocaleString()}
+                              </span>
+                              <span className="text-xs text-gray-500">
+                                Monthly: ₦{loan.monthlyTotalDeduction.toLocaleString()} | 
+                                Remaining: ₦{loan.remainingBalance.toLocaleString()}
+                              </span>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
+
+            <FormField
+              control={form.control}
               name="amount"
               render={({ field }) => (
                 <FormItem>
@@ -291,8 +378,14 @@ export function AddIndividualDeductionModal({
                       placeholder="0.00"
                       {...field}
                       onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                      disabled={isLoanRepayment && selectedLoanId}
                     />
                   </FormControl>
+                  {isLoanRepayment && selectedLoanId && (
+                    <p className="text-xs text-blue-600">
+                      Amount auto-filled from selected loan
+                    </p>
+                  )}
                   <FormMessage />
                 </FormItem>
               )}

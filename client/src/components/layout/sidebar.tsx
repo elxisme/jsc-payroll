@@ -55,6 +55,13 @@ const menuItems: MenuItem[] = [
     roles: ['super_admin', 'payroll_admin'],
   },
   {
+    id: 'loans', // New Menu Item
+    label: 'Loan Management',
+    icon: CreditCard,
+    path: '/loans',
+    roles: ['super_admin', 'account_admin', 'payroll_admin'],
+  },
+  {
     id: 'payroll',
     label: 'Payroll Processing',
     icon: Calculator,

@@ -210,6 +210,19 @@ function AppContent() {
         )}
       </Route>
       
+      {/* New Loan Management Route */}
+      <Route path="/loans">
+        {user ? (
+          <ResponsiveLayout>
+            <AuthGuard roles={['super_admin', 'account_admin', 'payroll_admin']}>
+              <LoanManagement />
+            </AuthGuard>
+          </ResponsiveLayout>
+        ) : (
+          <Redirect to="/" />
+        )}
+      </Route>
+      
       <Route path="/staff-portal">
         {user ? (
           <ResponsiveLayout>

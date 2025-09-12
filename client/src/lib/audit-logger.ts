@@ -129,3 +129,39 @@ export async function logSystemEvent(
     newValues,
   });
 }
+
+/**
+ * Log loan management events
+ */
+export async function logLoanEvent(
+  action: 'created' | 'updated' | 'approved' | 'cancelled' | 'paid_off' | 'defaulted',
+  loanId: string,
+  oldValues?: any,
+  newValues?: any
+): Promise<void> {
+  await logAuditAction({
+    action: `loan_${action}`,
+    resource: 'loans',
+    resourceId: loanId,
+    oldValues,
+    newValues,
+  });
+}
+
+/**
+ * Log cooperative organization events
+ */
+export async function logCooperativeEvent(
+  action: 'created' | 'updated' | 'deleted',
+  cooperativeId: string,
+  oldValues?: any,
+  newValues?: any
+): Promise<void> {
+  await logAuditAction({
+    action: `cooperative_${action}`,
+    resource: 'cooperative_organizations',
+    resourceId: cooperativeId,
+    oldValues,
+    newValues,
+  });
+}

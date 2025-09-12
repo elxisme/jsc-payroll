@@ -1,6 +1,6 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { getStaffIndividualAllowances, getStaffIndividualDeductions } from '@/lib/individual-payroll-utils';
+import { getStaffIndividualAllowances, getStaffIndividualDeductions, getStaffLoans } from '@/lib/individual-payroll-utils';
 import { formatDisplayCurrency } from '@/lib/currency-utils';
 import {
   Dialog,
@@ -18,6 +18,8 @@ import { AddIndividualAllowanceModal } from '@/components/add-individual-allowan
 import { AddIndividualDeductionModal } from '@/components/add-individual-deduction-modal';
 import { EditIndividualAllowanceModal } from '@/components/edit-individual-allowance-modal';
 import { EditIndividualDeductionModal } from '@/components/edit-individual-deduction-modal';
+import { AddLoanModal } from '@/pages/loans/AddLoanModal';
+import { LoanDetailsModal } from '@/pages/loans/LoanDetailsModal';
 import { 
   User, 
   Mail, 
@@ -31,7 +33,8 @@ import {
   Plus,
   DollarSign,
   Minus,
-  Edit
+  Edit,
+  Eye
 } from 'lucide-react';
 
 interface StaffDetailsModalProps {
@@ -614,6 +617,27 @@ export function StaffDetailsModal({ open, onClose, staff }: StaffDetailsModalPro
           }}
           preselectedStaffId={staff.id}
         />
+
+        {/* Loan Modals */}
+        <AddLoanModal
+          open={showAddLoanModal}
+          onClose={() => setShowAddLoanModal(false)}
+          onSuccess={() => {
+            setShowAddLoanModal(false);
+          }}
+          preselectedStaffId={staff.id}
+        />
+
+        {selectedLoan && (
+          <LoanDetailsModal
+            open={showLoanDetailsModal}
+            onClose={() => {
+              setShowLoanDetailsModal(false);
+              setSelectedLoan(null);
+            }}
+            loan={selectedLoan}
+          />
+        )}
 
         {selectedAllowance && (
           <EditIndividualAllowanceModal

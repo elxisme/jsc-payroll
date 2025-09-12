@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { supabase } from '@/lib/supabase';
-import { updateIndividualDeduction } from '@/lib/individual-payroll-utils';
+import { updateIndividualDeduction, getLoanById } from '@/lib/individual-payroll-utils';
 import {
   Dialog,
   DialogContent,
@@ -29,8 +29,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Minus } from 'lucide-react';
+import { Loader2, Minus, CreditCard, AlertTriangle } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const editDeductionSchema = z.object({
   type: z.string().min(1, 'Deduction type is required'),
@@ -41,6 +44,8 @@ const editDeductionSchema = z.object({
   endPeriod: z.string().optional(),
   description: z.string().optional(),
   status: z.enum(['active', 'paid_off', 'cancelled']),
+  loanId: z.string().optional(),
+  isLoanRepayment: z.boolean(),
 });
 
 type EditDeductionFormData = z.infer<typeof editDeductionSchema>;
@@ -85,6 +90,8 @@ export function EditIndividualDeductionModal({
       endPeriod: deduction?.endPeriod || '',
       description: deduction?.description || '',
       status: deduction?.status || 'active',
+      loanId: deduction?.loanId || '',
+      isLoanRepayment: deduction?.isLoanRepayment || false,
     },
   });
 
@@ -100,9 +107,18 @@ export function EditIndividualDeductionModal({
         endPeriod: deduction.endPeriod || '',
         description: deduction.description || '',
         status: deduction.status || 'active',
+        loanId: deduction.loanId || '',
+        isLoanRepayment: deduction.isLoanRepayment || false,
       });
     }
   }, [deduction, form]);
+
+  // Fetch linked loan details if this is a loan repayment
+  const { data: linkedLoan } = useQuery({
+    queryKey: ['linked-loan', deduction?.loanId],
+    queryFn: () => getLoanById(deduction.loanId),
+    enabled: !!deduction?.loanId && deduction?.isLoanRepayment,
+  });
 
   // Update deduction mutation
   const updateDeductionMutation = useMutation({
@@ -112,6 +128,8 @@ export function EditIndividualDeductionModal({
         totalAmount: data.totalAmount,
         remainingBalance: data.totalAmount ? data.totalAmount - (deduction.totalAmount - deduction.remainingBalance) : undefined,
         status: data.status,
+        loanId: data.loanId,
+        isLoanRepayment: data.isLoanRepayment,
       });
 
       // Create notification for the staff member if status changed
@@ -182,6 +200,45 @@ export function EditIndividualDeductionModal({
         <div className="flex-1 overflow-y-auto px-1">
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            {/* Loan Information Display */}
+            {deduction?.isLoanRepayment && linkedLoan && (
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center space-x-2 mb-3">
+                    <CreditCard className="h-4 w-4 text-blue-600" />
+                    <h4 className="font-medium text-blue-900">Linked Loan Information</h4>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <p className="text-gray-600">Loan Type</p>
+                      <p className="font-medium">{linkedLoan.loanType.replace('_', ' ')}</p>
+                    </div>
+                    <div>
+                      <p className="text-gray-600">Total Amount</p>
+                      <p className="font-medium">₦{linkedLoan.totalLoanAmount.toLocaleString()}</p>
+                    </div>
+                    <div>
+                      <p className="text-gray-600">Remaining Balance</p>
+                      <p className="font-medium">₦{linkedLoan.remainingBalance.toLocaleString()}</p>
+                    </div>
+                    <div>
+                      <p className="text-gray-600">Status</p>
+                      <Badge variant="outline">{linkedLoan.status.replace('_', ' ')}</Badge>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {deduction?.isLoanRepayment && (
+              <Alert>
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription>
+                  This deduction is linked to a loan. Changes to the amount will affect the loan's remaining balance.
+                </AlertDescription>
+              </Alert>
+            )}
+
             <FormField
               control={form.control}
               name="type"
