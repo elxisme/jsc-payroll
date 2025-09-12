@@ -6,13 +6,13 @@ import { formatDisplayCurrency } from '@/lib/currency-utils';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { 
-  Calendar, 
-  CreditCard, 
-  FileText, 
-  BarChart3, 
-  Settings, 
+import { Tooltip as UiTooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import {
+  Calendar,
+  CreditCard,
+  FileText,
+  BarChart3,
+  Settings,
   TrendingUp,
   ChevronDown,
   ChevronRight
@@ -37,6 +37,7 @@ import {
 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { cn } from '@/lib/utils'; // Import cn utility
 
 interface ResponsiveLayoutProps {
   children: React.ReactNode;
@@ -150,7 +151,7 @@ export function ResponsiveLayout({ children }: ResponsiveLayoutProps) {
     queryKey: ['notification-count', user?.id],
     queryFn: async () => {
       if (!user?.id) return 0;
-      
+
       const { count, error } = await supabase
         .from('notifications')
         .select('id', { count: 'exact' })
@@ -182,14 +183,14 @@ export function ResponsiveLayout({ children }: ResponsiveLayoutProps) {
   const isCurrentPath = (path: string): boolean => {
     // Exact match first
     if (location === path) return true;
-    
+
     // Special handling for staff portal as dashboard
     if (user?.role === 'staff' && path === '/staff-portal' && location === '/dashboard') return true;
-    
+
     // For sub-paths, ensure we don't match parent paths incorrectly
     // e.g., /payroll/workflow should not highlight /payroll
     if (path === '/') return location === '/';
-    
+
     // Only match sub-paths if the current location starts with the path + '/'
     // and the path is not a substring of another valid path
     return location.startsWith(path + '/') && path !== '/payroll' && path !== '/staff';
@@ -208,14 +209,14 @@ export function ResponsiveLayout({ children }: ResponsiveLayoutProps) {
 
   const getUserInitials = () => {
     if (user?.staff_profile) {
-      return `${user.staff_profile.first_name[0]}${user.staff_profile.last_name[0]}`;
+      return `${user.staff_profile.first_name?.[0] || ''}${user.staff_profile.last_name?.[0] || ''}`.toUpperCase();
     }
     return user?.email?.substring(0, 2).toUpperCase() || 'U';
   };
 
   const getUserDisplayName = () => {
     if (user?.staff_profile) {
-      return `${user.staff_profile.first_name} ${user.staff_profile.last_name}`;
+      return `${user.staff_profile.first_name || ''} ${user.staff_profile.last_name || ''}`.trim();
     }
     return user?.email || 'User';
   };
@@ -253,37 +254,32 @@ export function ResponsiveLayout({ children }: ResponsiveLayoutProps) {
             const groupKey = group.name.toLowerCase().replace(/[^a-z0-9]/g, '');
             const isGroupExpanded = expandedGroups[groupKey];
             const groupIsActive = isGroupActive(group);
-            
+
             // If group has only one item, render it directly without collapsible
             if (group.items.length === 1) {
               const item = group.items[0];
               const isActive = isCurrentPath(item.href);
-              
+
               return (
-                <Button
-                  key={item.name}
-                  asChild
-                  variant="ghost"
-                  className={`
-                    group flex items-center w-full px-3 py-2 text-sm font-medium rounded-lg transition-colors justify-start
-                    ${isActive
-                      ? 'bg-nigeria-green text-white shadow-sm hover:bg-nigeria-green'
-                      : 'text-gray-700 hover:text-gray-900 hover:bg-gray-50'
-                    }
-                  `}
-                >
-                  <Link href={item.href} onClick={() => isMobile && setMobileMenuOpen(false)}>
-                    <div className="flex items-center w-full">
-                      <item.icon
-                        className={`
-                          mr-3 h-5 w-5 flex-shrink-0
-                          ${isActive ? 'text-white' : 'text-gray-400 group-hover:text-gray-900'}
-                        `}
-                      />
-                      {item.name}
-                    </div>
-                  </Link>
-                </Button>
+                <Link key={item.name} href={item.href} onClick={() => isMobile && setMobileMenuOpen(false)} asChild>
+                  <Button
+                    variant="ghost"
+                    className={cn(
+                      'group flex items-center w-full px-3 py-2 text-sm font-medium rounded-lg transition-colors justify-start',
+                      isActive
+                        ? 'bg-nigeria-green text-white shadow-sm hover:bg-nigeria-green'
+                        : 'text-gray-700 hover:text-gray-900 hover:bg-gray-50'
+                    )}
+                  >
+                    <item.icon
+                      className={cn(
+                        'mr-3 h-5 w-5 flex-shrink-0',
+                        isActive ? 'text-white' : 'text-gray-400 group-hover:text-gray-900'
+                      )}
+                    />
+                    {item.name}
+                  </Button>
+                </Link>
               );
             }
 
@@ -296,20 +292,19 @@ export function ResponsiveLayout({ children }: ResponsiveLayoutProps) {
                 <CollapsibleTrigger asChild>
                   <Button
                     variant="ghost"
-                    className={`
-                      group flex items-center justify-between w-full px-3 py-2 text-sm font-medium rounded-lg transition-colors
-                      ${groupIsActive
+                    className={cn(
+                      'group flex items-center justify-between w-full px-3 py-2 text-sm font-medium rounded-lg transition-colors',
+                      groupIsActive
                         ? 'bg-gray-100 text-gray-900 hover:bg-gray-100'
                         : 'text-gray-700 hover:text-gray-900 hover:bg-gray-50'
-                      }
-                    `}
+                    )}
                   >
                     <div className="flex items-center">
                       <group.icon
-                        className={`
-                          mr-3 h-5 w-5 flex-shrink-0
-                          ${groupIsActive ? 'text-nigeria-green' : 'text-gray-400 group-hover:text-gray-900'}
-                        `}
+                        className={cn(
+                          'mr-3 h-5 w-5 flex-shrink-0',
+                          groupIsActive ? 'text-nigeria-green' : 'text-gray-400 group-hover:text-gray-900'
+                        )}
                       />
                       <span className="font-medium">{group.name}</span>
                     </div>
@@ -325,30 +320,25 @@ export function ResponsiveLayout({ children }: ResponsiveLayoutProps) {
                     {group.items.map((item) => {
                       const isActive = isCurrentPath(item.href);
                       return (
-                        <Button
-                          key={item.name}
-                          asChild
-                          variant="ghost"
-                          className={`
-                            group flex items-center w-full px-3 py-2 text-sm rounded-md transition-colors justify-start
-                            ${isActive
-                              ? 'bg-nigeria-green text-white shadow-sm hover:bg-nigeria-green'
-                              : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-                            }
-                          `}
-                        >
-                          <Link href={item.href} onClick={() => isMobile && setMobileMenuOpen(false)}>
-                            <div className="flex items-center w-full">
-                              <item.icon
-                                className={`
-                                  mr-3 h-4 w-4 flex-shrink-0
-                                  ${isActive ? 'text-white' : 'text-gray-400 group-hover:text-gray-600'}
-                                `}
-                              />
-                              {item.name}
-                            </div>
-                          </Link>
-                        </Button>
+                        <Link key={item.name} href={item.href} onClick={() => isMobile && setMobileMenuOpen(false)} asChild>
+                          <Button
+                            variant="ghost"
+                            className={cn(
+                              'group flex items-center w-full px-3 py-2 text-sm rounded-md transition-colors justify-start',
+                              isActive
+                                ? 'bg-nigeria-green text-white shadow-sm hover:bg-nigeria-green'
+                                : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                            )}
+                          >
+                            <item.icon
+                              className={cn(
+                                'mr-3 h-4 w-4 flex-shrink-0',
+                                isActive ? 'text-white' : 'text-gray-400 group-hover:text-gray-600'
+                              )}
+                            />
+                            {item.name}
+                          </Button>
+                        </Link>
                       );
                     })}
                   </div>
@@ -359,34 +349,30 @@ export function ResponsiveLayout({ children }: ResponsiveLayoutProps) {
 
           {/* Notifications - Always visible */}
           <div className="pt-4 border-t border-gray-200">
-            <Button
-              asChild
-              variant="ghost"
-              className={`
-                group flex items-center w-full px-3 py-2 text-sm font-medium rounded-lg transition-colors relative justify-start
-                ${isCurrentPath('/notifications')
-                  ? 'bg-nigeria-green text-white shadow-sm hover:bg-nigeria-green'
-                  : 'text-gray-700 hover:text-gray-900 hover:bg-gray-50'
-                }
-              `}
-            >
-              <Link href="/notifications" onClick={() => isMobile && setMobileMenuOpen(false)}>
-                <div className="flex items-center w-full">
-                  <Bell
-                    className={`
-                      mr-3 h-5 w-5 flex-shrink-0
-                      ${isCurrentPath('/notifications') ? 'text-white' : 'text-gray-400 group-hover:text-gray-900'}
-                    `}
-                  />
-                  Notifications
-                  {notificationCount && notificationCount > 0 && (
-                    <span className="ml-auto bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                      {notificationCount > 99 ? '99+' : notificationCount}
-                    </span>
+            <Link href="/notifications" onClick={() => isMobile && setMobileMenuOpen(false)} asChild>
+              <Button
+                variant="ghost"
+                className={cn(
+                  'group flex items-center w-full px-3 py-2 text-sm font-medium rounded-lg transition-colors relative justify-start',
+                  isCurrentPath('/notifications')
+                    ? 'bg-nigeria-green text-white shadow-sm hover:bg-nigeria-green'
+                    : 'text-gray-700 hover:text-gray-900 hover:bg-gray-50'
+                )}
+              >
+                <Bell
+                  className={cn(
+                    'mr-3 h-5 w-5 flex-shrink-0',
+                    isCurrentPath('/notifications') ? 'text-white' : 'text-gray-400 group-hover:text-gray-900'
                   )}
-                </div>
-              </Link>
-            </Button>
+                />
+                Notifications
+                {notificationCount && notificationCount > 0 && (
+                  <span className="ml-auto bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                    {notificationCount > 99 ? '99+' : notificationCount}
+                  </span>
+                )}
+              </Button>
+            </Link>
           </div>
         </nav>
       </ScrollArea>
@@ -474,21 +460,23 @@ export function ResponsiveLayout({ children }: ResponsiveLayoutProps) {
             <div className="flex flex-1"></div>
             <div className="flex items-center gap-x-4 lg:gap-x-6">
               {/* Notifications */}
-              <Tooltip>
+              <UiTooltip>
                 <TooltipTrigger asChild>
-                  <Link href="/notifications">
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      className={`relative transition-all duration-300 ${
+                  <Link href="/notifications" asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className={cn(
+                        'relative transition-all duration-300',
                         hasNewNotifications ? 'animate-pulse bg-blue-50 hover:bg-blue-100' : ''
-                      }`}
+                      )}
                     >
-                    <Bell className="h-5 w-5" />
+                      <Bell className="h-5 w-5" />
                       {notificationCount && notificationCount > 0 && (
-                        <span className={`absolute -top-1 -right-1 h-4 w-4 bg-red-500 text-white rounded-full text-xs flex items-center justify-center transition-all duration-300 ${
+                        <span className={cn(
+                          'absolute -top-1 -right-1 h-4 w-4 bg-red-500 text-white rounded-full text-xs flex items-center justify-center transition-all duration-300',
                           hasNewNotifications ? 'animate-bounce scale-110' : ''
-                        }`}>
+                        )}>
                           {notificationCount > 99 ? '99+' : notificationCount}
                         </span>
                       )}
@@ -501,11 +489,11 @@ export function ResponsiveLayout({ children }: ResponsiveLayoutProps) {
                 <TooltipContent>
                   <p>View notifications ({notificationCount || 0} unread)</p>
                 </TooltipContent>
-              </Tooltip>
+              </UiTooltip>
 
               {/* Profile dropdown */}
               <DropdownMenu>
-                <Tooltip>
+                <UiTooltip>
                   <TooltipTrigger asChild>
                     <DropdownMenuTrigger asChild>
                       <Button variant="ghost" className="relative h-8 w-8 rounded-full">
@@ -520,7 +508,7 @@ export function ResponsiveLayout({ children }: ResponsiveLayoutProps) {
                   <TooltipContent>
                     <p>Account menu</p>
                   </TooltipContent>
-                </Tooltip>
+                </UiTooltip>
                 <DropdownMenuContent className="w-56" align="end" forceMount>
                   <div className="flex items-center justify-start gap-2 p-2">
                     <div className="flex flex-col space-y-1 leading-none">
@@ -564,15 +552,15 @@ export function ResponsiveLayout({ children }: ResponsiveLayoutProps) {
           <div className="mx-auto max-w-7xl">
             {children}
           </div>
-          
+
           {/* Global Footer */}
           <footer className="mt-12 pt-8 border-t border-gray-200">
             <div className="text-center">
               <p className="text-gray-500" style={{ fontSize: '0.7em' }}>
                 JSC Payroll | Powered by{' '}
-                <a 
-                  href="https://elxis.com.ng" 
-                  target="_blank" 
+                <a
+                  href="https://elxis.com.ng"
+                  target="_blank"
                   rel="noopener noreferrer"
                   className="text-nigeria-green hover:text-green-700 underline"
                 >
@@ -584,5 +572,5 @@ export function ResponsiveLayout({ children }: ResponsiveLayoutProps) {
         </main>
       </div>
     </div>
-   );
+  );
 }
