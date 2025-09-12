@@ -382,16 +382,32 @@ export async function getCooperativeOrganizations(): Promise<CooperativeOrganiza
 
   if (error) throw error;
 
-  return (data || []).map(item => ({
-    id: item.id,
-    name: item.name,
-    contactPerson: item.contact_person,
-    phoneNumber: item.phone_number,
-    email: item.email,
-    address: item.address,
-    interestRateDefault: item.interest_rate_default ? parseFloat(item.interest_rate_default) : undefined,
-    isActive: Boolean(item.is_active), // Explicitly cast to Boolean
-  }));
+  return (data || []).map(item => {
+    console.log("Raw item from Supabase:", item); // Log the raw item
+    const isActiveValue = item.is_active;
+    let isActiveBoolean: boolean;
+
+    if (typeof isActiveValue === 'boolean') {
+      isActiveBoolean = isActiveValue;
+    } else if (typeof isActiveValue === 'string') {
+      isActiveBoolean = isActiveValue.toLowerCase() === 'true';
+    } else if (isActiveValue === null || isActiveValue === undefined) {
+      isActiveBoolean = false; // Default to false if null or undefined
+    } else {
+      isActiveBoolean = Boolean(isActiveValue); // Catch-all for other types
+    }
+
+    return {
+      id: item.id,
+      name: item.name,
+      contactPerson: item.contact_person,
+      phoneNumber: item.phone_number,
+      email: item.email,
+      address: item.address,
+      interestRateDefault: item.interest_rate_default ? parseFloat(item.interest_rate_default) : undefined,
+      isActive: isActiveBoolean, // Use the robustly converted boolean
+    };
+  });
 }
 
 /**
@@ -604,7 +620,7 @@ export async function updateLoan(loanId: string, updates: Partial<Loan>): Promis
   if (updates.monthlyInterestAmount !== undefined) updateData.monthly_interest_amount = updates.monthlyInterestAmount.toString();
   if (updates.monthlyTotalDeduction !== undefined) updateData.monthly_total_deduction = updates.monthlyTotalDeduction.toString();
   if (updates.numberOfInstallments !== undefined) updateData.number_of_installments = updates.numberOfInstallments;
-  if (updates.installmentsPaid !== undefined) updateData.installments_paid = updates.installmentsPaid;
+  if (updates.installmentsPaid !== undefined) updateData.installments_paid = updates.installments_paid;
   if (updates.startDate) updateData.start_date = updates.startDate;
   if (updates.endDate) updateData.end_date = updates.endDate;
   if (updates.remainingBalance !== undefined) updateData.remaining_balance = updates.remainingBalance.toString();
