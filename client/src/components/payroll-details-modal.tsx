@@ -208,6 +208,7 @@ export function PayrollDetailsModal({ open, onClose, payrollRun }: PayrollDetail
           .eq('status', 'active');
 
         if (staffError) throw staffError;
+        console.log('Fetched staff data for report:', staffData); // LOG 1
 
         // Filter staff by department if the payroll run was for a specific department
         if (payrollRun.department_id) {
@@ -237,9 +238,11 @@ export function PayrollDetailsModal({ open, onClose, payrollRun }: PayrollDetail
           cooperatives: 0,
           unpaidLeaveDays: 0, // Assuming no unpaid leave for report generation unless explicitly fetched
         }));
+        console.log('Payroll inputs for bulk calculation:', payrollInputs); // LOG 2
 
         // Calculate bulk payroll
         const calculatedResults = await calculateBulkPayroll(payrollInputs);
+        console.log('Calculated bulk payroll results:', calculatedResults); // LOG 3
 
         // Map calculated results to export format
         exportData = calculatedResults.map(result => {
@@ -266,6 +269,7 @@ export function PayrollDetailsModal({ open, onClose, payrollRun }: PayrollDetail
             period: payrollRun.period,
           };
         }).filter(Boolean); // Remove any nulls if staffMember not found
+        console.log('Final export data:', exportData); // LOG 4
       }
 
       if (exportData.length === 0) {
@@ -284,10 +288,10 @@ export function PayrollDetailsModal({ open, onClose, payrollRun }: PayrollDetail
         description: "Payroll audit report downloaded successfully",
       });
     } catch (error) {
-      console.error('Error generating payroll report:', error);
+      console.error('Error generating payroll report:', error); // LOG 5: Enhanced error logging
       toast({
         title: "Error",
-        description: "Failed to generate payroll report",
+        description: error.message || "Failed to generate payroll report",
         variant: "destructive",
       });
     }
