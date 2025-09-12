@@ -4,9 +4,9 @@ import { useAuth } from '@/hooks/use-auth';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import {
-  getActiveLeaveTypes,
-  getStaffLeaveRequests,
+import { 
+  getActiveLeaveTypes, 
+  getStaffLeaveRequests, 
   getStaffLeaveBalances,
   submitLeaveRequest,
   calculateWorkingDays,
@@ -52,12 +52,12 @@ import {
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import {
-  Calendar,
-  Plus,
-  Clock,
-  Check,
-  X,
+import { 
+  Calendar, 
+  Plus, 
+  Clock, 
+  Check, 
+  X, 
   AlertCircle,
   TrendingUp,
   FileText,
@@ -80,7 +80,7 @@ const leaveRequestSchema = z.object({
 
 type LeaveRequestFormData = z.infer<typeof leaveRequestSchema>;
 
-function LeaveManagement() {
+export function LeaveManagement() {
   const { user } = useAuth();
   const [showRequestModal, setShowRequestModal] = useState(false);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
@@ -595,5 +595,3 @@ function LeaveManagement() {
     </div>
   );
 }
-
-export default LeaveManagement; // FIX: Added default export

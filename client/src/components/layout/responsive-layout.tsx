@@ -6,7 +6,8 @@ import { formatDisplayCurrency } from '@/lib/currency-utils';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Tooltip as UiTooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'; // Renamed to UiTooltip to avoid conflict with Recharts Tooltip
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { Calendar, CreditCard, FileText, BarChart3, Settings, TrendingUp } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -24,70 +25,38 @@ import {
   LogOut,
   Bell,
   User,
-  CreditCard,
-  FileText,
-  Calendar,
-  BarChart3,
-  Settings,
-  TrendingUp,
 } from 'lucide-react';
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion'; // New import
-
-interface NavigationItem {
-  name: string;
-  href?: string;
-  icon: React.ComponentType<any>;
-  roles: string[];
-  children?: NavigationItem[];
-}
 
 interface ResponsiveLayoutProps {
   children: React.ReactNode;
 }
 
 export function ResponsiveLayout({ children }: ResponsiveLayoutProps) {
-  const { user, signOut, hasRole } = useAuth();
+  const { user, signOut } = useAuth();
   const [location] = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [hasNewNotifications, setHasNewNotifications] = useState(false);
 
   // Dynamic navigation based on user role
-  const navigation: NavigationItem[] = React.useMemo(() => {
-    return [
-      // Top-level items for staff role
+  const navigation = React.useMemo(() => {
+    const baseNavigation = [
+      { name: 'Dashboard', href: '/dashboard', icon: Home, roles: ['super_admin', 'account_admin', 'payroll_admin'] },
       { name: 'Dashboard', href: '/staff-portal', icon: Home, roles: ['staff'] },
       { name: 'Profile', href: '/settings/profile', icon: User, roles: ['staff'] },
-      { name: 'Payslips', href: '/payslips', icon: FileText, roles: ['staff'] },
-      { name: 'Leave Management', href: '/staff-portal/leave', icon: Calendar, roles: ['staff'] },
-
-      // Top-level items for admin roles
-      { name: 'Dashboard', href: '/dashboard', icon: Home, roles: ['super_admin', 'account_admin', 'payroll_admin'] },
-      {
-        name: 'Staff & Organization',
-        icon: Users,
-        roles: ['super_admin', 'account_admin', 'payroll_admin'],
-        children: [
-          { name: 'Staff Management', href: '/staff', icon: Users, roles: ['super_admin', 'account_admin', 'payroll_admin'] },
-          { name: 'Departments', href: '/departments', icon: Building2, roles: ['super_admin', 'account_admin', 'payroll_admin'] },
-          { name: 'Promotions', href: '/promotions', icon: TrendingUp, roles: ['super_admin', 'payroll_admin'] },
-          { name: 'Loans', href: '/loans', icon: CreditCard, roles: ['super_admin', 'account_admin', 'payroll_admin'] },
-        ],
-      },
-      {
-        name: 'Payroll',
-        icon: CreditCard,
-        roles: ['super_admin', 'account_admin', 'payroll_admin'],
-        children: [
-          { name: 'Payroll Processing', href: '/payroll', icon: CreditCard, roles: ['super_admin', 'account_admin', 'payroll_admin'] },
-          { name: 'Payroll Workflow', href: '/payroll/workflow', icon: CreditCard, roles: ['super_admin', 'account_admin', 'payroll_admin'] },
-          { name: 'Individual Adjustments', href: '/payroll/adjustments', icon: CreditCard, roles: ['super_admin', 'payroll_admin'] },
-          { name: 'Payslips', href: '/payslips', icon: FileText, roles: ['super_admin', 'account_admin', 'payroll_admin'] },
-        ],
-      },
+      { name: 'Staff Management', href: '/staff', icon: Users, roles: ['super_admin'] },
+      { name: 'Departments', href: '/departments', icon: Building2, roles: ['super_admin', 'account_admin', 'payroll_admin'] },
+      { name: 'Promotions', href: '/promotions', icon: TrendingUp, roles: ['super_admin', 'payroll_admin'] },
+      { name: 'Loans', href: '/loans', icon: CreditCard, roles: ['super_admin', 'account_admin', 'payroll_admin'] },
+      { name: 'Payroll', href: '/payroll', icon: CreditCard, roles: ['super_admin', 'account_admin', 'payroll_admin'] },
+      { name: 'Payroll Workflow', href: '/payroll/workflow', icon: CreditCard, roles: ['super_admin', 'account_admin', 'payroll_admin'] },
+      { name: 'Individual Adjustments', href: '/payroll/adjustments', icon: CreditCard, roles: ['super_admin', 'payroll_admin'] },
+      { name: 'Payslips', href: '/payslips', icon: FileText, roles: ['super_admin', 'account_admin', 'payroll_admin', 'staff'] },
       { name: 'Leave Approval', href: '/leave/approval', icon: Calendar, roles: ['super_admin', 'account_admin', 'payroll_admin'] },
       { name: 'Reports', href: '/reports', icon: BarChart3, roles: ['super_admin', 'account_admin'] },
       { name: 'Settings', href: '/settings', icon: Settings, roles: ['super_admin'] },
     ];
+
+    return baseNavigation;
   }, []);
 
   // Fetch unread notifications count
@@ -133,22 +102,11 @@ export function ResponsiveLayout({ children }: ResponsiveLayoutProps) {
     
     // For sub-paths, ensure we don't match parent paths incorrectly
     // e.g., /payroll/workflow should not highlight /payroll
-    const isParentActive = (item: NavigationItem) => {
-      if (item.href && location.startsWith(item.href)) {
-        // Ensure it's not a partial match of another valid path
-        if (item.href === '/' || item.href.endsWith('/')) {
-          return location.startsWith(item.href);
-        } else {
-          return location === item.href || location.startsWith(`${item.href}/`);
-        }
-      }
-      if (item.children) {
-        return item.children.some(child => isParentActive(child));
-      }
-      return false;
-    };
-
-    return isParentActive({ href: path, name: '', icon: Home, roles: [] });
+    if (path === '/') return location === '/';
+    
+    // Only match sub-paths if the current location starts with the path + '/'
+    // and the path is not a substring of another valid path
+    return location.startsWith(path + '/') && path !== '/payroll' && path !== '/staff';
   };
 
   const getUserInitials = () => {
@@ -164,6 +122,8 @@ export function ResponsiveLayout({ children }: ResponsiveLayoutProps) {
     }
     return user?.email || 'User';
   };
+
+  const { hasRole } = useAuth();
 
   // Filter navigation items based on user role
   const filteredNavigation = navigation.filter(item => hasRole(item.roles));
@@ -186,86 +146,29 @@ export function ResponsiveLayout({ children }: ResponsiveLayoutProps) {
       {/* Navigation */}
       <nav className="flex-1 px-4 lg:px-6 py-4 space-y-1">
         {filteredNavigation.map((item) => {
-          const isActive = isCurrentPath(item.href || '');
-          const hasChildren = item.children && item.children.length > 0;
-
-          if (hasChildren) {
-            const isAnyChildActive = item.children.some(child => isCurrentPath(child.href || ''));
-            return (
-              <Accordion key={item.name} type="single" collapsible defaultValue={isAnyChildActive ? item.name : undefined}>
-                <AccordionItem value={item.name} className="border-b-0">
-                  <AccordionTrigger className={`
-                    group flex items-center w-full px-3 py-2 text-sm font-medium rounded-lg transition-colors
-                    ${isAnyChildActive
-                      ? 'bg-nigeria-green text-white'
-                      : 'text-gray-700 hover:text-gray-900 hover:bg-gray-50'
-                    }
-                    [&[data-state=open]>svg]:rotate-180
-                  `}>
-                    <item.icon
-                      className={`
-                        mr-3 h-5 w-5 flex-shrink-0
-                        ${isAnyChildActive ? 'text-white' : 'text-gray-400 group-hover:text-gray-900'}
-                      `}
-                    />
-                    {item.name}
-                  </AccordionTrigger>
-                  <AccordionContent className="pb-0 pt-0">
-                    <div className="ml-4 border-l border-gray-200 pl-2 space-y-1">
-                      {item.children?.filter(child => hasRole(child.roles)).map((child) => {
-                        const isChildActive = isCurrentPath(child.href || '');
-                        return (
-                          <Link key={child.name} href={child.href || '#'}>
-                            <button
-                              onClick={() => isMobile && setMobileMenuOpen(false)}
-                              className={`
-                                group flex items-center w-full px-3 py-2 text-sm font-medium rounded-lg transition-colors
-                                ${isChildActive
-                                  ? 'bg-nigeria-green text-white'
-                                  : 'text-gray-700 hover:text-gray-900 hover:bg-gray-50'
-                                }
-                              `}
-                            >
-                              <child.icon
-                                className={`
-                                  mr-3 h-5 w-5 flex-shrink-0
-                                  ${isChildActive ? 'text-white' : 'text-gray-400 group-hover:text-gray-900'}
-                                `}
-                              />
-                              {child.name}
-                            </button>
-                          </Link>
-                        );
-                      })}
-                    </div>
-                  </AccordionContent>
-                </AccordionItem>
-              </Accordion>
-            );
-          } else {
-            return (
-              <Link key={item.name} href={item.href || '#'}>
-                <button
-                  onClick={() => isMobile && setMobileMenuOpen(false)}
+          const isActive = isCurrentPath(item.href);
+          return (
+            <Link key={item.name} href={item.href}>
+              <button
+                onClick={() => isMobile && setMobileMenuOpen(false)}
+                className={`
+                  group flex items-center w-full px-3 py-2 text-sm font-medium rounded-lg transition-colors
+                  ${isActive
+                    ? 'bg-nigeria-green text-white'
+                    : 'text-gray-700 hover:text-gray-900 hover:bg-gray-50'
+                  }
+                `}
+              >
+                <item.icon
                   className={`
-                    group flex items-center w-full px-3 py-2 text-sm font-medium rounded-lg transition-colors
-                    ${isActive
-                      ? 'bg-nigeria-green text-white'
-                      : 'text-gray-700 hover:text-gray-900 hover:bg-gray-50'
-                    }
+                    mr-3 h-5 w-5 flex-shrink-0
+                    ${isActive ? 'text-white' : 'text-gray-400 group-hover:text-gray-900'}
                   `}
-                >
-                  <item.icon
-                    className={`
-                      mr-3 h-5 w-5 flex-shrink-0
-                      ${isActive ? 'text-white' : 'text-gray-400 group-hover:text-gray-900'}
-                    `}
-                  />
-                  {item.name}
-                </button>
-              </Link>
-            );
-          }
+                />
+                {item.name}
+              </button>
+            </Link>
+          );
         })}
       </nav>
 
@@ -340,7 +243,7 @@ export function ResponsiveLayout({ children }: ResponsiveLayoutProps) {
             <div className="flex flex-1"></div>
             <div className="flex items-center gap-x-4 lg:gap-x-6">
               {/* Notifications */}
-              <UiTooltip>
+              <Tooltip>
                 <TooltipTrigger asChild>
                   <Link href="/notifications">
                     <Button 
@@ -367,11 +270,11 @@ export function ResponsiveLayout({ children }: ResponsiveLayoutProps) {
                 <TooltipContent>
                   <p>View notifications ({notificationCount || 0} unread)</p>
                 </TooltipContent>
-              </UiTooltip>
+              </Tooltip>
 
               {/* Profile dropdown */}
               <DropdownMenu>
-                <UiTooltip>
+                <Tooltip>
                   <TooltipTrigger asChild>
                     <DropdownMenuTrigger asChild>
                       <Button variant="ghost" className="relative h-8 w-8 rounded-full">
@@ -386,7 +289,7 @@ export function ResponsiveLayout({ children }: ResponsiveLayoutProps) {
                   <TooltipContent>
                     <p>Account menu</p>
                   </TooltipContent>
-                </UiTooltip>
+                </Tooltip>
                 <DropdownMenuContent className="w-56" align="end" forceMount>
                   <div className="flex items-center justify-start gap-2 p-2">
                     <div className="flex flex-col space-y-1 leading-none">
@@ -452,4 +355,3 @@ export function ResponsiveLayout({ children }: ResponsiveLayoutProps) {
     </div>
    );
 }
-

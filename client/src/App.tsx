@@ -24,9 +24,8 @@ import Settings from "@/pages/settings/settings";
 import ProfileSettings from "@/pages/settings/profile-settings";
 import LeaveApprovalWorkflow from "@/pages/leave/leave-approval-workflow";
 import StaffPortal from "@/pages/staff-portal/staff-portal";
-import PromotionsManagement from "@/pages/promotions/PromotionsManagement";
+import PromotionsManagement from "@/pages/promotions/PromotionsManagement"; // New Import
 import LoanManagement from "@/pages/loans/LoanManagement";
-import LeaveManagement from "@/pages/staff-portal/leave-management"; // New Import
 import NotFound from "@/pages/not-found";
 
 function AppContent() {
@@ -236,19 +235,6 @@ function AppContent() {
           <Redirect to="/" />
         )}
       </Route>
-
-      {/* New Staff Portal Leave Management Route */}
-      <Route path="/staff-portal/leave">
-        {user ? (
-          <ResponsiveLayout>
-            <AuthGuard roles={['staff']}>
-              <LeaveManagement />
-            </AuthGuard>
-          </ResponsiveLayout>
-        ) : (
-          <Redirect to="/" />
-        )}
-      </Route>
       
       {/* Fallback route */}
       <Route component={NotFound} />
@@ -270,4 +256,3 @@ function App() {
 }
 
 export default App;
-
