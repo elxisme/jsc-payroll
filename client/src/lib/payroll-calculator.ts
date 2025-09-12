@@ -1,3 +1,5 @@
+// client/src/lib/payroll-calculator.ts
+
 import { supabase } from './supabase';
 import { getLeaveRequestsForPayrollPeriod } from './leave-management-utils';
 
@@ -519,7 +521,8 @@ export async function isPayrollLockedFrontend(payrollRunId: string): Promise<boo
 export async function processPayrollRun(
   payrollRunId: string,
   period: string,
-  staffInputs: PayrollInputs[]
+  staffInputs: PayrollInputs[],
+  userId: string // Add userId parameter
 ): Promise<{ totalGross: number; totalDeductions: number; totalNet: number; staffCount: number }> {
   // Check for staff already processed in finalized payrolls for this period
   const { data: existingPayslips, error: existingError } = await supabase
@@ -551,6 +554,67 @@ export async function processPayrollRun(
   if (staffToProcess.length === 0) {
     throw new Error('All selected staff have already been processed for this period in finalized payrolls.');
   }
+
+  // --- NEW LOGIC: Automatically create monthly loan deductions ---
+  const staffIdsInRun = staffToProcess.map(s => s.staffId);
+
+  // Fetch all active loans for staff members in this payroll run
+  const { data: activeLoans, error: loansError } = await supabase
+    .from('loans')
+    .select('*')
+    .in('staff_id', staffIdsInRun)
+    .eq('status', 'active')
+    .gt('remaining_balance', 0); // Only consider loans with outstanding balance
+
+  if (loansError) {
+    console.error('Error fetching active loans for payroll processing:', loansError);
+    // Continue processing, but without these loans
+  }
+
+  if (activeLoans && activeLoans.length > 0) {
+    for (const loan of activeLoans) {
+      // Check if a deduction for this loan already exists for the current period
+      const { data: existingDeduction, error: existingDeductionError } = await supabase
+        .from('staff_individual_deductions')
+        .select('id')
+        .eq('staff_id', loan.staff_id)
+        .eq('loan_id', loan.id)
+        .eq('period', period)
+        .eq('is_loan_repayment', true)
+        .single();
+
+      if (existingDeductionError && existingDeductionError.code !== 'PGRST116') { // PGRST116 means "no rows found"
+        console.error('Error checking for existing loan deduction:', existingDeductionError);
+        continue; // Skip this loan if there's a database error
+      }
+
+      if (!existingDeduction) {
+        // If no existing deduction, create one for this month's repayment
+        const { error: insertDeductionError } = await supabase
+          .from('staff_individual_deductions')
+          .insert({
+            staff_id: loan.staff_id,
+            type: 'loan_repayment',
+            amount: loan.monthly_total_deduction.toString(),
+            total_amount: loan.total_loan_amount.toString(),
+            remaining_balance: loan.remaining_balance.toString(),
+            period: period,
+            start_period: loan.start_date.slice(0, 7),
+            end_period: loan.end_date.slice(0, 7),
+            description: `Monthly loan repayment for ${loan.loan_type.replace('_', ' ')}`,
+            status: 'active', // Mark as active for payroll processing
+            loan_id: loan.id,
+            is_loan_repayment: true,
+            created_by: userId, // Use the provided userId
+          });
+
+        if (insertDeductionError) {
+          console.error('Error inserting automatic loan deduction:', insertDeductionError);
+        }
+      }
+    }
+  }
+  // --- END NEW LOGIC ---
 
   // Get leave requests that affect this payroll period
   const leaveRequests = await getLeaveRequestsForPayrollPeriod(period);
@@ -716,3 +780,4 @@ export async function generatePayslipsForPayrollRun(
     }
   }
 }
+
