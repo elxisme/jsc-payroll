@@ -80,7 +80,7 @@ const leaveRequestSchema = z.object({
 
 type LeaveRequestFormData = z.infer<typeof leaveRequestSchema>;
 
-export function LeaveManagement() {
+export default function LeaveManagement() { // Changed from 'export function' to 'export default function'
   const { user } = useAuth();
   const [showRequestModal, setShowRequestModal] = useState(false);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
