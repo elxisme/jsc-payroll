@@ -165,8 +165,6 @@ export function ResponsiveLayout({ children }: ResponsiveLayoutProps) {
     return user?.email || 'User';
   };
 
-  const { hasRole } = useAuth();
-
   // Filter navigation items based on user role
   const filteredNavigation = navigation.filter(item => hasRole(item.roles));
 
