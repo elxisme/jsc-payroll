@@ -7,16 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { 
-  Calendar, 
-  CreditCard, 
-  FileText, 
-  BarChart3, 
-  Settings, 
-  TrendingUp,
-  ChevronDown,
-  ChevronRight
-} from 'lucide-react';
+import { Calendar, CreditCard, FileText, BarChart3, Settings, TrendingUp } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -35,25 +26,9 @@ import {
   Bell,
   User,
 } from 'lucide-react';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
 interface ResponsiveLayoutProps {
   children: React.ReactNode;
-}
-
-interface NavigationGroup {
-  name: string;
-  icon: React.ComponentType<any>;
-  items: NavigationItem[];
-  roles: string[];
-}
-
-interface NavigationItem {
-  name: string;
-  href: string;
-  icon: React.ComponentType<any>;
-  roles: string[];
 }
 
 export function ResponsiveLayout({ children }: ResponsiveLayoutProps) {
@@ -61,89 +36,28 @@ export function ResponsiveLayout({ children }: ResponsiveLayoutProps) {
   const [location] = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [hasNewNotifications, setHasNewNotifications] = useState(false);
-  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({
-    dashboard: true,
-    hr: false,
-    payroll: false,
-    analytics: false,
-    settings: false,
-  });
 
-  // Grouped navigation structure
-  const navigationGroups = React.useMemo((): NavigationGroup[] => {
-    if (user?.role === 'staff') {
-      return [
-        {
-          name: 'Dashboard',
-          icon: Home,
-          roles: ['staff'],
-          items: [
-            { name: 'Dashboard', href: '/staff-portal', icon: Home, roles: ['staff'] },
-            { name: 'Profile', href: '/settings/profile', icon: User, roles: ['staff'] },
-          ],
-        },
-        {
-          name: 'My Records',
-          icon: FileText,
-          roles: ['staff'],
-          items: [
-            { name: 'My Payslips', href: '/payslips', icon: FileText, roles: ['staff'] },
-          ],
-        },
-      ];
-    }
-
-    return [
-      {
-        name: 'Dashboard',
-        icon: Home,
-        roles: ['super_admin', 'account_admin', 'payroll_admin'],
-        items: [
-          { name: 'Overview', href: '/dashboard', icon: Home, roles: ['super_admin', 'account_admin', 'payroll_admin'] },
-        ],
-      },
-      {
-        name: 'Human Resources (HR)',
-        icon: Users,
-        roles: ['super_admin', 'account_admin', 'payroll_admin'],
-        items: [
-          { name: 'Staff Management', href: '/staff', icon: Users, roles: ['super_admin', 'payroll_admin'] },
-          { name: 'Departments', href: '/departments', icon: Building2, roles: ['super_admin', 'account_admin', 'payroll_admin'] },
-          { name: 'Promotions', href: '/promotions', icon: TrendingUp, roles: ['super_admin', 'payroll_admin'] },
-          { name: 'Leave Approval', href: '/leave/approval', icon: Calendar, roles: ['super_admin', 'account_admin', 'payroll_admin'] },
-        ],
-      },
-      {
-        name: 'Payroll & Compensation',
-        icon: CreditCard,
-        roles: ['super_admin', 'account_admin', 'payroll_admin'],
-        items: [
-          { name: 'Payroll Processing', href: '/payroll', icon: CreditCard, roles: ['super_admin', 'account_admin', 'payroll_admin'] },
-          { name: 'Payroll Workflow', href: '/payroll/workflow', icon: CreditCard, roles: ['super_admin', 'account_admin', 'payroll_admin'] },
-          { name: 'Individual Adjustments', href: '/payroll/adjustments', icon: CreditCard, roles: ['super_admin', 'payroll_admin'] },
-          { name: 'Payslips', href: '/payslips', icon: FileText, roles: ['super_admin', 'account_admin', 'payroll_admin'] },
-          { name: 'Loan Management', href: '/loans', icon: CreditCard, roles: ['super_admin', 'account_admin', 'payroll_admin'] },
-        ],
-      },
-      {
-        name: 'Analytics & Oversight',
-        icon: BarChart3,
-        roles: ['super_admin', 'account_admin'],
-        items: [
-          { name: 'Bank Reports', href: '/reports', icon: BarChart3, roles: ['super_admin', 'account_admin'] },
-        ],
-      },
-      {
-        name: 'Settings',
-        icon: Settings,
-        roles: ['super_admin'],
-        items: [
-          { name: 'System Settings', href: '/settings', icon: Settings, roles: ['super_admin'] },
-          { name: 'Profile Settings', href: '/settings/profile', icon: User, roles: ['super_admin'] },
-        ],
-      },
+  // Dynamic navigation based on user role
+  const navigation = React.useMemo(() => {
+    const baseNavigation = [
+      { name: 'Dashboard', href: '/dashboard', icon: Home, roles: ['super_admin', 'account_admin', 'payroll_admin'] },
+      { name: 'Dashboard', href: '/staff-portal', icon: Home, roles: ['staff'] },
+      { name: 'Profile', href: '/settings/profile', icon: User, roles: ['staff'] },
+      { name: 'Staff Management', href: '/staff', icon: Users, roles: ['super_admin'] },
+      { name: 'Departments', href: '/departments', icon: Building2, roles: ['super_admin', 'account_admin', 'payroll_admin'] },
+      { name: 'Promotions', href: '/promotions', icon: TrendingUp, roles: ['super_admin', 'payroll_admin'] },
+      { name: 'Loans', href: '/loans', icon: CreditCard, roles: ['super_admin', 'account_admin', 'payroll_admin'] },
+      { name: 'Payroll', href: '/payroll', icon: CreditCard, roles: ['super_admin', 'account_admin', 'payroll_admin'] },
+      { name: 'Payroll Workflow', href: '/payroll/workflow', icon: CreditCard, roles: ['super_admin', 'account_admin', 'payroll_admin'] },
+      { name: 'Individual Adjustments', href: '/payroll/adjustments', icon: CreditCard, roles: ['super_admin', 'payroll_admin'] },
+      { name: 'Payslips', href: '/payslips', icon: FileText, roles: ['super_admin', 'account_admin', 'payroll_admin', 'staff'] },
+      { name: 'Leave Approval', href: '/leave/approval', icon: Calendar, roles: ['super_admin', 'account_admin', 'payroll_admin'] },
+      { name: 'Reports', href: '/reports', icon: BarChart3, roles: ['super_admin', 'account_admin'] },
+      { name: 'Settings', href: '/settings', icon: Settings, roles: ['super_admin'] },
     ];
-  }, [user?.role]);
+
+    return baseNavigation;
+  }, []);
 
   // Fetch unread notifications count
   const { data: notificationCount } = useQuery({
@@ -179,7 +93,7 @@ export function ResponsiveLayout({ children }: ResponsiveLayoutProps) {
     await signOut();
   };
 
-  const isCurrentPath = (path: string): boolean => {
+  const isCurrentPath = (path: string) => {
     // Exact match first
     if (location === path) return true;
     
@@ -193,17 +107,6 @@ export function ResponsiveLayout({ children }: ResponsiveLayoutProps) {
     // Only match sub-paths if the current location starts with the path + '/'
     // and the path is not a substring of another valid path
     return location.startsWith(path + '/') && path !== '/payroll' && path !== '/staff';
-  };
-
-  const isGroupActive = (group: NavigationGroup): boolean => {
-    return group.items.some(item => isCurrentPath(item.href));
-  };
-
-  const toggleGroup = (groupKey: string) => {
-    setExpandedGroups(prev => ({
-      ...prev,
-      [groupKey]: !prev[groupKey],
-    }));
   };
 
   const getUserInitials = () => {
@@ -222,14 +125,8 @@ export function ResponsiveLayout({ children }: ResponsiveLayoutProps) {
 
   const { hasRole } = useAuth();
 
-  // Filter navigation groups and items based on user role
-  const filteredNavigationGroups = navigationGroups
-    .filter(group => hasRole(group.roles))
-    .map(group => ({
-      ...group,
-      items: group.items.filter(item => hasRole(item.roles)),
-    }))
-    .filter(group => group.items.length > 0);
+  // Filter navigation items based on user role
+  const filteredNavigation = navigation.filter(item => hasRole(item.roles));
 
   const SidebarContent = ({ isMobile = false }: { isMobile?: boolean }) => (
     <div className="flex h-full flex-col">
@@ -247,137 +144,33 @@ export function ResponsiveLayout({ children }: ResponsiveLayoutProps) {
       </div>
 
       {/* Navigation */}
-      <ScrollArea className="flex-1 px-4 lg:px-6 py-4">
-        <nav className="space-y-2">
-          {filteredNavigationGroups.map((group, groupIndex) => {
-            const groupKey = group.name.toLowerCase().replace(/[^a-z0-9]/g, '');
-            const isGroupExpanded = expandedGroups[groupKey];
-            const groupIsActive = isGroupActive(group);
-            
-            // If group has only one item, render it directly without collapsible
-            if (group.items.length === 1) {
-              const item = group.items[0];
-              const isActive = isCurrentPath(item.href);
-              
-              return (
-                <Link key={item.name} href={item.href}>
-                  <button
-                    onClick={() => isMobile && setMobileMenuOpen(false)}
-                    className={`
-                      group flex items-center w-full px-3 py-2 text-sm font-medium rounded-lg transition-colors
-                      ${isActive
-                        ? 'bg-nigeria-green text-white shadow-sm'
-                        : 'text-gray-700 hover:text-gray-900 hover:bg-gray-50'
-                      }
-                    `}
-                  >
-                    <item.icon
-                      className={`
-                        mr-3 h-5 w-5 flex-shrink-0
-                        ${isActive ? 'text-white' : 'text-gray-400 group-hover:text-gray-900'}
-                      `}
-                    />
-                    {group.name}
-                  </button>
-                </Link>
-              );
-            }
-
-            return (
-              <Collapsible
-                key={group.name}
-                open={isGroupExpanded}
-                onOpenChange={() => toggleGroup(groupKey)}
-              >
-                <CollapsibleTrigger asChild>
-                  <button
-                    className={`
-                      group flex items-center justify-between w-full px-3 py-2 text-sm font-medium rounded-lg transition-colors
-                      ${groupIsActive
-                        ? 'bg-gray-100 text-gray-900'
-                        : 'text-gray-700 hover:text-gray-900 hover:bg-gray-50'
-                      }
-                    `}
-                  >
-                    <div className="flex items-center">
-                      <group.icon
-                        className={`
-                          mr-3 h-5 w-5 flex-shrink-0
-                          ${groupIsActive ? 'text-nigeria-green' : 'text-gray-400 group-hover:text-gray-900'}
-                        `}
-                      />
-                      <span className="font-medium">{group.name}</span>
-                    </div>
-                    {isGroupExpanded ? (
-                      <ChevronDown className="h-4 w-4 text-gray-400" />
-                    ) : (
-                      <ChevronRight className="h-4 w-4 text-gray-400" />
-                    )}
-                  </button>
-                </CollapsibleTrigger>
-                <CollapsibleContent className="space-y-1">
-                  <div className="ml-6 mt-1 space-y-1">
-                    {group.items.map((item) => {
-                      const isActive = isCurrentPath(item.href);
-                      return (
-                        <Link key={item.name} href={item.href}>
-                          <button
-                            onClick={() => isMobile && setMobileMenuOpen(false)}
-                            className={`
-                              group flex items-center w-full px-3 py-2 text-sm rounded-md transition-colors
-                              ${isActive
-                                ? 'bg-nigeria-green text-white shadow-sm'
-                                : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-                              }
-                            `}
-                          >
-                            <item.icon
-                              className={`
-                                mr-3 h-4 w-4 flex-shrink-0
-                                ${isActive ? 'text-white' : 'text-gray-400 group-hover:text-gray-600'}
-                              `}
-                            />
-                            {item.name}
-                          </button>
-                        </Link>
-                      );
-                    })}
-                  </div>
-                </CollapsibleContent>
-              </Collapsible>
-            );
-          })}
-
-          {/* Notifications - Always visible */}
-          <div className="pt-4 border-t border-gray-200">
-            <Link href="/notifications">
+      <nav className="flex-1 px-4 lg:px-6 py-4 space-y-1">
+        {filteredNavigation.map((item) => {
+          const isActive = isCurrentPath(item.href);
+          return (
+            <Link key={item.name} href={item.href}>
               <button
                 onClick={() => isMobile && setMobileMenuOpen(false)}
                 className={`
-                  group flex items-center w-full px-3 py-2 text-sm font-medium rounded-lg transition-colors relative
-                  ${isCurrentPath('/notifications')
-                    ? 'bg-nigeria-green text-white shadow-sm'
+                  group flex items-center w-full px-3 py-2 text-sm font-medium rounded-lg transition-colors
+                  ${isActive
+                    ? 'bg-nigeria-green text-white'
                     : 'text-gray-700 hover:text-gray-900 hover:bg-gray-50'
                   }
                 `}
               >
-                <Bell
+                <item.icon
                   className={`
                     mr-3 h-5 w-5 flex-shrink-0
-                    ${isCurrentPath('/notifications') ? 'text-white' : 'text-gray-400 group-hover:text-gray-900'}
+                    ${isActive ? 'text-white' : 'text-gray-400 group-hover:text-gray-900'}
                   `}
                 />
-                Notifications
-                {notificationCount && notificationCount > 0 && (
-                  <span className="ml-auto bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                    {notificationCount > 99 ? '99+' : notificationCount}
-                  </span>
-                )}
+                {item.name}
               </button>
             </Link>
-          </div>
-        </nav>
-      </ScrollArea>
+          );
+        })}
+      </nav>
 
       {/* User info (mobile only) */}
       {isMobile && (
@@ -409,22 +202,10 @@ export function ResponsiveLayout({ children }: ResponsiveLayoutProps) {
     </div>
   );
 
-  // Auto-expand groups that contain the current active page
-  React.useEffect(() => {
-    const activeGroup = filteredNavigationGroups.find(group => isGroupActive(group));
-    if (activeGroup) {
-      const groupKey = activeGroup.name.toLowerCase().replace(/[^a-z0-9]/g, '');
-      setExpandedGroups(prev => ({
-        ...prev,
-        [groupKey]: true,
-      }));
-    }
-  }, [location, filteredNavigationGroups]);
-
   return (
     <div className="h-screen flex overflow-hidden bg-gray-50">
       {/* Desktop Sidebar */}
-      <div className="hidden lg:flex lg:w-80 lg:flex-col lg:fixed lg:inset-y-0">
+      <div className="hidden lg:flex lg:w-72 lg:flex-col lg:fixed lg:inset-y-0">
         <div className="flex flex-col flex-grow bg-white shadow-sm border-r border-gray-200">
           <SidebarContent />
         </div>
@@ -432,7 +213,7 @@ export function ResponsiveLayout({ children }: ResponsiveLayoutProps) {
 
       {/* Mobile Sidebar */}
       <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
-        <SheetContent side="left" className="p-0 w-80">
+        <SheetContent side="left" className="p-0 w-72">
           <div className="bg-white h-full">
             <SidebarContent isMobile />
           </div>
@@ -440,7 +221,7 @@ export function ResponsiveLayout({ children }: ResponsiveLayoutProps) {
       </Sheet>
 
       {/* Main Content */}
-      <div className="flex flex-col w-0 flex-1 lg:pl-80">
+      <div className="flex flex-col w-0 flex-1 lg:pl-72">
         {/* Top Navigation */}
         <div className="sticky top-0 z-40 flex h-16 shrink-0 items-center gap-x-4 border-b border-gray-200 bg-white px-4 shadow-sm sm:gap-x-6 sm:px-6 lg:px-8">
           {/* Mobile menu button */}
