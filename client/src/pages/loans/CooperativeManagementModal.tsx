@@ -458,11 +458,12 @@ export function CooperativeManagementModal({ open, onClose, onSuccess }: Coopera
                         <FormLabel>Phone Number (Optional)</FormLabel>
                         <FormControl>
                           <Input {...field} placeholder="e.g., 08012345678" />
-                          </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
 
                 <FormField
                   control={form.control}
@@ -553,6 +554,7 @@ export function CooperativeManagementModal({ open, onClose, onSuccess }: Coopera
                     )}
                   </Button>
                 </div>
+                {/* End of form fields */}
               </form>
             </Form>
           )}
