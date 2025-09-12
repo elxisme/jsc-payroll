@@ -14,6 +14,7 @@ import { supabase } from '@/lib/supabase';
 import { calculateBulkPayroll, processPayrollRun } from '@/lib/payroll-calculator';
 import { useToast } from '@/hooks/use-toast';
 import { logPayrollEvent } from '@/lib/audit-logger';
+import { useAuth } from '@/hooks/use-auth'; // Make sure this is imported
 
 interface Staff {
   id: string;
@@ -50,6 +51,7 @@ export default function PayrollProcessing() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+  const { user } = useAuth(); // Get the current user
 
   useEffect(() => {
     loadData();
@@ -65,7 +67,10 @@ export default function PayrollProcessing() {
         .select('*')
         .order('name');
       
-      if (deptError) throw deptError;
+      if (deptError) {
+        console.error('Error fetching departments:', deptError);
+        return;
+      }
       setDepartments(deptData || []);
 
       // Load staff
@@ -80,7 +85,10 @@ export default function PayrollProcessing() {
         .eq('status', 'active')
         .order('first_name');
       
-      if (staffError) throw staffError;
+      if (staffError) {
+        console.error('Error fetching staff:', staffError);
+        return;
+      }
       setStaff(staffData || []);
 
       // Load recent payroll runs
@@ -90,7 +98,10 @@ export default function PayrollProcessing() {
         .order('created_at', { ascending: false })
         .limit(10);
       
-      if (payrollError) throw payrollError;
+      if (payrollError) {
+        console.error('Error fetching payroll runs:', payrollError);
+        return;
+      }
       setPayrollRuns(payrollData || []);
 
     } catch (error) {
@@ -210,6 +221,7 @@ export default function PayrollProcessing() {
           department_id: selectedDepartment === 'all' ? null : selectedDepartment,
           status: 'draft',
           total_staff: staffToProcess.length,
+          created_by: user?.id, // Ensure created_by is set
         })
         .select()
         .single();
@@ -237,7 +249,8 @@ export default function PayrollProcessing() {
       }));
 
       // Calculate payroll and create payslips
-      const results = await processPayrollRun(payrollRun.id, selectedPeriod, payrollInputs);
+      // Pass the user.id to processPayrollRun
+      const results = await processPayrollRun(payrollRun.id, selectedPeriod, payrollInputs, user?.id || ''); // Pass user ID
 
       // Create notifications for relevant users
       const { data: adminUsers } = await supabase
