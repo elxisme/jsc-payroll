@@ -187,9 +187,6 @@ export function StaffDetailsModal({ open, onClose, staff }: StaffDetailsModalPro
               </TabsTrigger>
             </TabsList>
 
-            {/* FIX: The problematic wrapping <div> has been removed. */}
-            {/* Each <TabsContent> is now a direct child of <Tabs> */}
-
             <TabsContent value="profile" className="space-y-6 pt-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Personal Information */}
@@ -557,7 +554,6 @@ export function StaffDetailsModal({ open, onClose, staff }: StaffDetailsModalPro
                       {deduction.totalAmount && deduction.totalAmount > 0 && (
                         <div className="mt-3">
                           <div className="flex justify-between text-xs text-gray-500 mb-1">
-                            <span>Progress</span>
                             <span>{calculateProgress(deduction).toFixed(1)}% paid</span>
                           </div>
                           <Progress value={calculateProgress(deduction)} className="h-2" />
@@ -617,27 +613,6 @@ export function StaffDetailsModal({ open, onClose, staff }: StaffDetailsModalPro
           }}
           preselectedStaffId={staff.id}
         />
-
-        {/* Loan Modals */}
-        <AddLoanModal
-          open={showAddLoanModal}
-          onClose={() => setShowAddLoanModal(false)}
-          onSuccess={() => {
-            setShowAddLoanModal(false);
-          }}
-          preselectedStaffId={staff.id}
-        />
-
-        {selectedLoan && (
-          <LoanDetailsModal
-            open={showLoanDetailsModal}
-            onClose={() => {
-              setShowLoanDetailsModal(false);
-              setSelectedLoan(null);
-            }}
-            loan={selectedLoan}
-          />
-        )}
 
         {selectedAllowance && (
           <EditIndividualAllowanceModal
