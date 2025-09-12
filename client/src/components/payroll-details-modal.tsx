@@ -204,7 +204,7 @@ export function PayrollDetailsModal({ open, onClose, payrollRun }: PayrollDetail
         // Fetch all active staff
         let { data: staffData, error: staffError } = await supabase
           .from('staff')
-          .select(`id, first_name, last_name, position, grade_level, step, departments(name)`)
+          .select(`id, first_name, last_name, position, grade_level, step, departments!staff_department_id_fkey(name)`) // FIX: Specify foreign key
           .eq('status', 'active');
 
         if (staffError) throw staffError;
