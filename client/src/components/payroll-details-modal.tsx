@@ -1,3 +1,5 @@
+// client/src/components/payroll-details-modal.tsx
+
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/use-auth';
@@ -5,6 +7,7 @@ import { supabase } from '@/lib/supabase';
 import { formatDisplayCurrency, formatDetailCurrency } from '@/lib/currency-utils';
 import { exportPayrollToExcel } from '@/lib/export-utils';
 import { useToast } from '@/hooks/use-toast';
+import { calculateBulkPayroll } from '@/lib/payroll-calculator'; // Add this import
 import {
   Dialog,
   DialogContent,
@@ -45,6 +48,7 @@ export function PayrollDetailsModal({ open, onClose, payrollRun }: PayrollDetail
       if (!payrollRun?.id) return null;
 
       // Fetch payslips for this payroll run
+      // This query will return empty if payslips haven't been generated yet (status !== 'processed')
       const { data: payslips, error: payslipsError } = await supabase
         .from('payslips')
         .select(`
@@ -138,51 +142,142 @@ export function PayrollDetailsModal({ open, onClose, payrollRun }: PayrollDetail
   };
 
   const handleDownloadFullReport = async () => {
-    if (!payrollDetails?.payslips || payrollDetails.payslips.length === 0) {
+    if (!payrollRun) {
       toast({
-        title: "No Data",
-        description: "No payslip data available to export",
+        title: "Error",
+        description: "No payroll run data available.",
         variant: "destructive",
       });
       return;
     }
 
     try {
-      // Transform payslips data for export
-      const exportData = payrollDetails.payslips.map((payslip: any) => {
-        // Parse allowances and deductions JSON
-        const allowances = typeof payslip.allowances === 'string' 
-          ? JSON.parse(payslip.allowances) 
-          : payslip.allowances || {};
-        
-        const deductions = typeof payslip.deductions === 'string' 
-          ? JSON.parse(payslip.deductions) 
-          : payslip.deductions || {};
+      let exportData: any[] = [];
+      const reportFilename = `payroll_audit_report_${payrollRun.period}_${new Date().toISOString().split('T')[0]}.xlsx`;
 
-        // Calculate total allowances and deductions
-        const totalAllowances = Object.values(allowances).reduce((sum: number, amount: any) => 
-          sum + (parseFloat(amount) || 0), 0);
-        const totalDeductions = Object.values(deductions).reduce((sum: number, amount: any) => 
-          sum + (parseFloat(amount) || 0), 0);
+      if (payrollRun.status === 'processed') {
+        // Existing logic for processed payrolls: fetch from payslips
+        if (!payrollDetails?.payslips || payrollDetails.payslips.length === 0) {
+          toast({
+            title: "No Data",
+            description: "No payslip data available to export for this processed payroll.",
+            variant: "destructive",
+          });
+          return;
+        }
+        exportData = payrollDetails.payslips.map((payslip: any) => {
+          const allowances = typeof payslip.allowances === 'string' 
+            ? JSON.parse(payslip.allowances) 
+            : payslip.allowances || {};
+          
+          const deductions = typeof payslip.deductions === 'string' 
+            ? JSON.parse(payslip.deductions) 
+            : payslip.deductions || {};
 
-        return {
-          staffId: payslip.staff?.staff_id || '',
-          staffName: `${payslip.staff?.first_name || ''} ${payslip.staff?.last_name || ''}`.trim(),
-          department: payslip.staff?.departments?.name || 'Unassigned',
-          position: payslip.staff?.position || '',
-          gradeLevel: payslip.staff?.grade_level || 0,
-          step: payslip.staff?.step || 0,
-          basicSalary: parseFloat(payslip.basic_salary || '0'),
-          allowances: totalAllowances,
-          grossPay: parseFloat(payslip.gross_pay || '0'),
-          deductions: totalDeductions,
-          netPay: parseFloat(payslip.net_pay || '0'),
-          period: payrollRun.period,
-        };
-      });
+          const totalAllowances = Object.values(allowances).reduce((sum: number, amount: any) => 
+            sum + (parseFloat(amount) || 0), 0);
+          const totalDeductions = Object.values(deductions).reduce((sum: number, amount: any) => 
+            sum + (parseFloat(amount) || 0), 0);
 
-      const filename = `payroll_audit_report_${payrollRun.period}_${new Date().toISOString().split('T')[0]}.xlsx`;
-      await exportPayrollToExcel(exportData, filename);
+          return {
+            staffId: payslip.staff?.staff_id || '',
+            staffName: `${payslip.staff?.first_name || ''} ${payslip.staff?.last_name || ''}`.trim(),
+            department: payslip.staff?.departments?.name || 'Unassigned',
+            position: payslip.staff?.position || '',
+            gradeLevel: payslip.staff?.grade_level || 0,
+            step: payslip.staff?.step || 0,
+            basicSalary: parseFloat(payslip.basic_salary || '0'),
+            allowances: totalAllowances,
+            grossPay: parseFloat(payslip.gross_pay || '0'),
+            deductions: totalDeductions,
+            netPay: parseFloat(payslip.net_pay || '0'),
+            period: payrollRun.period,
+          };
+        });
+      } else {
+        // Logic for non-processed payrolls: re-calculate from staff data
+        toast({
+          title: "Generating Report",
+          description: "Calculating payroll details for the report. This may take a moment...",
+        });
+
+        // Fetch all active staff
+        let { data: staffData, error: staffError } = await supabase
+          .from('staff')
+          .select(`id, first_name, last_name, position, grade_level, step, departments(name)`)
+          .eq('status', 'active');
+
+        if (staffError) throw staffError;
+
+        // Filter staff by department if the payroll run was for a specific department
+        if (payrollRun.department_id) {
+          staffData = staffData.filter(s => s.departments?.id === payrollRun.department_id);
+        }
+
+        if (!staffData || staffData.length === 0) {
+          toast({
+            title: "No Staff Data",
+            description: "No active staff found for the selected payroll run criteria.",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        // Prepare inputs for bulk payroll calculation
+        const payrollInputs = staffData.map(s => ({
+          staffId: s.id,
+          gradeLevel: s.grade_level,
+          step: s.step,
+          position: s.position,
+          // Default other inputs to 0 or fetch if needed for a more accurate re-calculation
+          arrears: 0,
+          overtime: 0,
+          bonus: 0,
+          loans: 0,
+          cooperatives: 0,
+          unpaidLeaveDays: 0, // Assuming no unpaid leave for report generation unless explicitly fetched
+        }));
+
+        // Calculate bulk payroll
+        const calculatedResults = await calculateBulkPayroll(payrollInputs);
+
+        // Map calculated results to export format
+        exportData = calculatedResults.map(result => {
+          const staffMember = staffData.find(s => s.id === result.staffId);
+          if (!staffMember) return null; // Should not happen
+
+          const totalAllowances = Object.values(result.allowancesBreakdown).reduce((sum, amount) => sum + amount, 0) +
+                                  Object.values(result.individualAllowancesBreakdown).reduce((sum, amount) => sum + amount, 0);
+          const totalDeductions = Object.values(result.deductionsBreakdown).reduce((sum, amount) => sum + amount, 0) +
+                                  Object.values(result.individualDeductionsBreakdown).reduce((sum, amount) => sum + amount, 0);
+
+          return {
+            staffId: staffMember.staff_id || '',
+            staffName: `${staffMember.first_name || ''} ${staffMember.last_name || ''}`.trim(),
+            department: staffMember.departments?.name || 'Unassigned',
+            position: staffMember.position || '',
+            gradeLevel: staffMember.grade_level || 0,
+            step: staffMember.step || 0,
+            basicSalary: result.basicSalary,
+            allowances: totalAllowances,
+            grossPay: result.grossPay,
+            deductions: totalDeductions,
+            netPay: result.netPay,
+            period: payrollRun.period,
+          };
+        }).filter(Boolean); // Remove any nulls if staffMember not found
+      }
+
+      if (exportData.length === 0) {
+        toast({
+          title: "No Data",
+          description: "No data available to generate the report.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      await exportPayrollToExcel(exportData, reportFilename);
       
       toast({
         title: "Success",
@@ -399,7 +494,7 @@ export function PayrollDetailsModal({ open, onClose, payrollRun }: PayrollDetail
               <Button 
                 onClick={handleDownloadFullReport}
                 className="bg-nigeria-green hover:bg-green-700"
-                disabled={!payrollDetails?.payslips || payrollDetails.payslips.length === 0}
+                disabled={isLoading} // Button is disabled only when data is loading
               >
                 <Download className="mr-2 h-4 w-4" />
                 Download Full Report
@@ -411,3 +506,4 @@ export function PayrollDetailsModal({ open, onClose, payrollRun }: PayrollDetail
     </Dialog>
   );
 }
+
