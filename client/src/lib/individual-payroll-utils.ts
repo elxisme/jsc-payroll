@@ -390,7 +390,7 @@ export async function getCooperativeOrganizations(): Promise<CooperativeOrganiza
     email: item.email,
     address: item.address,
     interestRateDefault: item.interest_rate_default ? parseFloat(item.interest_rate_default) : undefined,
-    isActive: item.is_active,
+    isActive: Boolean(item.is_active), // Explicitly cast to Boolean
   }));
 }
 
@@ -408,14 +408,21 @@ export async function updateCooperativeOrganization(id: string, updates: Partial
   if (updates.email !== undefined) updateData.email = updates.email;
   if (updates.address !== undefined) updateData.address = updates.address;
   if (updates.interestRateDefault !== undefined) updateData.interest_rate_default = updates.interestRateDefault?.toString();
-  if (updates.isActive !== undefined) updateData.is_active = updates.isActive;
+  
+  // Explicitly ensure is_active is a boolean
+  updateData.is_active = Boolean(updates.isActive); 
+
+  console.log(`[updateCooperativeOrganization] Updating cooperative ${id} with data:`, updateData);
 
   const { error } = await supabase
     .from('cooperative_organizations')
     .update(updateData)
     .eq('id', id);
 
-  if (error) throw error;
+  if (error) {
+    console.error("[updateCooperativeOrganization] Supabase update error:", error);
+    throw error;
+  }
 }
 
 /**
