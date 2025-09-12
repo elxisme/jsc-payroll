@@ -41,11 +41,12 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator, // Add this import
 } from "@/components/ui/dropdown-menu";
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { SeparatorVertical as DropdownMenuSeparator, CheckCircle, Clock, AlertCircle, Eye, FileText, Check, X, Calendar, Users, Unlock, Play, Send, RefreshCw, MoreHorizontal } from 'lucide-react';
+import { CheckCircle, Clock, AlertCircle, Eye, FileText, Check, X, Calendar, Users, Unlock, Play, Send, RefreshCw, MoreHorizontal } from 'lucide-react'; // Remove SeparatorVertical from here
 
 export default function PayrollWorkflow() {
   const { user, hasRole } = useAuth();
@@ -907,3 +908,4 @@ export default function PayrollWorkflow() {
     </div>
   );
 }
+
