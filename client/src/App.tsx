@@ -25,6 +25,7 @@ import ProfileSettings from "@/pages/settings/profile-settings";
 import LeaveApprovalWorkflow from "@/pages/leave/leave-approval-workflow";
 import StaffPortal from "@/pages/staff-portal/staff-portal";
 import PromotionsManagement from "@/pages/promotions/PromotionsManagement"; // New Import
+import LoanManagement from "@/pages/loans/LoanManagement";
 import NotFound from "@/pages/not-found";
 
 function AppContent() {
